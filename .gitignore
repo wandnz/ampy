@@ -1,0 +1,10 @@
+*~
+*.bak
+*.pyc
+*.swp
+*.egg-info
+*.db
+*.log
+__pycache__
+build/
+dist/
