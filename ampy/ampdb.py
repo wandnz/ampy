@@ -10,8 +10,6 @@ import engine
 
 def create():
     """ Creates and returns instance of an ampdb connection """
-    instance = engine.Connection()
-    instance._connect()
-    return instance
+    return engine.Connection()
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :

@@ -10,6 +10,7 @@ class Connection(object):
     def __init__(self):
         """ Initialises an AMP connection """
         print "I'm a new AMP connection"
+        self._connect()
 
     def _connect(self):
         """ Connects to AMP """
