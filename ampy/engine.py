@@ -11,7 +11,7 @@ class Connection(object):
         """ Initialises an AMP connection """
         print "I'm a new AMP connection"
 
-    def connect(self):
+    def _connect(self):
         """ Connects to AMP """
         print "Connected to AMP"
 
