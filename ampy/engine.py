@@ -5,6 +5,8 @@
 Connects to an AMP database and interacts with it
 """
 
+import random
+
 
 class Connection(object):
     """ Class that is used to query the AMP dataset. Queries will return a
@@ -19,7 +21,7 @@ class Connection(object):
         """ Connects to AMP """
         pass
 
-    def get(self, src=None, dst=None, test=None, subtype=None, start=None, end=None, binsize=30):
+    def get(self, src=None, dst=None, test=None, subtype=None, start=None, end=None, binsize=60):
         """ Fetches data from the connection, returning a Result object
         
             Keyword arguments:
@@ -109,23 +111,59 @@ class Connection(object):
         #        "packetsize_bytes": { "missing": 0, "count": 1, "mean": 84 },
         #   }
         # ]
-        data = [
-            { 
-                "time": 1353643230,
-                "rtt_ms": { "missing": 0, "count": 1, "mean": 3 },
-                "packetsize_bytes": { "missing": 0, "count": 1, "mean": 84 },
-            }, 
-            { 
-                "time": 1353643290,
-                "rtt_ms": { "missing": 0, "count": 1, "mean": 4 },
-                "packetsize_bytes": { "missing": 0, "count": 1, "mean": 84 },
-            },
-            { 
-                "time": 1353643350,
-                "rtt_ms": { "missing": 0, "count": 1, "mean": 3 },
-                "packetsize_bytes": { "missing": 0, "count": 1, "mean": 84 },
-            }
-        ]
+        data = []
+        now = start
+
+        # make up a number for how many items there are per bin
+        count = binsize / 60
+        if count < 1:
+            count = 1
+
+        # fill the whole requested time period with data
+        while now <= end:
+            # default values are for loss
+            rtt_mean = -1
+            rtt_count = 0
+            rtt_missing = count
+            # if the entire bin isn't lost, calculate some random variables
+            if random.randint(1, 1000) > 5:
+                # mean is in the range 1 - 100
+                rtt_mean = random.randint(1, 100)
+                # count is in the range 1 - max items in this bin
+                rtt_count = random.randint(1, count)
+                # missing is however meany are left
+                rtt_missing = count - rtt_count
+                # make some semi-believable values for other summary statistics
+                rtt_max = rtt_mean
+                rtt_min = rtt_mean
+                rtt_stddev = 0
+                if rtt_count > 1:
+                    rtt_max += random.randint(1, 50)
+                    rtt_min -= random.randint(1, rtt_mean-1)
+                    rtt_stddev = random.random() * rtt_mean / 2.0
+                
+            # add the data point
+            data.append({
+                    "time": now,
+                    "rtt_ms": { 
+                        "missing": rtt_missing, 
+                        "count": rtt_count, 
+                        "mean": rtt_mean,
+                        "max": rtt_max,
+                        "min": rtt_min,
+                        "stddev": rtt_stddev,
+                    },
+                    "packetsize_bytes": {
+                        "missing": 0,
+                        "count": count,
+                        "mean": 84,
+                        "max": 84,
+                        "min": 84,
+                        "stddev": 0,
+                    },
+            })
+            now += binsize
+
         return Result(data)
 
 
