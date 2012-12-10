@@ -125,6 +125,9 @@ class Connection(object):
             rtt_mean = -1
             rtt_count = 0
             rtt_missing = count
+            rtt_max = -1
+            rtt_min = -1
+            rtt_stddev = 0
             # if the entire bin isn't lost, calculate some random variables
             if random.randint(1, 1000) > 5:
                 # mean is in the range 1 - 100
