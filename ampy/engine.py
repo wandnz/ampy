@@ -6,6 +6,7 @@ Connects to an AMP database and interacts with it
 """
 
 import random
+import time
 
 
 class Connection(object):
@@ -52,6 +53,15 @@ class Connection(object):
 
         if subtype is None:
             return self._get_subtypes(src, dst, test, start, end)
+
+        # FIXME: consider limiting maximum durations based on binsize
+        # if end is not set then assume "now"
+        if end is None:
+            end = int(time.time())
+
+        # if start is not set then assume 5 minutes before the end
+        if start is None:
+            start = end - (60*5)
 
         return self._get_data(src, dst, test, subtype, start, end, binsize)
 
