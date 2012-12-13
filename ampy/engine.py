@@ -143,7 +143,10 @@ class Connection(object):
                 # mean is in the range 1 - 100
                 rtt_mean = random.randint(1, 100)
                 # count is in the range 1 - max items in this bin
-                rtt_count = random.randint(1, count)
+                if count == 1:
+                    rtt_count = 1
+                else:
+                    rtt_count = random.randint(1, count)
                 # missing is however meany are left
                 rtt_missing = count - rtt_count
                 # make some semi-believable values for other summary statistics
@@ -152,7 +155,10 @@ class Connection(object):
                 rtt_stddev = 0
                 if rtt_count > 1:
                     rtt_max += random.randint(1, 50)
-                    rtt_min -= random.randint(1, rtt_mean-1)
+                    if rtt_mean <= 2:
+                        rtt_min = 1
+                    else:
+                        rtt_min -= random.randint(1, rtt_mean-1)
                     rtt_stddev = random.random() * rtt_mean / 2.0
                 
             # add the data point
