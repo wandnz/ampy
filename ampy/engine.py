@@ -28,7 +28,8 @@ class Connection(object):
         """ Connects to AMP """
         pass
 
-    def get(self, src=None, dst=None, test=None, subtype=None, start=None, end=None, binsize=60, rand=False):
+    def get(self, src=None, dst=None, test=None, subtype=None, start=None, 
+            end=None, binsize=60, rand=False):
         """ Fetches data from the connection, returning a Result object
         
             Keyword arguments:
@@ -43,39 +44,38 @@ class Connection(object):
         """
 
         if src is None:
-            # pass through other args so we can do smart filtering?
+            # Pass through other args so we can do smart filtering?
             return self._get_sources(start, end)
 
         if dst is None:
-            # pass through other args so we can do smart filtering?
+            # Pass through other args so we can do smart filtering?
             return self._get_destinations(src, start, end)
         
         if test is None:
-            # pass through other args so we can do smart filtering?
+            # Pass through other args so we can do smart filtering?
             return self._get_tests(src, dst, start, end)
 
         if test is None:
-            # pass through other args so we can do smart filtering?
+            # Pass through other args so we can do smart filtering?
             return self._get_tests(src, dst, start, end)
 
         if subtype is None:
             return self._get_subtypes(src, dst, test, start, end)
 
-        # FIXME: consider limiting maximum durations based on binsize
-        # if end is not set then assume "now"
+        # FIXME: Consider limiting maximum durations based on binsize
+        # if end is not set then assume "now".
         if end is None:
             end = int(time.time())
 
-        # if start is not set then assume 5 minutes before the end
+        # If start is not set then assume 5 minutes before the end.
         if start is None:
             start = end - (60*5)
 
         return self._get_data(src, dst, test, subtype, start, end, binsize, rand)
 
-
     def _get_json(self, url, expected, binsize=60):
         """ Query the old REST API to get data """
-        # TODO don't query the old API, query the new one that will be written!
+        # TODO Don't query the old API, query the new one that will be written!
         try:
             url = "%s/%s;api_key=%s&stat=all&binsize=%d" % (
                     self.urlbase, url, self.apikey, binsize)
@@ -89,7 +89,7 @@ class Connection(object):
         response.close()
         data = json.loads(jsonstring)
 
-        # if the response doesn't look like what we expected then return None
+        # If the response doesn't look like what we expected then return None.
         if not data.has_key("response"):
             return None
         if not data["response"].has_key(expected):
@@ -98,16 +98,15 @@ class Connection(object):
             return None
         return data["response"][expected]
         
-
     def _get_sources(self, start, end):
         """ Fetches all sources that have returned data recently """
-        # FIXME temporarily fetching using existing REST API, fetch from DB
+        # FIXME Temporarily fetching using existing REST API, fetch from DB.
         sources = self._get_json("", "sites")
-        return Result(sources);
+        return Result(sources)
     
     def _get_destinations(self, src, start, end):
         """ Fetches all destinations that are available from the source """
-        # FIXME temporarily fetching using existing REST API, fetch from DB
+        # FIXME Temporarily fetching using existing REST API, fetch from DB.
         destinations = self._get_json(src, "sites")
         if destinations is not None and src in destinations:
             destinations.remove(src)
@@ -115,16 +114,16 @@ class Connection(object):
 
     def _get_tests(self, src, dst, start, end):
         """ Fetches all tests that are performed between src and dst """
-        # FIXME temporarily fetching using existing REST API, fetch from DB
+        # FIXME Temporarily fetching using existing REST API, fetch from DB.
         tests = self._get_json("/".join(src, dst), "tests")
-        # just deal in test names, so create a list from the dict of {id:name}
+        # Just deal in test names, so create a list from the dict of {id:name}.
         if tests is not None:
             tests = tests.values()
         return Result(tests)
     
     def _get_subtypes(self, src, dst, test, start, end):
         """ Fetches all test subtypes that are performed between src and dst """
-        # FIXME temporarily fetching using existing REST API, fetch from DB
+        # FIXME Temporarily fetching using existing REST API, fetch from DB.
         subtypes = self._get_json("/".join(src, dst, test), "subtypes")
         return Result(subtypes)
 
@@ -136,9 +135,9 @@ class Connection(object):
 
     def _get_data(self, src, dst, test, subtype, start, end, binsize, rand):
         """ Fetch the data for the specified src/dst/test/timeperiod """
-        # list of all data, similar format to the REST interface 
-        # TODO: add more information about max/min/stddev etc
-        # FIXME temporarily fetching using existing REST API, fetch from DB
+        # List of all data, similar format to the current REST interface.
+        # TODO: Add more information about max/min/stddev etc.
+        # FIXME Temporarily fetching using existing REST API, fetch from DB.
         # [ 
         #   { 
         #        "time": timestamp,
@@ -147,8 +146,8 @@ class Connection(object):
         #   }
         # ]
 
-        # we may still want some random data for testing that is quick to 
-        # generate (rather than waiting for real data from the old REST API)
+        # We may still want some random data for testing that is quick to 
+        # generate (rather than waiting for real data from the old REST API).
         if rand:
             return self._get_random_data(start, end, binsize)
 
@@ -157,38 +156,37 @@ class Connection(object):
         data = map(self._adjust_old_data, data)
         return data
 
-
     def _get_random_data(self, start, end, binsize):
         """ Fetch random data for the specified src/dst/test/timeperiod """
         data = []
         now = start
 
-        # make up a number for how many items there are per bin
+        # Make up a number for how many items there are per bin.
         count = binsize / 60
         if count < 1:
             count = 1
 
-        # fill the whole requested time period with data
+        # Fill the whole requested time period with data.
         while now <= end:
-            # default values are for loss
+            # Default values are for complete loss during this bin.
             rtt_mean = -1
             rtt_count = 0
             rtt_missing = count
             rtt_max = -1
             rtt_min = -1
             rtt_stddev = 0
-            # if the entire bin isn't lost, calculate some random variables
+            # If the entire bin isn't lost, calculate some random variables.
             if random.randint(1, 1000) > 5:
-                # mean is in the range 1 - 100
+                # Mean is in the range 1 - 100.
                 rtt_mean = random.randint(1, 100)
-                # count is in the range 1 - max items in this bin
+                # Count is in the range 1 - max items in this bin.
                 if count == 1:
                     rtt_count = 1
                 else:
                     rtt_count = random.randint(1, count)
-                # missing is however meany are left
+                # Missing is however meany are left.
                 rtt_missing = count - rtt_count
-                # make some semi-believable values for other summary statistics
+                # Make some semi-believable values for other summary statistics.
                 rtt_max = rtt_mean
                 rtt_min = rtt_mean
                 rtt_stddev = 0
@@ -200,7 +198,7 @@ class Connection(object):
                         rtt_min -= random.randint(1, rtt_mean-1)
                     rtt_stddev = random.random() * rtt_mean / 2.0
                 
-            # add the data point
+            # Add the data point
             data.append({
                     "time": now,
                     "rtt_ms": { 
@@ -223,7 +221,6 @@ class Connection(object):
             now += binsize
 
         return Result(data)
-
 
 
 class Result(object):
