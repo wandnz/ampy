@@ -7,6 +7,10 @@ Connects to an AMP database and interacts with it
 
 import random
 import time
+import urllib2
+import json
+import httplib
+import sys
 
 
 class Connection(object):
@@ -17,12 +21,14 @@ class Connection(object):
     def __init__(self):
         """ Initialises an AMP connection """
         self._connect()
+        self.urlbase = "http://erg.wand.net.nz/amp/testdata2/json"
+        self.apikey = "cathyisastud"
 
     def _connect(self):
         """ Connects to AMP """
         pass
 
-    def get(self, src=None, dst=None, test=None, subtype=None, start=None, end=None, binsize=60):
+    def get(self, src=None, dst=None, test=None, subtype=None, start=None, end=None, binsize=60, rand=False):
         """ Fetches data from the connection, returning a Result object
         
             Keyword arguments:
@@ -33,6 +39,7 @@ class Connection(object):
             start -- timestamp for the start of the period to fetch data for
             end -- timestamp for the end of the period to fetch data for
             binsize -- number of seconds worth of data to bin
+            rand -- if true will generate random data rather than real data
         """
 
         if src is None:
@@ -63,57 +70,75 @@ class Connection(object):
         if start is None:
             start = end - (60*5)
 
-        return self._get_data(src, dst, test, subtype, start, end, binsize)
+        return self._get_data(src, dst, test, subtype, start, end, binsize, rand)
+
+
+    def _get_json(self, url, expected, binsize=60):
+        """ Query the old REST API to get data """
+        # TODO don't query the old API, query the new one that will be written!
+        try:
+            url = "%s/%s;api_key=%s&stat=all&binsize=%d" % (
+                    self.urlbase, url, self.apikey, binsize)
+            request = urllib2.Request(url)
+            response = urllib2.urlopen(request, None, 30)
+        except (urllib2.URLError, httplib.BadStatusLine):
+            print >> sys.stderr, "error fetching data from %s" % url
+            return None
+
+        jsonstring = response.read()
+        response.close()
+        data = json.loads(jsonstring)
+
+        # if the response doesn't look like what we expected then return None
+        if not data.has_key("response"):
+            return None
+        if not data["response"].has_key(expected):
+            return None
+        if len(data["response"][expected]) < 1:
+            return None
+        return data["response"][expected]
+        
 
     def _get_sources(self, start, end):
         """ Fetches all sources that have returned data recently """
-        # FIXME temporarily hardcoded sources to test API, fetch from DB
-        sources = [
-            "ampz-auckland", 
-            "ampz-waikato", 
-            "ampz-massey-pn",
-            "ampz-karen-wellington",
-            "ampz-waikato:v6",
-            ]
-        return Result(sources)
+        # FIXME temporarily fetching using existing REST API, fetch from DB
+        sources = self._get_json("", "sites")
+        return Result(sources);
     
     def _get_destinations(self, src, start, end):
-        """ Fetches all destinations that are available from the give source """
-        # FIXME temporarily hardcoded destinations to test API, fetch from DB
-        destinations = [
-            "ampz-auckland", 
-            "ampz-waikato", 
-            "ampz-massey-pn",
-            "ampz-karen-wellington",
-            "ampz-waikato:v6",
-            "ns1.dns.net.nz",
-            "www.stuff.co.nz",
-            ]
-        if src in destinations:
+        """ Fetches all destinations that are available from the source """
+        # FIXME temporarily fetching using existing REST API, fetch from DB
+        destinations = self._get_json(src, "sites")
+        if destinations is not None and src in destinations:
             destinations.remove(src)
         return Result(destinations)
 
     def _get_tests(self, src, dst, start, end):
         """ Fetches all tests that are performed between src and dst """
-        # FIXME temporarily hardcoded tests to test API, fetch from DB
-        tests = [ "icmp", "trace" ]
+        # FIXME temporarily fetching using existing REST API, fetch from DB
+        tests = self._get_json("/".join(src, dst), "tests")
+        # just deal in test names, so create a list from the dict of {id:name}
+        if tests is not None:
+            tests = tests.values()
         return Result(tests)
     
     def _get_subtypes(self, src, dst, test, start, end):
         """ Fetches all test subtypes that are performed between src and dst """
-        # FIXME temporarily hardcoded test subtypes to test API, fetch from DB
-        subtypes = []
-        if test == "icmp":
-            subtypes = [ "0084", "rand" ]
-        elif test == "trace":
-            subtypes = [ "trace" ]
+        # FIXME temporarily fetching using existing REST API, fetch from DB
+        subtypes = self._get_json("/".join(src, dst, test), "subtypes")
         return Result(subtypes)
 
-    def _get_data(self, src, dst, test, subtype, start, end, binsize):
+    def _adjust_old_data(self, data):
+        """ Strip the parent "data" that the old API uses """
+        if data.has_key("data"):
+            return data["data"]
+        return None
+
+    def _get_data(self, src, dst, test, subtype, start, end, binsize, rand):
         """ Fetch the data for the specified src/dst/test/timeperiod """
         # list of all data, similar format to the REST interface 
         # TODO: add more information about max/min/stddev etc
-        # FIXME temporarily hardcoded test data to test API, fetch from DB
+        # FIXME temporarily fetching using existing REST API, fetch from DB
         # [ 
         #   { 
         #        "time": timestamp,
@@ -121,6 +146,20 @@ class Connection(object):
         #        "packetsize_bytes": { "missing": 0, "count": 1, "mean": 84 },
         #   }
         # ]
+
+        # we may still want some random data for testing that is quick to 
+        # generate (rather than waiting for real data from the old REST API)
+        if rand:
+            return self._get_random_data(start, end, binsize)
+
+        args = [src, dst, test, subtype, str(start), str(end)]
+        data = self._get_json("/".join(args), "dataset", binsize)
+        data = map(self._adjust_old_data, data)
+        return data
+
+
+    def _get_random_data(self, start, end, binsize):
+        """ Fetch random data for the specified src/dst/test/timeperiod """
         data = []
         now = start
 
@@ -209,6 +248,8 @@ class Result(object):
 
     def next(self):
         """ Fetch the next item for the iterator """
+        if self.data is None:
+            raise StopIteration
         if self.index < len(self.data):
             self.index += 1
             return self.data[self.index-1]
@@ -223,12 +264,16 @@ class Result(object):
 
     def fetchall(self):
         """ Fetch all remaining items in the result set """
+        if self.data is None:
+            return []
         current = self.index
         self.index = len(self.data)
         return self.data[current:]
 
     def fetchmany(self, count):
         """ Fetch up to the specified number of results and return as a list """
+        if self.data is None:
+            return []
         i = 0
         result = []
         while i < count and self.index < len(self.data):
@@ -239,6 +284,8 @@ class Result(object):
 
     def count(self):
         """ Return the number of results this query produced """
+        if self.data is None:
+            return 0
         return len(self.data)
 
 
