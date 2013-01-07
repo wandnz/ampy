@@ -158,7 +158,7 @@ class Connection(object):
         data = self._get_json("/".join(args), "dataset", binsize)
         if data is not None:
             data = map(self._adjust_old_data, data)
-        return data
+        return Result(data)
 
     def _get_random_data(self, start, end, binsize):
         """ Fetch random data for the specified src/dst/test/timeperiod """
