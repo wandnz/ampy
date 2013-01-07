@@ -87,7 +87,10 @@ class Connection(object):
 
         jsonstring = response.read()
         response.close()
-        data = json.loads(jsonstring)
+        try:
+            data = json.loads(jsonstring)
+        except (ValueError):
+            return None
 
         # If the response doesn't look like what we expected then return None.
         if not data.has_key("response"):
@@ -153,7 +156,8 @@ class Connection(object):
 
         args = [src, dst, test, subtype, str(start), str(end)]
         data = self._get_json("/".join(args), "dataset", binsize)
-        data = map(self._adjust_old_data, data)
+        if data is not None:
+            data = map(self._adjust_old_data, data)
         return data
 
     def _get_random_data(self, start, end, binsize):
