@@ -118,7 +118,7 @@ class Connection(object):
     def _get_tests(self, src, dst, start, end):
         """ Fetches all tests that are performed between src and dst """
         # FIXME Temporarily fetching using existing REST API, fetch from DB.
-        tests = self._get_json("/".join(src, dst), "tests")
+        tests = self._get_json("/".join([src, dst]), "tests")
         # Just deal in test names, so create a list from the dict of {id:name}.
         if tests is not None:
             tests = tests.values()
@@ -127,7 +127,7 @@ class Connection(object):
     def _get_subtypes(self, src, dst, test, start, end):
         """ Fetches all test subtypes that are performed between src and dst """
         # FIXME Temporarily fetching using existing REST API, fetch from DB.
-        subtypes = self._get_json("/".join(src, dst, test), "subtypes")
+        subtypes = self._get_json("/".join([src, dst, test]), "subtypes")
         return Result(subtypes)
 
     def _adjust_old_data(self, data):
