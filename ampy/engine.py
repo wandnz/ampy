@@ -28,6 +28,33 @@ class Connection(object):
         """ Connects to AMP """
         pass
 
+    def get_sources(self, start=None, end=None):
+        """ Get all source monitors """
+        # TODO Filter results based on having specific test data available?
+        return self._get_sources(start, end)
+
+    def get_destinations(self, src=None, start=None, end=None):
+        """ Get all destinations from the given source """
+        # If no source is given then find all possible destinations
+        if src is None:
+            destinations = set()
+            # TODO This is not very efficient, but will be improved by the DB.
+            # TODO It also fetches a whole lot of destinations that are only the
+            # target of a few special tests, or ones that are now deprecated
+            # and have no recent data.
+            # TODO Filter results based on having specific test data available?
+            for src in self._get_sources(start, end):
+                for dst in self._get_destinations(src, start, end):
+                    destinations.add(dst)
+            return Result(list(destinations))
+        return self._get_destinations(src, start, end)
+
+    def get_tests(self, src, dst, start=None, end=None):
+        """ Fetches all tests that are performed between src and dst """
+        # TODO Deal with any of src or dst not being set and instead return
+        # all tests to or from a host.
+        return self._get_tests(src, dst, start, end)
+
     def get(self, src=None, dst=None, test=None, subtype=None, start=None, 
             end=None, binsize=60, rand=False):
         """ Fetches data from the connection, returning a Result object
