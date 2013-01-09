@@ -28,13 +28,83 @@ class Connection(object):
         """ Connects to AMP """
         pass
 
-    def get_sources(self, start=None, end=None):
+    # XXX TEMPORARY
+    def _temp_get_good_sites(self, start=None, end=None):
+        """ Return the known good monitors as a small, useful dataset """
+        blacklist = [
+            "ampz-demo", "ampz-ns-test.old", "ampz-ape.old",
+            "ampz-theloop", "ampz-natlib", "ampz-testcon4",
+            "ampz-iconz", "ampz-tpn.old", "ampz-vodafone"
+            ]
+        # Get all source sites.
+        good_sites = []
+        sites = self._get_sources(start, end)
+        # Remove those that look ugly when displayed.
+        for site in sites:
+            if site not in blacklist:
+                good_sites.append(site)
+        return Result(good_sites)
+    
+    # XXX TEMPORARY
+    def _temp_get_karen_mesh_sites(self, start=None, end=None, v6=False):
+        """ Return a list of monitors in the KAREN mesh """
+        sites = [
+            "ampz-auckland", "ampz-canterbury", "ampz-csotago",
+            "ampz-karen-auckland", "ampz-karen-christchurch",
+            "ampz-karen-dunedin", "ampz-karen-waikato", "ampz-karen-wellington",
+            "ampz-massey-pn", "ampz-scion", "ampz-vuw", "ampz-waikato"
+            ]
+        if v6:
+            sites = sites + [
+                "ampz-auckland:v6",
+                "ampz-karen-auckland:v6", "ampz-karen-christchurch:v6",
+                "ampz-karen-dunedin:v6", "ampz-karen-waikato:v6",
+                "ampz-karen-wellington:v6", "ampz-massey-pn:v6", "ampz-vuw:v6",
+                "ampz-waikato:v6"
+                ]
+        return Result(sites)
+    
+    # XXX TEMPORARY
+    def _temp_get_nz_mesh_sites(self, start=None, end=None, v6=False):
+        """ Return a list of monitors in the NZ mesh """
+        sites = [
+            "ampz-auckland", "ampz-catalyst", "ampz-citylink",
+            "ampz-csotago", "ampz-fx-aknnr", "ampz-inspire", "ampz-massey-pn",
+            "ampz-maxnet", "ampz-netspace", "ampz-ns2b",
+            "ampz-ns3a", "ampz-ns3b", "ampz-ns4a",
+            "ampz-rurallink", "ampz-vuw", "ampz-waikato", "ampz-wxc-akl"
+            ]
+        if v6:
+            sites = sites + [
+                "ampz-auckland:v6", "ampz-citylink:v6",
+                "ampz-fx-aknnr:v6", "ampz-inspire:v6", "ampz-massey-pn:v6",
+                "ampz-netspace:v6", "ampz-ns3b:v6",
+                "ampz-vuw:v6", "ampz-waikato:v6", "ampz-wxc-akl:v6"
+                ]
+        return Result(sites)
+
+    def get_sources(self, mesh=None, start=None, end=None):
         """ Get all source monitors """
         # TODO Filter results based on having specific test data available?
+        # FIXME if sources in a mesh are asked for then actually find them
+        if mesh is not None:
+            if mesh.lower() == "nz":
+                return self._temp_get_nz_mesh_sites(start, end)
+            if mesh.lower() == "karen":
+                return self._temp_get_karen_mesh_sites(start, end)
+            return self._temp_get_good_sites(start, end)
         return self._get_sources(start, end)
 
-    def get_destinations(self, src=None, start=None, end=None):
+    def get_destinations(self, src=None, mesh=None, start=None, end=None):
         """ Get all destinations from the given source """
+        # FIXME if destinations in a mesh are asked for then actually find them
+        # and intersect results with the source if given
+        if mesh is not None:
+            if mesh.lower() == "nz":
+                return self._temp_get_nz_mesh_sites(start, end, True)
+            if mesh.lower() == "karen":
+                return self._temp_get_karen_mesh_sites(start, end, True)
+            return self._temp_function_get_good_sites(start, end)
         # If no source is given then find all possible destinations
         if src is None:
             destinations = set()
