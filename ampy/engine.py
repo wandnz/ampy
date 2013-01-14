@@ -14,7 +14,7 @@ import sys
 
 try:
     import pylibmc
-    _have_memcache = True 
+    _have_memcache = True
 except ImportError:
     _have_memcache = False
 
@@ -64,7 +64,7 @@ class Connection(object):
         return Result(good_sites)
     
     # XXX TEMPORARY
-    def _temp_get_karen_mesh_sites(self, start=None, end=None, ipv6=False):
+    def _temp_get_karen_mesh_sites(self, ipv6=False):
         """ Return a list of monitors in the KAREN mesh """
         sites = [
             "ampz-auckland", "ampz-canterbury", "ampz-csotago",
@@ -83,7 +83,7 @@ class Connection(object):
         return Result(sites)
     
     # XXX TEMPORARY
-    def _temp_get_nz_mesh_sites(self, start=None, end=None, ipv6=False):
+    def _temp_get_nz_mesh_sites(self, ipv6=False):
         """ Return a list of monitors in the NZ mesh """
         sites = [
             "ampz-auckland", "ampz-catalyst", "ampz-citylink",
@@ -107,9 +107,9 @@ class Connection(object):
         # FIXME if sources in a mesh are asked for then actually find them
         if mesh is not None:
             if mesh.lower() == "nz":
-                return self._temp_get_nz_mesh_sites(start, end)
+                return self._temp_get_nz_mesh_sites()
             if mesh.lower() == "karen":
-                return self._temp_get_karen_mesh_sites(start, end)
+                return self._temp_get_karen_mesh_sites()
             return self._temp_get_good_sites(start, end)
         return self._get_sources(start, end)
 
@@ -119,9 +119,9 @@ class Connection(object):
         # and intersect results with the source if given
         if mesh is not None:
             if mesh.lower() == "nz":
-                return self._temp_get_nz_mesh_sites(start, end, True)
+                return self._temp_get_nz_mesh_sites(True)
             if mesh.lower() == "karen":
-                return self._temp_get_karen_mesh_sites(start, end, True)
+                return self._temp_get_karen_mesh_sites(True)
             return self._temp_get_good_sites(start, end)
         # If no source is given then find all possible destinations
         if src is None:
