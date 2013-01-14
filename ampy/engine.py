@@ -104,7 +104,7 @@ class Connection(object):
                 return self._temp_get_nz_mesh_sites(start, end, True)
             if mesh.lower() == "karen":
                 return self._temp_get_karen_mesh_sites(start, end, True)
-            return self._temp_function_get_good_sites(start, end)
+            return self._temp_get_good_sites(start, end)
         # If no source is given then find all possible destinations
         if src is None:
             destinations = set()
