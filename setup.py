@@ -3,10 +3,15 @@ try:
 except ImportError:
     from distutils.core import setup
 
+requires = [
+    'pylibmc',
+    ]
+
 setup(
     name='ampy',
     description='Python library for interacting with AMP data.',
     packages=['ampy'],
+    install_requires=requires,
     version='0.0',
     author='',
     author_email='',
