@@ -12,6 +12,12 @@ import json
 import httplib
 import sys
 
+try:
+    import pylibmc
+    _have_memcache = True 
+except ImportError:
+    _have_memcache = False
+
 
 class Connection(object):
     """ Class that is used to query the AMP dataset. Queries will return a
@@ -23,6 +29,18 @@ class Connection(object):
         self._connect()
         self.urlbase = "http://erg.wand.net.nz/amp/testdata2/json"
         self.apikey = "cathyisastud"
+        # For now we will cache everything on localhost for 60 seconds.
+        if _have_memcache:
+            # TODO should cache duration be based on the amount of data?
+            self.cache_duration = 60
+            self.memcache = pylibmc.Client(
+                    ["127.0.0.1"],
+                    behaviors={
+                        "tcp_nodelay": True,
+                        "no_block": True,
+                        })
+        else:
+            self.memcache = False
 
     def _connect(self):
         """ Connects to AMP """
@@ -124,6 +142,39 @@ class Connection(object):
         # TODO Deal with any of src or dst not being set and instead return
         # all tests to or from a host.
         return self._get_tests(src, dst, start, end)
+
+    def get_recent_data(self, src, dst, test, subtype, duration, binsize=None):
+        """ Fetch data for the most recent <duration> seconds and cache it """
+        # Default to returning only a single aggregated response
+        if binsize is None:
+            binsize = duration
+
+        # If we have memcache check if this data is available already.
+        if self.memcache:
+            key = "_".join(
+                    [src, dst, test, subtype, str(duration), str(binsize)])
+            try:
+                data = self.memcache.get(key)
+                if data:
+                    return Result(data)
+            except pylibmc.SomeErrors:
+                # Nothing useful we can do, carry on as if data is not present.
+                pass
+        
+        end = int(time.time())
+        start = end - duration
+        args = [src, dst, test, subtype, str(start), str(end)]
+        data = self._get_json("/".join(args), "dataset", binsize)
+        if data is not None:
+            data = map(self._adjust_old_data, data)
+
+        if self.memcache:
+            try:
+                self.memcache.set(key, data, self.cache_duration)
+            except pylibmc.WriteError:
+                # Nothing useful we can do, carry on as if data was saved.
+                pass
+        return Result(data)
 
     def get(self, src=None, dst=None, test=None, subtype=None, start=None, 
             end=None, binsize=60, rand=False):
