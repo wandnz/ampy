@@ -46,7 +46,7 @@ class Connection(object):
         return Result(good_sites)
     
     # XXX TEMPORARY
-    def _temp_get_karen_mesh_sites(self, start=None, end=None, v6=False):
+    def _temp_get_karen_mesh_sites(self, start=None, end=None, ipv6=False):
         """ Return a list of monitors in the KAREN mesh """
         sites = [
             "ampz-auckland", "ampz-canterbury", "ampz-csotago",
@@ -54,7 +54,7 @@ class Connection(object):
             "ampz-karen-dunedin", "ampz-karen-waikato", "ampz-karen-wellington",
             "ampz-massey-pn", "ampz-scion", "ampz-vuw", "ampz-waikato"
             ]
-        if v6:
+        if ipv6:
             sites = sites + [
                 "ampz-auckland:v6",
                 "ampz-karen-auckland:v6", "ampz-karen-christchurch:v6",
@@ -65,7 +65,7 @@ class Connection(object):
         return Result(sites)
     
     # XXX TEMPORARY
-    def _temp_get_nz_mesh_sites(self, start=None, end=None, v6=False):
+    def _temp_get_nz_mesh_sites(self, start=None, end=None, ipv6=False):
         """ Return a list of monitors in the NZ mesh """
         sites = [
             "ampz-auckland", "ampz-catalyst", "ampz-citylink",
@@ -74,7 +74,7 @@ class Connection(object):
             "ampz-ns3a", "ampz-ns3b", "ampz-ns4a",
             "ampz-rurallink", "ampz-vuw", "ampz-waikato", "ampz-wxc-akl"
             ]
-        if v6:
+        if ipv6:
             sites = sites + [
                 "ampz-auckland:v6", "ampz-citylink:v6",
                 "ampz-fx-aknnr:v6", "ampz-inspire:v6", "ampz-massey-pn:v6",
