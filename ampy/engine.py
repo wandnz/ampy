@@ -35,6 +35,7 @@ class Connection(object):
             self.cache_duration = 60
             self.memcache = pylibmc.Client(
                     ["127.0.0.1"],
+                    #["127.0.0.1:11212"],
                     behaviors={
                         "tcp_nodelay": True,
                         "no_block": True,
@@ -154,9 +155,11 @@ class Connection(object):
             key = "_".join(
                     [src, dst, test, subtype, str(duration), str(binsize)])
             try:
-                data = self.memcache.get(key)
-                if data:
-                    return Result(data)
+                if key in self.memcache:
+                    #print "hit %s" % key
+                    return Result(self.memcache.get(key))
+                #else:
+                #    print "miss %s" % key
             except pylibmc.SomeErrors:
                 # Nothing useful we can do, carry on as if data is not present.
                 pass
@@ -165,7 +168,12 @@ class Connection(object):
         start = end - duration
         args = [src, dst, test, subtype, str(start), str(end)]
         data = self._get_json("/".join(args), "dataset", binsize)
-        if data is not None:
+        if data is None:
+            # Empty list is used as a marker, because if we use None then it
+            # is indistinguishable from a cache miss when we look it up. Is
+            # there a better marker we can use here?
+            data = []
+        else:
             data = map(self._adjust_old_data, data)
 
         if self.memcache:
@@ -389,7 +397,11 @@ class Result(object):
             Keyword arguments:
             data -- the source of data for the results
         """
-        self.data = data 
+        # Catch empty lists used as markers
+        if data is None or len(data) == 0:
+            self.data = None
+        else:
+            self.data = data 
         self.index = 0
 
     def __iter__(self):
