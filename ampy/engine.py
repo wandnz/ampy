@@ -144,6 +144,30 @@ class Connection(object):
         # all tests to or from a host.
         return self._get_tests(src, dst, start, end)
 
+    def get_source_meshes(self, site=None):
+        """ Fetch all source meshes, possibly filtered by a site """
+        # FIXME query the database to get the meshes
+        # No site set, return all possible source meshes
+        if site is None:
+            return Result(["NZ", "KAREN"])
+        # Site is set, return all source meshes that the site is a part of
+        return Result(["NZ", "KAREN"])
+    
+    def get_destination_meshes(self, site=None):
+        """ Fetch all destination meshes, possibly filtered by a site """
+        # FIXME query the database to get the meshes
+        # No site set, return all possible destination meshes
+        if site is None:
+            return Result([
+                "afilias DNS", "AMP Monitors", "Google DNS", "gtld DNS",
+                "KAREN", "NZ", "NZ DNS", "NZ Universities", "Public DNS",
+                "RIR DNS", "root DNS", "Websites"])
+        # Site is set, return all destination meshes that the site tests to
+        return Result([
+            "afilias DNS", "AMP Monitors", "Google DNS", "gtld DNS",
+            "KAREN", "NZ", "NZ DNS", "NZ Universities", "Public DNS",
+            "RIR DNS", "root DNS", "Websites"])
+
     def get_recent_data(self, src, dst, test, subtype, duration, binsize=None):
         """ Fetch data for the most recent <duration> seconds and cache it """
         # Default to returning only a single aggregated response
