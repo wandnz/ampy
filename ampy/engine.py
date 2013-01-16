@@ -144,6 +144,17 @@ class Connection(object):
         # all tests to or from a host.
         return self._get_tests(src, dst, start, end)
 
+    def get_site_info(self, site):
+        """ Get more detailed and human readable information about a site """
+        # FIXME query the database to get the actual information
+        info = {
+            "ampname": site,
+            "longname": site + " Site Full Name",
+            "location": site + " Site Location",
+            "description": site + " Site Description",
+        }
+        return Result([info])
+
     def get_source_meshes(self, site=None):
         """ Fetch all source meshes, possibly filtered by a site """
         # FIXME query the database to get the meshes
