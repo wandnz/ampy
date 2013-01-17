@@ -187,8 +187,12 @@ class Connection(object):
 
         # If we have memcache check if this data is available already.
         if self.memcache:
-            key = "_".join(
-                    [src, dst, test, subtype, str(duration), str(binsize)])
+            # TODO investigate why src and dst are sometimes being given to us
+            # as unicode by the tooltip data requests. Any unicode string here
+            # makes the result type unicode, which memcache barfs on so for now
+            # force the key to be a normal string type.
+            key = str("_".join(
+                    [src, dst, test, subtype, str(duration), str(binsize)]))
             try:
                 if key in self.memcache:
                     #print "hit %s" % key
