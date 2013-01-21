@@ -48,96 +48,47 @@ class Connection(object):
         else:
             self.memcache = False
 
-    # XXX TEMPORARY
-    def _temp_get_good_sites(self, start=None, end=None):
-        """ Return the known good monitors as a small, useful dataset """
-        blacklist = [
-            "ampz-demo", "ampz-ns-test.old", "ampz-ape.old",
-            "ampz-theloop", "ampz-natlib", "ampz-testcon4",
-            "ampz-iconz", "ampz-tpn.old", "ampz-vodafone"
-            ]
-        # Get all source sites.
-        good_sites = []
-        sites = self._get_sources(start, end)
-        # Remove those that look ugly when displayed.
-        for site in sites:
-            if site not in blacklist:
-                good_sites.append(site)
-        return Result(good_sites)
-    
-    # XXX TEMPORARY
-    def _temp_get_karen_mesh_sites(self, ipv6=False):
-        """ Return a list of monitors in the KAREN mesh """
-        sites = [
-            "ampz-auckland", "ampz-canterbury", "ampz-csotago",
-            "ampz-karen-auckland", "ampz-karen-christchurch",
-            "ampz-karen-dunedin", "ampz-karen-waikato", "ampz-karen-wellington",
-            "ampz-massey-pn", "ampz-scion", "ampz-vuw", "ampz-waikato"
-            ]
-        if ipv6:
-            sites = sites + [
-                "ampz-auckland:v6",
-                "ampz-karen-auckland:v6", "ampz-karen-christchurch:v6",
-                "ampz-karen-dunedin:v6", "ampz-karen-waikato:v6",
-                "ampz-karen-wellington:v6", "ampz-massey-pn:v6", "ampz-vuw:v6",
-                "ampz-waikato:v6"
-                ]
-        return Result(sites)
-    
-    # XXX TEMPORARY
-    def _temp_get_nz_mesh_sites(self, ipv6=False):
-        """ Return a list of monitors in the NZ mesh """
-        sites = [
-            "ampz-auckland", "ampz-catalyst", "ampz-citylink",
-            "ampz-csotago", "ampz-fx-aknnr", "ampz-inspire", "ampz-massey-pn",
-            "ampz-maxnet", "ampz-netspace", "ampz-ns2b",
-            "ampz-ns3a", "ampz-ns3b", "ampz-ns4a",
-            "ampz-rurallink", "ampz-vuw", "ampz-waikato", "ampz-wxc-akl"
-            ]
-        if ipv6:
-            sites = sites + [
-                "ampz-auckland:v6", "ampz-citylink:v6",
-                "ampz-fx-aknnr:v6", "ampz-inspire:v6", "ampz-massey-pn:v6",
-                "ampz-netspace:v6", "ampz-ns3b:v6",
-                "ampz-vuw:v6", "ampz-waikato:v6", "ampz-wxc-akl:v6"
-                ]
-        return Result(sites)
-
     def get_sources(self, mesh=None, start=None, end=None):
         """ Get all source monitors """
         # TODO Filter results based on having specific test data available?
-        # FIXME if sources in a mesh are asked for then actually find them
+        # TODO Filter results based on data during start and end times
         if mesh is not None:
-            if mesh.lower() == "nz":
-                return self._temp_get_nz_mesh_sites()
-            if mesh.lower() == "karen":
-                return self._temp_get_karen_mesh_sites()
-            return self._temp_get_good_sites(start, end)
-        return self._get_sources(start, end)
+            return [x[0] for x in self.db.execute(sqlalchemy.text(
+                        "SELECT ampname FROM active_mesh_members "
+                        "WHERE meshname = :mesh AND mesh_is_src = true"),
+                    {"mesh": mesh})]
+        return [x[0] for x in self.db.execute(sqlalchemy.text(
+                    "SELECT DISTINCT ampname FROM active_mesh_members "
+                    "WHERE mesh_is_src = true"))]
 
     def get_destinations(self, src=None, mesh=None, start=None, end=None):
         """ Get all destinations from the given source """
-        # FIXME if destinations in a mesh are asked for then actually find them
-        # and intersect results with the source if given
-        if mesh is not None:
-            if mesh.lower() == "nz":
-                return self._temp_get_nz_mesh_sites(True)
-            if mesh.lower() == "karen":
-                return self._temp_get_karen_mesh_sites(True)
-            return self._temp_get_good_sites(start, end)
+        # TODO Filter results based on having specific test data available?
+        # TODO Filter results based on data during start and end times
+        # src=None, mesh=set - return all dests in the given mesh
+        if mesh is not None and src is None:
+            return [x[0] for x in self.db.execute(sqlalchemy.text(
+                        "SELECT ampname FROM active_mesh_members "
+                        "WHERE meshname = :mesh AND mesh_is_dst = true"),
+                    {"mesh": mesh})]
+        # src=set, mesh=None - return all dests that share a mesh with src
+        elif src is not None and mesh is None:
+            return [x[0] for x in self.db.execute(sqlalchemy.text(
+                        "SELECT DISTINCT ampname FROM active_mesh_members "
+                        "WHERE ampname IN "
+                        "(SELECT DISTINCT ampname FROM active_mesh_members "
+                        "WHERE mesh_is_dst = true AND ampname != :src) "
+                        "AND meshname IN ("
+                        "SELECT meshname FROM active_mesh_members "
+                        "WHERE ampname = :src)"),
+                    {"src" : src})]
+        # TODO src=set, mesh=set - does this make sense?
+        elif src is not None and mesh is not None:
+            return []
         # If no source is given then find all possible destinations
-        if src is None:
-            destinations = set()
-            # TODO This is not very efficient, but will be improved by the DB.
-            # TODO It also fetches a whole lot of destinations that are only the
-            # target of a few special tests, or ones that are now deprecated
-            # and have no recent data.
-            # TODO Filter results based on having specific test data available?
-            for src in self._get_sources(start, end):
-                for dst in self._get_destinations(src, start, end):
-                    destinations.add(dst)
-            return Result(list(destinations))
-        return self._get_destinations(src, start, end)
+        return [x[0] for x in self.db.execute(sqlalchemy.text(
+                    "SELECT DISTINCT ampname FROM active_mesh_members "
+                    "WHERE mesh_is_dst = true"))]
 
     def get_tests(self, src, dst, start=None, end=None):
         """ Fetches all tests that are performed between src and dst """
@@ -147,38 +98,43 @@ class Connection(object):
 
     def get_site_info(self, site):
         """ Get more detailed and human readable information about a site """
-        # FIXME query the database to get the actual information
-        info = {
-            "ampname": site,
-            "longname": site + " Site Full Name",
-            "location": site + " Site Location",
-            "description": site + " Site Description",
-        }
-        return Result([info])
+        info = self.db.execute(sqlalchemy.text(
+                    "SELECT site_ampname as ampname, "
+                    "site_longname as longname, "
+                    "site_location as location, "
+                    "site_description as description, "
+                    "site_active as active "
+                    "FROM site WHERE site_ampname = :site"),
+                    {"site": site}).first()
+        if info is None:
+            return {}
+        return dict(info)
 
     def get_source_meshes(self, site=None):
         """ Fetch all source meshes, possibly filtered by a site """
-        # FIXME query the database to get the meshes
         # No site set, return all possible source meshes
         if site is None:
-            return Result(["NZ", "KAREN"])
+            return [x[0] for x in self.db.execute(
+                    "SELECT mesh_name FROM mesh "
+                    "WHERE mesh_active = true AND mesh_is_src = true")]
         # Site is set, return all source meshes that the site is a part of
-        return Result(["NZ", "KAREN"])
+        return [x[0] for x in self.db.execute(sqlalchemy.text(
+                    "SELECT meshname FROM active_mesh_members "
+                    "WHERE ampname = :site AND mesh_is_src = true"), 
+                {"site": site})]
     
     def get_destination_meshes(self, site=None):
         """ Fetch all destination meshes, possibly filtered by a site """
-        # FIXME query the database to get the meshes
         # No site set, return all possible destination meshes
         if site is None:
-            return Result([
-                "afilias DNS", "AMP Monitors", "Google DNS", "gtld DNS",
-                "KAREN", "NZ", "NZ DNS", "NZ Universities", "Public DNS",
-                "RIR DNS", "root DNS", "Websites"])
+            return [x[0] for x in self.db.execute(
+                    "SELECT mesh_name FROM mesh "
+                    "WHERE mesh_active = true AND mesh_is_dst = true")]
         # Site is set, return all destination meshes that the site tests to
-        return Result([
-            "afilias DNS", "AMP Monitors", "Google DNS", "gtld DNS",
-            "KAREN", "NZ", "NZ DNS", "NZ Universities", "Public DNS",
-            "RIR DNS", "root DNS", "Websites"])
+        return [x[0] for x in self.db.execute(sqlalchemy.text(
+                    "SELECT meshname FROM active_mesh_members "
+                    "WHERE ampname = :site AND mesh_is_dst = true"),
+                {"site": site})]
 
     def get_recent_data(self, src, dst, test, subtype, duration, binsize=None):
         """ Fetch data for the most recent <duration> seconds and cache it """
@@ -240,11 +196,11 @@ class Connection(object):
 
         if src is None:
             # Pass through other args so we can do smart filtering?
-            return self._get_sources(start, end)
+            return self.get_sources(start=start, end=end)
 
         if dst is None:
             # Pass through other args so we can do smart filtering?
-            return self._get_destinations(src, start, end)
+            return self.get_destinations(src, start, end)
         
         if test is None:
             # Pass through other args so we can do smart filtering?
@@ -296,20 +252,6 @@ class Connection(object):
             return None
         return data["response"][expected]
         
-    def _get_sources(self, start, end):
-        """ Fetches all sources that have returned data recently """
-        # FIXME Temporarily fetching using existing REST API, fetch from DB.
-        sources = self._get_json("", "sites")
-        return Result(sources)
-    
-    def _get_destinations(self, src, start, end):
-        """ Fetches all destinations that are available from the source """
-        # FIXME Temporarily fetching using existing REST API, fetch from DB.
-        destinations = self._get_json(src, "sites")
-        if destinations is not None and src in destinations:
-            destinations.remove(src)
-        return Result(destinations)
-
     def _get_tests(self, src, dst, start, end):
         """ Fetches all tests that are performed between src and dst """
         # FIXME Temporarily fetching using existing REST API, fetch from DB.
