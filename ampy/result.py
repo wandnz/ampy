@@ -19,7 +19,7 @@ class Result(object):
         if data is None or len(data) == 0:
             self.data = None
         else:
-            self.data = data 
+            self.data = data
         self.index = 0
 
     def __iter__(self):
@@ -32,7 +32,7 @@ class Result(object):
         if self.index < len(self.data):
             self.index += 1
             return self.data[self.index-1]
-        raise StopIteration 
+        raise StopIteration
 
     def fetchone(self):
         """ Fetch the next item in the result set, or None if all consumed """

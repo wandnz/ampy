@@ -121,7 +121,7 @@ class Connection(object):
         # Site is set, return all source meshes that the site is a part of
         return [x[0] for x in self.db.execute(sqlalchemy.text(
                     "SELECT meshname FROM active_mesh_members "
-                    "WHERE ampname = :site AND mesh_is_src = true"), 
+                    "WHERE ampname = :site AND mesh_is_src = true"),
                 {"site": site})]
     
     def get_destination_meshes(self, site=None):
@@ -181,7 +181,7 @@ class Connection(object):
                 pass
         return ampy.result.Result(data)
 
-    def get(self, src=None, dst=None, test=None, subtype=None, start=None, 
+    def get(self, src=None, dst=None, test=None, subtype=None, start=None,
             end=None, binsize=60):
         """ Fetches data from the connection, returning a Result object
         
