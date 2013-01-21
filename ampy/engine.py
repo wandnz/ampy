@@ -5,7 +5,6 @@
 Connects to an AMP database and interacts with it
 """
 
-import random
 import time
 import urllib2
 import json
@@ -226,7 +225,7 @@ class Connection(object):
         return Result(data)
 
     def get(self, src=None, dst=None, test=None, subtype=None, start=None, 
-            end=None, binsize=60, rand=False):
+            end=None, binsize=60):
         """ Fetches data from the connection, returning a Result object
         
             Keyword arguments:
@@ -237,7 +236,6 @@ class Connection(object):
             start -- timestamp for the start of the period to fetch data for
             end -- timestamp for the end of the period to fetch data for
             binsize -- number of seconds worth of data to bin
-            rand -- if true will generate random data rather than real data
         """
 
         if src is None:
@@ -268,7 +266,7 @@ class Connection(object):
         if start is None:
             start = end - (60*5)
 
-        return self._get_data(src, dst, test, subtype, start, end, binsize, rand)
+        return self._get_data(src, dst, test, subtype, start, end, binsize)
 
     def _get_json(self, url, expected, binsize=60):
         """ Query the old REST API to get data """
@@ -333,7 +331,7 @@ class Connection(object):
             return data["data"]
         return None
 
-    def _get_data(self, src, dst, test, subtype, start, end, binsize, rand):
+    def _get_data(self, src, dst, test, subtype, start, end, binsize):
         """ Fetch the data for the specified src/dst/test/timeperiod """
         # List of all data, similar format to the current REST interface.
         # TODO: Add more information about max/min/stddev etc.
@@ -345,84 +343,11 @@ class Connection(object):
         #        "packetsize_bytes": { "missing": 0, "count": 1, "mean": 84 },
         #   }
         # ]
-
-        # We may still want some random data for testing that is quick to 
-        # generate (rather than waiting for real data from the old REST API).
-        if rand:
-            return self._get_random_data(start, end, binsize)
-
         args = [src, dst, test, subtype, str(start), str(end)]
         data = self._get_json("/".join(args), "dataset", binsize)
         if data is not None:
             data = map(self._adjust_old_data, data)
         return Result(data)
-
-    def _get_random_data(self, start, end, binsize):
-        """ Fetch random data for the specified src/dst/test/timeperiod """
-        data = []
-        now = start
-
-        # Make up a number for how many items there are per bin.
-        count = binsize / 60
-        if count < 1:
-            count = 1
-
-        # Fill the whole requested time period with data.
-        while now <= end:
-            # Default values are for complete loss during this bin.
-            rtt_mean = -1
-            rtt_count = 0
-            rtt_missing = count
-            rtt_max = -1
-            rtt_min = -1
-            rtt_stddev = 0
-            # If the entire bin isn't lost, calculate some random variables.
-            if random.randint(1, 1000) > 5:
-                # Mean is in the range 1 - 100.
-                rtt_mean = random.randint(1, 100)
-                # Count is in the range 1 - max items in this bin.
-                if count == 1:
-                    rtt_count = 1
-                else:
-                    rtt_count = random.randint(1, count)
-                # Missing is however meany are left.
-                rtt_missing = count - rtt_count
-                # Make some semi-believable values for other summary statistics.
-                rtt_max = rtt_mean
-                rtt_min = rtt_mean
-                rtt_stddev = 0
-                if rtt_count > 1:
-                    rtt_max += random.randint(1, 50)
-                    if rtt_mean <= 2:
-                        rtt_min = 1
-                    else:
-                        rtt_min -= random.randint(1, rtt_mean-1)
-                    rtt_stddev = random.random() * rtt_mean / 2.0
-                
-            # Add the data point
-            data.append({
-                    "time": now,
-                    "rtt_ms": { 
-                        "missing": rtt_missing, 
-                        "count": rtt_count, 
-                        "mean": rtt_mean,
-                        "max": rtt_max,
-                        "min": rtt_min,
-                        "stddev": rtt_stddev,
-                    },
-                    "packetsize_bytes": {
-                        "missing": 0,
-                        "count": count,
-                        "mean": 84,
-                        "max": 84,
-                        "min": 84,
-                        "stddev": 0,
-                    },
-            })
-            now += binsize
-
-        return Result(data)
-
 
 class Result(object):
     """ Object to represent and facilitate fetching of results """
