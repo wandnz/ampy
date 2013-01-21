@@ -12,6 +12,8 @@ import json
 import httplib
 import sys
 
+import sqlalchemy
+
 try:
     import pylibmc
     _have_memcache = True
@@ -26,9 +28,13 @@ class Connection(object):
 
     def __init__(self):
         """ Initialises an AMP connection """
-        self._connect()
         self.urlbase = "http://erg.wand.net.nz/amp/testdata2/json"
         self.apikey = "cathyisastud"
+
+        # The database stores AMP data as well as site/mesh metadata
+        url = sqlalchemy.engine.url.URL("postgresql", database="amp2")
+        self.db = sqlalchemy.create_engine(url)
+
         # For now we will cache everything on localhost for 60 seconds.
         if _have_memcache:
             # TODO should cache duration be based on the amount of data?
@@ -42,10 +48,6 @@ class Connection(object):
                         })
         else:
             self.memcache = False
-
-    def _connect(self):
-        """ Connects to AMP """
-        pass
 
     # XXX TEMPORARY
     def _temp_get_good_sites(self, start=None, end=None):

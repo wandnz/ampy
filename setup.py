@@ -4,6 +4,7 @@ except ImportError:
     from distutils.core import setup
 
 requires = [
+    'sqlalchemy'
     ]
 
 setup(
