@@ -74,7 +74,10 @@ class Connection(object):
                         "WHERE meshname = :mesh AND mesh_is_dst = true "
                         "ORDER BY ampname"),
                     {"mesh": mesh})]
-        # src=set, mesh=None - return all dests that share a mesh with src
+        # src=set, mesh=None - find all the sites that share any mesh with
+        # the source (including special hidden meshes), then return all of
+        # those sites that are also in any destination mesh
+        # TODO this seems overly complex and verbose
         elif src is not None and mesh is None:
             return [x[0] for x in self.db.execute(sqlalchemy.text(
                         "SELECT DISTINCT ampname FROM active_mesh_members "
@@ -85,9 +88,18 @@ class Connection(object):
                         "SELECT meshname FROM active_mesh_members "
                         "WHERE ampname = :src) ORDER BY ampname"),
                     {"src" : src})]
-        # TODO src=set, mesh=set - does this make sense?
+        # src=set, mesh=set - confirm that the source is part of the
+        # destination mesh and return all destinations in mesh except source
+        # TODO this seems overly complex and verbose
         elif src is not None and mesh is not None:
-            return []
+            return [x[0] for x in self.db.execute(sqlalchemy.text(
+                        "SELECT DISTINCT ampname FROM active_mesh_members "
+                        "WHERE ampname != :src AND meshname IN ("
+                        "SELECT DISTINCT meshname FROM active_mesh_members "
+                        "WHERE ampname = :src AND meshname = :mesh "
+                        "AND mesh_is_dst = true) "
+                        "ORDER BY ampname"),
+                    {"src": src, "mesh": mesh})]
         # If no source is given then find all possible destinations
         return [x[0] for x in self.db.execute(sqlalchemy.text(
                     "SELECT DISTINCT ampname FROM active_mesh_members "
