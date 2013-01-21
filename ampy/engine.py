@@ -56,11 +56,12 @@ class Connection(object):
         if mesh is not None:
             return [x[0] for x in self.db.execute(sqlalchemy.text(
                         "SELECT ampname FROM active_mesh_members "
-                        "WHERE meshname = :mesh AND mesh_is_src = true"),
+                        "WHERE meshname = :mesh AND mesh_is_src = true "
+                        "ORDER BY ampname"),
                     {"mesh": mesh})]
         return [x[0] for x in self.db.execute(sqlalchemy.text(
                     "SELECT DISTINCT ampname FROM active_mesh_members "
-                    "WHERE mesh_is_src = true"))]
+                    "WHERE mesh_is_src = true ORDER BY ampname"))]
 
     def get_destinations(self, src=None, mesh=None, start=None, end=None):
         """ Get all destinations from the given source """
@@ -70,7 +71,8 @@ class Connection(object):
         if mesh is not None and src is None:
             return [x[0] for x in self.db.execute(sqlalchemy.text(
                         "SELECT ampname FROM active_mesh_members "
-                        "WHERE meshname = :mesh AND mesh_is_dst = true"),
+                        "WHERE meshname = :mesh AND mesh_is_dst = true "
+                        "ORDER BY ampname"),
                     {"mesh": mesh})]
         # src=set, mesh=None - return all dests that share a mesh with src
         elif src is not None and mesh is None:
@@ -81,7 +83,7 @@ class Connection(object):
                         "WHERE mesh_is_dst = true AND ampname != :src) "
                         "AND meshname IN ("
                         "SELECT meshname FROM active_mesh_members "
-                        "WHERE ampname = :src)"),
+                        "WHERE ampname = :src) ORDER BY ampname"),
                     {"src" : src})]
         # TODO src=set, mesh=set - does this make sense?
         elif src is not None and mesh is not None:
@@ -89,7 +91,7 @@ class Connection(object):
         # If no source is given then find all possible destinations
         return [x[0] for x in self.db.execute(sqlalchemy.text(
                     "SELECT DISTINCT ampname FROM active_mesh_members "
-                    "WHERE mesh_is_dst = true"))]
+                    "WHERE mesh_is_dst = true ORDER BY ampname"))]
 
     def get_tests(self, src, dst, start=None, end=None):
         """ Fetches all tests that are performed between src and dst """
