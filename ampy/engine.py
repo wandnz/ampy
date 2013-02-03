@@ -124,6 +124,21 @@ class Connection(object):
         if info is None:
             return {}
         return dict(info)
+    
+    def get_mesh_info(self, mesh):
+        """ Get more detailed and human readable information about a mesh """
+        info = self.db.execute(sqlalchemy.text(
+                    "SELECT mesh_name as name, "
+                    "mesh_longname as longname, "
+                    "mesh_description as description, "
+                    "mesh_is_src as is_src, "
+                    "mesh_is_dst as is_dst, "
+                    "mesh_active as active "
+                    "FROM mesh WHERE mesh_name = :mesh"),
+                    {"mesh": mesh}).first()
+        if info is None:
+            return {}
+        return dict(info)
 
     def get_source_meshes(self, site=None):
         """ Fetch all source meshes, possibly filtered by a site """
