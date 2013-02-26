@@ -236,10 +236,6 @@ class Connection(object):
             # Pass through other args so we can do smart filtering?
             return self._get_tests(src, dst, start, end)
 
-        if test is None:
-            # Pass through other args so we can do smart filtering?
-            return self._get_tests(src, dst, start, end)
-
         if subtype is None:
             return self._get_subtypes(src, dst, test, start, end)
 
