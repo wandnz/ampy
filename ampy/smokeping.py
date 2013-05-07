@@ -39,54 +39,14 @@ class Connection(object):
 
     def __init__(self, host="localhost", port=61234):
         """ Initialises the connection to NNTSC """
-        # XXX I don't like this error handling, pls fix someday
-        try:
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        except error, msg:
-            print >> sys.stderr, "Failed to create socket: %s" % (msg[1])
-            sys.exit(1)
-
-        try:
-            s.connect((host, port))
-        except error, msg:
-            print >> sys.stderr, "Failed to connect to %s:%d -- %s" % (host, port, msg[1])
-            sys.exit(1)
-
-        self.client = NNTSCClient(s)
-        self.client.send_request(NNTSC_REQ_COLLECTION, -1)
-        
-        received = self.client.receive_message()
-        if received <= 0:
-            print >> sys.stderr, "Failed to get collections from NNTSC"
-            sys.exit(1)
-
-        msg = self.client.parse_message()
-        if msg[0] != NNTSC_COLLECTIONS:
-            print >> sys.stderr, "Expected NNTSC_COLLECTIONS response, not %d" % (msg[0])
-            sys.exit(1)
-        
-        self.colid = -1
-
-        for col in msg[1]['collections']:
-            if col['module'] != 'rrd':
-                continue
-            if col['modsubtype'] != 'smokeping':
-                continue
-            self.colid = col['id']
-
-        if self.colid == -1:
-            print >> sys.stderr, "No Smokeping Collection available, aborting"
-            sys.exit(1)
 
         self.streams = {}
         self.sources = {}
         self.destinations = {}
         self.sd_map = {}
-
-        all_streams = self._request_streams() 
-
-        for s in all_streams:
-            self._update_stream_internal(s)
+        self.host = host
+        self.port = port
+        self.invalid_connect = False
 
         # For now we will cache everything on localhost for 60 seconds.
         if _have_memcache:
@@ -101,36 +61,41 @@ class Connection(object):
         else:
             self.memcache = False
 
-    def _request_streams(self):
-        
-        self.client.send_request(NNTSC_REQ_STREAMS, self.colid)
-        streams = []
+        if self._load_streams() == -1:
+            print >> sys.stderr, "Error loading streams for Smokeping"
 
-        while 1:
+    def _load_streams(self):
+        if self.invalid_connect:
+            print >> sys.stderr, "Attempted to connect to invalid NNTSC exporter"
+            return -1
 
-            received = self.client.receive_message()
-            if received <= 0:
-                print >> sys.stderr, "Failed to get smokeping streams from NNTSC"
-                return []
+        collections = ampy.nntschelper.request_collections(self.host, self.port)
 
-            msg = self.client.parse_message()
-            
-            # Check if we got a complete parsed message, otherwise read some
-            # more data
-            if msg[0] == -1:
+        if collections == None:
+            self.invalid_connect = True
+            return -1
+
+        self.colid = -1
+
+        for col in collections:
+            if col['module'] != 'rrd':
                 continue
-            if msg[0] != NNTSC_STREAMS:
-                print >> sys.stderr, "Expected NNTSC_STREAMS response, not %d" % (msg[0])
-                return []
-
-            if msg[1]['collection'] != self.colid:
+            if col['modsubtype'] != 'smokeping':
                 continue
+            self.colid = col['id']
 
-            streams += msg[1]['streams']
-            if msg[1]['more'] == False:
-                break
+        if self.colid == -1:
+            print >> sys.stderr, "No Smokeping Collection available, aborting"
+            return -1
 
-        return streams
+        all_streams = ampy.nntschelper.request_streams(self.host, self.port, self.colid)
+
+        for s in all_streams:
+            self._update_stream_internal(s)
+
+        return 0
+
+    
 
     def _update_stream_internal(self, s):
         self.streams[s['stream_id']] = s
@@ -150,7 +115,7 @@ class Connection(object):
 
     def get_sources(self, dst=None, start=None, end=None):
         """ Get all smokeping sources """
-       
+      
         if dst != None:
             if dst not in self.sources:
                 return []
@@ -313,7 +278,18 @@ class Connection(object):
             return ampy.result.Result([])
         stream = self.sd_map[(src,dst)]
 
-        if self.client.request_aggregate(self.colid, [stream], start, end,
+        if self.invalid_connect:
+            print >> sys.stderr, "Attempted to connect to invalid NNTSC exporter"
+            return ampy.result.Result([])
+
+        client = ampy.nntschelper.connect_nntsc(self.host, self.port)
+        if client == None:
+            print >> sys.stderr, "Attempted to connect to invalid NNTSC exporter"
+            self.invalid_connect = True
+            return ampy.result.Result([])
+
+
+        if client.request_aggregate(self.colid, [stream], start, end,
                 columns, binsize, group_columns) == -1:
             return ampy.result.Result([])
 
@@ -322,12 +298,13 @@ class Connection(object):
         data = []
 
         while not got_data:
-            received = self.client.receive_message()
+            received = client.receive_message()
             if received <= 0:
                 print >> sys.stderr, "Failed to get data message from NNTSC"
+                client.disconnect()
                 return ampy.result.Result([])
 
-            msg = self.client.parse_message()
+            msg = client.parse_message()
             
             # Check if we got a complete parsed message, otherwise read some
             # more data
@@ -357,6 +334,7 @@ class Connection(object):
                 if msg[1]['more'] == False:
                     got_data = True
         
+        client.disconnect()
         formatted = []
                 
         for d in data:

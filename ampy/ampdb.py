@@ -7,6 +7,7 @@ ampdb handles database connections and working with AMP data
 
 import ampy.engine
 import ampy.smokeping
+import ampy.muninbytes
 
 
 def create():
@@ -15,5 +16,8 @@ def create():
 
 def create_smokeping_engine(host, port):
     return ampy.smokeping.Connection(host, port)
+
+def create_muninbytes_engine(host, port):
+    return ampy.muninbytes.Connection(host, port)
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :
