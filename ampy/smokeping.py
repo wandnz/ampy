@@ -273,9 +273,10 @@ class Connection(object):
 
     def _get_data(self, src, dst, start, end, binsize, columns):
         """ Fetch the data for the specified src/dst/timeperiod """
-        
+       
         if (src,dst) not in self.sd_map:
             return ampy.result.Result([])
+
         stream = self.sd_map[(src,dst)]
 
         if self.invalid_connect:
@@ -288,7 +289,6 @@ class Connection(object):
             self.invalid_connect = True
             return ampy.result.Result([])
 
-
         if client.request_aggregate(self.colid, [stream], start, end,
                 columns, binsize, group_columns) == -1:
             return ampy.result.Result([])
@@ -298,18 +298,9 @@ class Connection(object):
         data = []
 
         while not got_data:
-            received = client.receive_message()
-            if received <= 0:
-                print >> sys.stderr, "Failed to get data message from NNTSC"
-                client.disconnect()
-                return ampy.result.Result([])
-
-            msg = client.parse_message()
-            
-            # Check if we got a complete parsed message, otherwise read some
-            # more data
-            if msg[0] == -1:
-                continue
+            msg = ampy.nntschelper.get_message(client)
+            if msg == None:
+                break
             
             # Look out for STREAM packets describing new streams
             if msg[0] == NNTSC_STREAMS:
@@ -352,6 +343,9 @@ class Connection(object):
             newdict["pings"] = pings
 
             formatted.append(newdict)
+
+        #print formatted[0]
+        #print formatted[-1]
                     
         return ampy.result.Result(formatted)
         

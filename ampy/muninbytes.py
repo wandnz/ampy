@@ -273,13 +273,9 @@ class Connection(object):
         data = []
 
         while not got_data:
-            received = client.receive_message()
-            if received <= 0:
-                print >> sys.stderr, "Failed to get data message from NNTSC"
-                client.disconnect()
-                return ampy.result.Result([])
-
-            msg = client.parse_message()
+            msg = ampy.nntschelper.get_message(client)
+            if msg == None:
+                break
             
             # Check if we got a complete parsed message, otherwise read some
             # more data
