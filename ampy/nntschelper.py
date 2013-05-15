@@ -20,6 +20,23 @@ def connect_nntsc(host, port):
     client = NNTSCClient(s)
     return client
 
+def get_message(client):
+
+    while 1:
+        msg = client.parse_message()
+        
+        if msg[0] == -1:
+            received = client.receive_message()
+            if received <= 0:
+                print >> sys.stderr, "Failed to get streams from NNTSC for colid %d" % (collection)
+                client.disconnect()
+                return None
+            continue
+
+        return msg
+
+
+
 def request_collections(host, port):
 
     client = connect_nntsc(host, port)
@@ -29,13 +46,10 @@ def request_collections(host, port):
 
     client.send_request(NNTSC_REQ_COLLECTION, -1)
 
-    received = client.receive_message()
-    if received <= 0:
-        print >> sys.stderr, "Failed to get collections from NNTSC"
-        client.disconnect()
+    msg = get_message(client)
+    if msg == None:
         return None
 
-    msg = client.parse_message()
     if msg[0] != NNTSC_COLLECTIONS:
         print >> sys.stderr, "Expected NNTSC_COLLECTIONS response, not %d" % (msg[0])
         client.disconnect()
@@ -55,13 +69,9 @@ def request_streams(host, port, collection):
     client.send_request(NNTSC_REQ_STREAMS, collection)
     while 1:
 
-        received = client.receive_message()
-        if received <= 0:
-            print >> sys.stderr, "Failed to get streams from NNTSC for colid %d" % (collection)
-            client.disconnect()
+        msg = get_message(client)
+        if msg == None:
             return []
-
-        msg = client.parse_message()
 
         # Check if we got a complete parsed message, otherwise read some
         # more data
@@ -80,6 +90,5 @@ def request_streams(host, port, collection):
 
     client.disconnect()
     return streams
-
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :
