@@ -66,13 +66,13 @@ class Connection(object):
         if start is None:
             start = end - (12 * 60 * 60)
 
-        evtable = self.metadata.tables['event']
+        evtable = self.metadata.tables['event_view']
         
         wherecl = "(%s >= %u AND %s <= %u AND %s = %u)" % ( \
-                evtable.c.event_timestamp, start, evtable.c.event_timestamp, \
-                end, evtable.c.event_stream, stream_id) 
+                evtable.c.timestamp, start, evtable.c.timestamp, \
+                end, evtable.c.stream_id, stream_id) 
         
-        query = evtable.select().where(wherecl).order_by(evtable.c.event_timestamp)
+        query = evtable.select().where(wherecl).order_by(evtable.c.timestamp)
         return self.__execute_query(query)
 
     def __execute_query(self, query):
