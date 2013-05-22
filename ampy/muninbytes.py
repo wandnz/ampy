@@ -143,7 +143,7 @@ class Connection(object):
     def get_stream_id(self, src, dest):
         """Get the stream id matching a given switch / port combo"""
         
-        if (src, dest, dir) not in self.sd_map:
+        if (src, dest) not in self.sd_map:
             return -1
 
         return self.sd_map[(src, dest)]
