@@ -60,6 +60,8 @@ class Connection(object):
         self.sources = {}
         self.destinations = {}
         self.sd_map = {}
+        self.interfaces = {}
+        self.directions = {}
 
         if self._load_streams() == -1:
             print >> sys.stderr, "Error loading streams for Muninbytes"
@@ -105,17 +107,32 @@ class Connection(object):
         else:
             self.sources[s['name']] = {s['switch']:1}
         
+        # TODO Update with an interface label rather than the raw number 
+        # once we've added this to NNTSC
+        if s['switch'] in self.interfaces:
+            self.interfaces[s['switch']][s['interface']] = 1
+        else:
+            self.interfaces[s['switch']] = {s['interface']:1}
+
+        if (s['switch'], s['interface']) in self.directions:
+            self.directions[(s['switch'], s['interface'])][s['direction']] = 1
+        else:
+            self.directions[(s['switch'], s['interface'])] = {s['direction']:1}
+
         if s['switch'] in self.destinations:
             self.destinations[s['switch']][s['name']] = 1
         else:
             self.destinations[s['switch']] = {s['name']:1}
             
-        self.sd_map[(s['switch'], s['name'])] = s['stream_id']
+        self.sd_map[(s['switch'], s['interface'], s["direction"])] = s['stream_id']
             
 
     def get_sources(self, dst=None, start=None, end=None):
         """ Get all munin sources """
+        return self.get_switches(dst, start, end)
        
+    def get_switches(self, dst=None, start=None, end=None):
+        """ Get the names of all switches that have munin data """
         if dst != None:
             if dst not in self.sources:
                 return []
@@ -126,6 +143,8 @@ class Connection(object):
             for src in v.keys():
                 sources[src] = 1
         return sources.keys()        
+    
+
         
     def get_destinations(self, src=None, start=None, end=None):
         """ Get all destinations from the given source """
@@ -140,13 +159,41 @@ class Connection(object):
                 dests[d] = 1
         return dests.keys()        
 
-    def get_stream_id(self, src, dest):
+    def get_interfaces(self, switch):
+        """ Get all available interfaces for a given switch """
+        if switch != None:
+            if switch not in self.interfaces:
+                return []
+            else:
+                return self.interfaces[switch].keys()
+
+        interfaces = {}
+        for v in self.interfaces.values():
+            for d in v.keys():
+                interfaces[d] = 1
+        return interfaces.keys()
+
+    def get_directions(self, switch, interface):
+        """ Get all available directions for a given switch / interface combo """
+        if switch != None and interface != None:
+            if (switch, interface) not in self.directions:
+                return []
+            else:
+                return self.directions[(switch, interface)].keys()
+
+        dirs = {}
+        for v in self.directions.values():
+            for d in v.keys():
+                dirs[d] = 1
+        return dirs.keys()
+
+    def get_stream_id(self, switch, interface, direction):
         """Get the stream id matching a given switch / port combo"""
         
-        if (src, dest) not in self.sd_map:
+        if (switch, interface, direction) not in self.sd_map:
             return -1
 
-        return self.sd_map[(src, dest)]
+        return self.sd_map[(switch, interface, direction)]
 
     def get_stream_info(self, streamid):
         """ Get more detailed and human readable information about a stream """
@@ -156,7 +203,7 @@ class Connection(object):
 
         return self.streams[streamid]
 
-    def _get_recent_data(self, src, dst, duration, binsize, style='all'):
+    def _get_recent_data(self, stream, duration, binsize, style='all'):
         
         # Default to returning only a single aggregated response
         if binsize is None:
@@ -168,7 +215,7 @@ class Connection(object):
             # as unicode by the tooltip data requests. Any unicode string here
             # makes the result type unicode, which memcache barfs on so for now
             # force the key to be a normal string type.
-            key = str("_".join([src, dst, str(duration), str(binsize)]))
+            key = str("_".join([stream, str(duration), str(binsize)]))
             try:
                 if key in self.memcache:
                     #print "hit %s" % key
@@ -183,7 +230,7 @@ class Connection(object):
         start = end - duration
         
         if style == "all":
-            data = self._get_data(src, dst, start, end, binsize, 
+            data = self._get_data(stream, start, end, binsize, 
                     aggregate_columns)
         else:
             data = None
@@ -203,12 +250,12 @@ class Connection(object):
         return ampy.result.Result(data)
         
 
-    def get_all_recent_data(self, src, dst, duration, binsize=None):
+    def get_all_recent_data(self, stream, duration, binsize=None):
         """ Fetch all result data for the most recent <duration> seconds and 
             cache it """
-        return self._get_recent_data(src, dst, duration, binsize, "all")
+        return self._get_recent_data(stream, duration, binsize, "all")
 
-    def get_all_data(self, src=None, dst=None, start=None, end=None, 
+    def get_all_data(self, stream, start=None, end=None, 
             binsize=60):
         """ Fetches all result data from the connection, returning a Result 
             object
@@ -220,17 +267,10 @@ class Connection(object):
             end -- timestamp for the end of the period to fetch data for
             binsize -- number of seconds worth of data to bin
         """
-        return self._get_period_data(src, dst, start, end, binsize, "all")
+        return self._get_period_data(stream, start, end, binsize, "all")
 
 
-    def _get_period_data(self, src, dst, start, end, binsize, style="all"):
-        if src is None:
-            # Pass through other args so we can do smart filtering?
-            return self.get_sources(start=start, end=end)
-
-        if dst is None:
-            # Pass through other args so we can do smart filtering?
-            return self.get_destinations(src, start, end)
+    def _get_period_data(self, stream, start, end, binsize, style="all"):
 
         # FIXME: Consider limiting maximum durations based on binsize
         # if end is not set then assume "now".
@@ -242,16 +282,13 @@ class Connection(object):
             start = end - (60*5)
 
         if style == "all":
-            return self._get_data(src, dst, start, end, binsize, 
+            return self._get_data(stream, start, end, binsize, 
                     aggregate_columns)
         
         return ampy.result.Result([])
 
-    def _get_data(self, src, dst, start, end, binsize, columns):
+    def _get_data(self, stream, start, end, binsize, columns):
         """ Fetch the data for the specified src/dst/timeperiod """
-        if (src,dst) not in self.sd_map:
-            return ampy.result.Result([])
-        stream = self.sd_map[(src,dst)]
         
         if self.invalid_connect:
             print >> sys.stderr, "Attempted to connect to invalid NNTSC exporter"

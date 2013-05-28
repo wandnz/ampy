@@ -156,7 +156,7 @@ class Connection(object):
 
         return self.streams[streamid]
 
-    def _get_recent_data(self, src, dst, duration, binsize, style='all'):
+    def _get_recent_data(self, stream, duration, binsize, style='all'):
         
         # Default to returning only a single aggregated response
         if binsize is None:
@@ -168,7 +168,7 @@ class Connection(object):
             # as unicode by the tooltip data requests. Any unicode string here
             # makes the result type unicode, which memcache barfs on so for now
             # force the key to be a normal string type.
-            key = str("_".join([src, dst, str(duration), str(binsize)]))
+            key = str("_".join([stream, str(duration), str(binsize)]))
             try:
                 if key in self.memcache:
                     #print "hit %s" % key
@@ -183,10 +183,10 @@ class Connection(object):
         start = end - duration
         
         if style == "all":
-            data = self._get_data(src, dst, start, end, binsize, 
+            data = self._get_data(stream, start, end, binsize, 
                     aggregate_columns)
         elif style == "basic":
-            data = self._get_data(src, dst, start, end, binsize, 
+            data = self._get_data(stream, start, end, binsize, 
                     ["median", "loss"])
         else:
             data = None
@@ -206,52 +206,43 @@ class Connection(object):
         return ampy.result.Result(data)
         
 
-    def get_all_recent_data(self, src, dst, duration, binsize=None):
+    def get_all_recent_data(self, stream, duration, binsize=None):
         """ Fetch all result data for the most recent <duration> seconds and 
             cache it """
-        return self._get_recent_data(src, dst, duration, binsize, "all")
+        return self._get_recent_data(stream, duration, binsize, "all")
 
-    def get_basic_recent_data(self, src, dst, duration, binsize=None):
+    def get_basic_recent_data(self, stream, duration, binsize=None):
         """ Fetch just the loss and median data for the most recent <duration> 
             seconds and cache it """
-        return self._get_recent_data(src, dst, duration, binsize, "basic")
+        return self._get_recent_data(stream, duration, binsize, "basic")
 
-    def get_all_data(self, src=None, dst=None, start=None, end=None, 
+    def get_all_data(self, stream, start=None, end=None, 
             binsize=60):
         """ Fetches all result data from the connection, returning a Result 
             object
 
             Keyword arguments:
-            src -- source to get data for, or None to fetch all sources
-            dst -- dest to get data for, or None to fetch all valid dests
+            stream -- stream to fetch data for
             start -- timestamp for the start of the period to fetch data for
             end -- timestamp for the end of the period to fetch data for
             binsize -- number of seconds worth of data to bin
         """
-        return self._get_period_data(src, dst, start, end, binsize, "all")
+        return self._get_period_data(stream, start, end, binsize, "all")
 
-    def get_basic_data(self, src=None, dst=None, start=None, end=None, 
+    def get_basic_data(self, stream, start=None, end=None, 
             binsize=60):
         """ Fetches the median and loss data for a smokeping stream, 
             returning a Result object
 
             Keyword arguments:
-            src -- source to get data for, or None to fetch all sources
-            dst -- dest to get data for, or None to fetch all valid dests
+            stream -- stream to fetch data for
             start -- timestamp for the start of the period to fetch data for
             end -- timestamp for the end of the period to fetch data for
             binsize -- number of seconds worth of data to bin
         """
-        return self._get_period_data(src, dst, start, end, binsize, "basic")
+        return self._get_period_data(stream, start, end, binsize, "basic")
 
-    def _get_period_data(self, src, dst, start, end, binsize, style="all"):
-        if src is None:
-            # Pass through other args so we can do smart filtering?
-            return self.get_sources(start=start, end=end)
-
-        if dst is None:
-            # Pass through other args so we can do smart filtering?
-            return self.get_destinations(src, start, end)
+    def _get_period_data(self, stream, start, end, binsize, style="all"):
 
         # FIXME: Consider limiting maximum durations based on binsize
         # if end is not set then assume "now".
@@ -263,22 +254,17 @@ class Connection(object):
             start = end - (60*5)
 
         if style == "all":
-            return self._get_data(src, dst, start, end, binsize, 
+            return self._get_data(stream, start, end, binsize, 
                     aggregate_columns)
         elif style == "basic":
-            return self._get_data(src, dst, start, end, binsize, 
+            return self._get_data(stream, start, end, binsize, 
                     ['loss', 'median'])
         
         return ampy.result.Result([])
 
-    def _get_data(self, src, dst, start, end, binsize, columns):
+    def _get_data(self, stream, start, end, binsize, columns):
         """ Fetch the data for the specified src/dst/timeperiod """
        
-        if (src,dst) not in self.sd_map:
-            return ampy.result.Result([])
-
-        stream = self.sd_map[(src,dst)]
-
         if self.invalid_connect:
             print >> sys.stderr, "Attempted to connect to invalid NNTSC exporter"
             return ampy.result.Result([])
@@ -344,9 +330,6 @@ class Connection(object):
 
             formatted.append(newdict)
 
-        #print formatted[0]
-        #print formatted[-1]
-                    
         return ampy.result.Result(formatted)
         
 
