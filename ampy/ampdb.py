@@ -9,6 +9,7 @@ import ampy.engine
 import ampy.smokeping
 import ampy.muninbytes
 import ampy.netevmon
+import ampy.nntsc
 
 
 def create():
@@ -23,5 +24,9 @@ def create_muninbytes_engine(host, port):
 
 def create_netevmon_engine(host, dbname, pwd):
     return ampy.netevmon.Connection(host, dbname, pwd)
+
+# Use this engine to get at core NNTSC information, e.g. the collection list
+def create_nntsc_engine(host, port):
+    return ampy.nntsc.Connection(host, port)
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :
