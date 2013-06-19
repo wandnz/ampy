@@ -138,7 +138,7 @@ class Connection(object):
             client.disconnect()
             return None
 
-        client.disconnect
+        client.disconnect()
         return msg[1]['collections']
 
 
@@ -344,7 +344,7 @@ class Connection(object):
                     str(binsize), str(detail)]))
             try:
                 if key in self.memcache:
-                    print "hit %s" % key
+                    #print "hit %s" % key
                     return ampy.result.Result(self.memcache.get(key))
                 #else:
                 #    print "miss %s" % key
