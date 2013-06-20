@@ -3,15 +3,30 @@
 import sys, string
 
 class MuninbytesParser(object):
+    """ Parser for the rrd-muninbytes collection. """
 
     def __init__(self):
+        """ Initialises the parser """
+
+        # Maps (switch, interface, dir) to the corresponding stream id
         self.streams = {}
+
+        # Maps (switch) to a set of interfaces on that switch
         self.interfaces = {}
+
+        # Maps (switch, interface) to a set of valid directions on the interface
         self.directions = {}
+
+        # Map containing the set of valid switches
         self.switches = {}
 
     def add_stream(self, s):
-        
+        """ Updates the internal maps based on a new stream 
+
+            Parameters:
+              s -- the new stream, as returned by NNTSC
+        """
+
         self.switches[s['switch']] = 1
         
         if s['switch'] in self.interfaces:
@@ -28,6 +43,20 @@ class MuninbytesParser(object):
  
 
     def get_stream_id(self, params):
+        """ Finds the stream ID that matches the given (switch, interface, dir)
+            combination.
+
+            If params does not contain an entry for 'switch', 'interface',
+            or 'direction', then -1 will be returned.
+
+            Parameters:
+                params -- a dictionary containing the parameters describing the
+                          stream to search for
+
+            Returns:
+                the id number of the matching stream, or -1 if no matching
+                stream can be found
+        """
         if 'switch' not in params:
             return -1
         if 'interface' not in params:
@@ -43,16 +72,44 @@ class MuninbytesParser(object):
 
 
     def get_aggregate_columns(self, detail):
+        """ Return a list of columns in the streams table for this collection
+            that should be subject to data aggregation """
+        
+        # There is no "mininal" level of detail for this data, so just return
+        # the same list regardless
         return ["bytes"]   
  
     def get_group_columns(self):
+        """ Return a list of columns in the streams table that should be used
+            to group aggregated data """
         return ["stream_id"]
 
-    def format_data(self, received):
+    def format_data(self, received, stream):
+        """ Formats the measurements retrieved from NNTSC into a nice format
+            for subsequent analysis / plotting / etc.
+
+            In the case of rrd-muninbytes, no formatting is necessary
+        """
         return received
 
     def get_selection_options(self, params):
-        
+        """ Returns the list of names to populate a dropdown list with, given
+            a current set of selected parameters.
+
+            If a 'switch' parameter is not given, this will return the list of 
+            switches.
+
+            If a 'switch' parameter is given but no 'interface' parameter, 
+            this will return the list of interfaces on that switch.
+
+            If a 'switch' and an 'interface' parameter are given but no
+            'direction' parameter, this will return the list of directions for 
+            that interface.
+
+            If all three parameters are given, a list containing the ID of
+            the stream described by those parameters is returned.
+        """
+
         # TODO - better handling of weird parameter combinations
         # e.g. what if they provide a interface but not a switch?
 
