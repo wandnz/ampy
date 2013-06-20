@@ -13,8 +13,8 @@ import socket
 from libnntsc.export import *
 from libnntsc.client.nntscclient import NNTSCClient
 
-from ampy.muninbytes_parser import MuninbytesParser
-from ampy.smokeping_parser import SmokepingParser
+from ampy.muninbytes import MuninbytesParser
+from ampy.smokeping import SmokepingParser
 
 from threading import Lock
 
