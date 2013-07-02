@@ -646,7 +646,7 @@ class Connection(object):
         # the data before displaying it, e.g. rrd-smokeping combines the ping 
         # data into a single list rather than being 20 separate dictionary 
         # entries. 
-        data = parser.format_data(data, stream)
+        data = parser.format_data(data, stream, self.streams[stream]['streaminfo'])
        
         key = str("_".join([str(stream), str(start), str(end), str(binsize),
                 str(detail)]))

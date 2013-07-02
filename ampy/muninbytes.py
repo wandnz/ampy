@@ -84,12 +84,26 @@ class MuninbytesParser(object):
             to group aggregated data """
         return ["stream_id"]
 
-    def format_data(self, received, stream):
+    def format_data(self, received, stream, streaminfo):
         """ Formats the measurements retrieved from NNTSC into a nice format
             for subsequent analysis / plotting / etc.
 
             In the case of rrd-muninbytes, no formatting is necessary
         """
+        if "minres" not in streaminfo.keys():
+            return received
+        if streaminfo["minres"] == 0:
+            return received
+
+        for r in received:
+            if "bytes" not in r.keys():
+                continue
+            if r["bytes"] == None:
+                r["mbps"] = None
+            else:
+                # XXX bytes is an SNMP counter. What if we miss a measurement?
+                r["mbps"] = ((float(r["bytes"]) * 8.0) / 1000000.0)
+
         return received
 
     def get_selection_options(self, params):

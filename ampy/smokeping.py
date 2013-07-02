@@ -80,7 +80,7 @@ class SmokepingParser(object):
 
         return ["stream_id"]
 
-    def format_data(self, received, stream):
+    def format_data(self, received, stream, streaminfo):
         """ Formats the measurements retrieved from NNTSC into a nice format
             for subsequent analysis / plotting / etc.
 
