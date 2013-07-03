@@ -14,6 +14,7 @@ from libnntsc.export import *
 from libnntsc.client.nntscclient import NNTSCClient
 
 from ampy.muninbytes import MuninbytesParser
+from ampy.lpibytes import LPIBytesParser
 from ampy.smokeping import SmokepingParser
 
 from threading import Lock
@@ -298,6 +299,14 @@ class Connection(object):
             self.parser_lock.acquire()
             self.parsers["rrd-muninbytes"] = parser 
             self.parser_lock.release()
+        
+        if name == "lpi-bytes":
+            parser = LPIBytesParser()
+            self.parser_lock.acquire()
+            self.parsers["lpi-bytes"] = parser 
+            self.parser_lock.release()
+            
+
 
         if parser != None:
             self._update_stream_map(streams, parser, colid)
@@ -388,6 +397,7 @@ class Connection(object):
         """
         self.stream_lock.acquire()
         if streamid not in self.streams:
+            self.stream_lock.release()
             return {}
             
         info = self.streams[streamid]['streaminfo']

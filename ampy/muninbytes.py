@@ -72,7 +72,7 @@ class MuninbytesParser(object):
 
 
     def get_aggregate_columns(self, detail):
-        """ Return a list of columns in the streams table for this collection
+        """ Return a list of columns in the data table for this collection
             that should be subject to data aggregation """
         
         # There is no "mininal" level of detail for this data, so just return
@@ -88,7 +88,8 @@ class MuninbytesParser(object):
         """ Formats the measurements retrieved from NNTSC into a nice format
             for subsequent analysis / plotting / etc.
 
-            In the case of rrd-muninbytes, no formatting is necessary
+            In the case of rrd-muninbytes, we need to convert the 'bytes per
+            second' value stored in the database into Mbps
         """
         if "minres" not in streaminfo.keys():
             return received
