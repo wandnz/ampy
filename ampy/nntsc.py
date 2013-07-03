@@ -397,6 +397,7 @@ class Connection(object):
         """
         self.stream_lock.acquire()
         if streamid not in self.streams:
+            self.stream_lock.release()
             return {}
             
         info = self.streams[streamid]['streaminfo']

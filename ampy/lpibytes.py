@@ -12,9 +12,9 @@ class LPIBytesParser(object):
         self.sources = {}
         # Maps (source) to a set of users measured from that source
         self.users = {}
-        # Maps (source, user) to a set of protocols measured for that user
+        # Map containing all the valid protocols
         self.protocols = {}
-        # Maps (source, user, proto) to the set of available directions
+        # Maps containing all the valid directions
         self.directions = {}
 
     def add_stream(self, s):
@@ -24,24 +24,18 @@ class LPIBytesParser(object):
               s -- the new stream, as returned by NNTSC
         """
 
+        s['protocol'] = string.replace(s['protocol'], "/", " - ")
+
         self.sources[s['source']] = 1
+        self.protocols[s['protocol']] = 1
+        self.directions[s['dir']] = 1
 
         if s['source'] in self.users:
             self.users[s['source']][s['user']] = 1
         else:
             self.users[s['source']] = { s['user']:1 }
 
-        if (s['source'], s['user']) in self.protocols:
-            self.protocols[(s['source'], s['user'])][s['protocol']] = 1
-        else:
-            self.protocols[(s['source'], s['user'])] = { s['protocol']:1 }
-
-        if (s['source'], s['user'], s['protocol']) in self.directions:
-            self.directions[(s['source'], s['user'], s['protocol'])][s['dir']] = 1
-        else:
-            self.directions[(s['source'], s['user'], s['protocol'])] = \
-                    { s['dir']:1 }
-
+        
         self.streams[(s['source'], s['user'], s['protocol'], s['dir'])] = s['stream_id']
 
     def get_stream_id(self, params):
@@ -131,18 +125,20 @@ class LPIBytesParser(object):
             the stream described by those parameters is returned.
         """
 
-        if 'source' not in params:
+        if params['_requesting'] == 'sources':
             return self._get_sources()
 
-        if 'user' not in params:
-            return self._get_users(params['source'])
+        if params['_requesting'] == 'protocols':
+            return self._get_protocols()
 
-        if 'protocol' not in params:
-            return self._get_protocols(params['source'], params['user'])
+        if params['_requesting'] == 'directions':
+            return self._get_directions()
 
-        if 'direction' not in params:
-            return self._get_directions(params['source'], params['user'],
-                    params['protocol'])
+        if params['_requesting'] == 'users':
+            if 'source' in params:
+                return self._get_users(params['source'])
+            else:
+                return self._get_users(None)
 
         return [self.get_stream_id(params)]
 
@@ -165,34 +161,11 @@ class LPIBytesParser(object):
         return users.keys()
 
 
-    def _get_protocols(self, source, user):
-        """ Get all available protocols for a given source / user combo """
-        if source != None and user != None:
-            if (source, user) not in self.protocols:
-                return []
-            else:
-                return self.protocols[(source, user)].keys()
+    def _get_protocols(self):
+        return self.protocols.keys()
 
-        protos = {}
-        for v in self.protocols.values():
-            for d in v.keys():
-                protos[d] = 1
-        return protos.keys()
-
-    def _get_directions(self, source, user, proto):
-        """ Get all available directions for a given source / user / protocol
-            combination """
-        if source != None and user != None and proto != None:
-            if (source, user, proto) not in self.directions:
-                return []
-            else:
-                return self.directions[(source, user, proto)].keys()
-
-        dirs = {}
-        for v in self.directions.values():
-            for d in v.keys():
-                dirs[d] = 1
-        return dirs.keys()
+    def _get_directions(self):
+        return self.directions.keys()
 
 
 
