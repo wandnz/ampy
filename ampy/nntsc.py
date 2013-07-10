@@ -586,6 +586,30 @@ class Connection(object):
 
         return self._get_data(stream, start, end, binsize, detail)
 
+    def _fill_missing(self, data, freq, stream):
+        """ Internal function that populates the data list with 'empty'
+            measurements wherever a data point is missing. This will ensure
+            that amp-web will break line graphs wherever data is missing.
+        """
+        nextts = data[0]['binstart']
+        nogap_data = []
+
+        # If there are missing measurements, make sure we create 'None'
+        # entries for them so that our graphs are discontinuous. If we don't
+        # do this, then there'll be a hideous straight line linking the
+        # data points either side of the gap
+        for d in data:
+            
+            while d['binstart'] - nextts > freq:
+                if len(nogap_data) != 0:
+                    nogap_data.append({'stream_id':stream, 'timestamp':nextts})
+                nextts += freq
+            nogap_data.append(d)
+            nextts = d['binstart'] + freq
+        
+        return nogap_data
+        
+
     def _get_data(self, stream, start, end, binsize, detail):
         """ Internal function that actually performs the NNTSC query to get
             measurement data, parses the responses and forms up the ampy
@@ -622,6 +646,7 @@ class Connection(object):
 
         got_data = False
         data = []
+        freq = 0
 
         while not got_data:
             msg = self._get_nntsc_message(client)
@@ -646,12 +671,15 @@ class Connection(object):
                 if msg[1]['aggregator'] != 'avg':
                     continue
 
+                freq = msg[1]['binsize']
                 data += msg[1]['data']
                 if msg[1]['more'] == False:
                     got_data = True
         client.disconnect()
-       
-        
+
+        if freq != 0 and len(data) != 0:
+            data = self._fill_missing(data, freq, stream)
+
         # Some collections have some specific formatting they like to do to
         # the data before displaying it, e.g. rrd-smokeping combines the ping 
         # data into a single list rather than being 20 separate dictionary 
