@@ -16,6 +16,9 @@ from libnntsc.client.nntscclient import NNTSCClient
 from ampy.muninbytes import MuninbytesParser
 from ampy.lpibytes import LPIBytesParser
 from ampy.smokeping import SmokepingParser
+from ampy.lpipackets import LPIPacketsParser
+from ampy.lpiflows import LPIFlowsParser
+from ampy.lpiusers import LPIUsersParser
 
 from threading import Lock
 
@@ -304,6 +307,24 @@ class Connection(object):
             parser = LPIBytesParser()
             self.parser_lock.acquire()
             self.parsers["lpi-bytes"] = parser 
+            self.parser_lock.release()
+            
+        if name == "lpi-flows":
+            parser = LPIFlowsParser()
+            self.parser_lock.acquire()
+            self.parsers["lpi-flows"] = parser 
+            self.parser_lock.release()
+            
+        if name == "lpi-packets":
+            parser = LPIPacketsParser()
+            self.parser_lock.acquire()
+            self.parsers["lpi-packets"] = parser 
+            self.parser_lock.release()
+            
+        if name == "lpi-users":
+            parser = LPIUsersParser()
+            self.parser_lock.acquire()
+            self.parsers["lpi-users"] = parser 
             self.parser_lock.release()
             
 
