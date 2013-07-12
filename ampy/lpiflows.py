@@ -2,8 +2,8 @@
 
 import sys, string
 
-class LPIBytesParser(object):
-    """ Parser for the lpi-bytes collection. """
+class LPIFlowsParser(object):
+    """ Parser for the lpi-flows collection. """
     def __init__(self):
         """ Initialises the parser """
         self.streams = {}
@@ -36,14 +36,14 @@ class LPIBytesParser(object):
             self.users[s['source']] = { s['user']:1 }
 
         
-        self.streams[(s['source'], s['user'], s['protocol'], s['dir'])] = s['stream_id']
+        self.streams[(s['source'], s['user'], s['protocol'], s['dir'], s['metric'])] = s['stream_id']
 
     def get_stream_id(self, params):
         """ Finds the stream ID that matches the given (source, user, protocol,
-            direction) combination.
+            direction, metric) combination.
 
             If params does not contain an entry for 'source', 'user',
-            'protocol' or 'direction', then -1 will be returned.
+            'protocol', 'direction' or 'metric', then -1 will be returned.
 
             Parameters:
                 params -- a dictionary containing the parameters describing the
@@ -62,8 +62,10 @@ class LPIBytesParser(object):
             return -1;
         if 'direction' not in params:
             return -1;
+        if 'metric' not in params:
+            return -1
 
-        key = (params['source'], params['user'], params['protocol'], params['direction'])
+        key = (params['source'], params['user'], params['protocol'], params['direction'], params['metric'])
         if key not in self.streams:
             return -1
         return self.streams[key]
@@ -72,7 +74,7 @@ class LPIBytesParser(object):
         """ Return a list of columns in the data table for this collection
             that should be subject to data aggregation """
 
-        return ['bytes']
+        return ['flows']
 
     def get_group_columns(self):
         """ Return a list of columns in the streams table that should be used
@@ -84,29 +86,16 @@ class LPIBytesParser(object):
         """ Formats the measurements retrieved from NNTSC into a nice format
             for subsequent analysis / plotting / etc.
 
-            In the case of lpi-bytes, we need to convert the 'bytes' value 
-            stored in the database into Mbps
+            In the case of lpi-flows, no modification should be necessary.
         """
 
-        if 'freq' not in streaminfo.keys():
-            return received
-        if streaminfo['freq'] == 0:
-            return received
-
-        for r in received:
-            if 'bytes' not in r.keys():
-                continue
-            if r['bytes'] == None:
-                r['mbps'] = None
-            else:
-                r['mbps'] = ((float(r['bytes']) * 8.0) / streaminfo['freq'] / 1000000.0)
         return received
 
 
     def get_selection_options(self, params):
         """ Returns the list of names to populate a dropdown list with, given
             a current set of selected parameters.
-            
+
             params must have a field called "_requesting" which describes
             which of the possible stream parameters you are interested in.
 
@@ -130,10 +119,13 @@ class LPIBytesParser(object):
             else:
                 return self._get_users(None)
 
+        if 'metric' not in params:
+            params['metric'] = 'peak'
+
         return []
 
     def _get_sources(self):
-        """ Get the names of all of the sources that have lpi bytes data """
+        """ Get the names of all of the sources that have lpi flows data """
         return self.sources.keys()
 
     def _get_users(self, source):

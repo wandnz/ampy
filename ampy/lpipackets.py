@@ -2,8 +2,8 @@
 
 import sys, string
 
-class LPIBytesParser(object):
-    """ Parser for the lpi-bytes collection. """
+class LPIPacketsParser(object):
+    """ Parser for the lpi-packets collection. """
     def __init__(self):
         """ Initialises the parser """
         self.streams = {}
@@ -72,7 +72,7 @@ class LPIBytesParser(object):
         """ Return a list of columns in the data table for this collection
             that should be subject to data aggregation """
 
-        return ['bytes']
+        return ['packets']
 
     def get_group_columns(self):
         """ Return a list of columns in the streams table that should be used
@@ -84,29 +84,16 @@ class LPIBytesParser(object):
         """ Formats the measurements retrieved from NNTSC into a nice format
             for subsequent analysis / plotting / etc.
 
-            In the case of lpi-bytes, we need to convert the 'bytes' value 
-            stored in the database into Mbps
+            In the case of lpi-packets, no modification should be necessary.
         """
 
-        if 'freq' not in streaminfo.keys():
-            return received
-        if streaminfo['freq'] == 0:
-            return received
-
-        for r in received:
-            if 'bytes' not in r.keys():
-                continue
-            if r['bytes'] == None:
-                r['mbps'] = None
-            else:
-                r['mbps'] = ((float(r['bytes']) * 8.0) / streaminfo['freq'] / 1000000.0)
         return received
 
 
     def get_selection_options(self, params):
         """ Returns the list of names to populate a dropdown list with, given
             a current set of selected parameters.
-            
+
             params must have a field called "_requesting" which describes
             which of the possible stream parameters you are interested in.
 
@@ -133,7 +120,7 @@ class LPIBytesParser(object):
         return []
 
     def _get_sources(self):
-        """ Get the names of all of the sources that have lpi bytes data """
+        """ Get the names of all of the sources that have lpi packets data """
         return self.sources.keys()
 
     def _get_users(self, source):
