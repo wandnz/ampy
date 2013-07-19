@@ -19,6 +19,7 @@ from ampy.smokeping import SmokepingParser
 from ampy.lpipackets import LPIPacketsParser
 from ampy.lpiflows import LPIFlowsParser
 from ampy.lpiusers import LPIUsersParser
+from ampy.ampicmp import AmpIcmpParser
 
 from threading import Lock
 
@@ -290,7 +291,13 @@ class Connection(object):
         
         # Get the streams for the requested collection 
         streams = self._request_streams(colid)
-        
+       
+        if name == "amp-icmp":
+            parser = AmpIcmpParser()
+            self.parser_lock.acquire()
+            self.parsers["amp-icmp"] = parser 
+            self.parser_lock.release()
+
         if name == "rrd-smokeping":
             parser = SmokepingParser()
             self.parser_lock.acquire()
