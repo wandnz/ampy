@@ -55,6 +55,9 @@ class Connection(object):
         get_selection_options:
             returns a list of terms for populating a dropdown list for 
             selecting a stream, based on what has already been selected
+        get_collection_streams:
+            returns a list of stream information dictionaries describing all
+            of the streams that belong to a particular collection
     """
     def __init__(self, host="localhost", port=61234):
         """ Initialises the Connection class
@@ -462,6 +465,37 @@ class Connection(object):
         
         return parser.get_stream_id(params)
 
+    def get_collection_streams(self, collection):
+        """ Returns a list of the streaminfo dicts for all streams belonging
+            to the given collection.
+
+            Parameters:
+              collection -- the name of the collection to query
+
+            Returns:
+             a list of dictionaries where each dictionary contains the 
+             stream information for a stream belonging to the named collection.
+             If the collection name is incorrect, an empty list is returned.
+        """
+
+        colstreams = []
+
+        self.collection_lock.acquire()
+        if collection not in self.collection_names.keys():
+            print >> sys.stderr, "No NNTSC collection matching %s" % (name)
+            return []
+        else:
+            colid = self.collection_names[collection]
+        self.collection_lock.release()
+        
+
+        self.stream_lock.acquire()
+        for s in self.streams.values():
+            if s['collection'] == colid:
+                colstreams.append(s['streaminfo'])
+
+        self.stream_lock.release()
+        return colstreams
 
     def get_recent_data(self, stream, duration, binsize, detail):
         """ Returns data measurements for a time period starting at 'now' and
