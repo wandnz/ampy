@@ -53,7 +53,7 @@ class Connection(object):
         get_period_data:
             queries NNTSC for measurement data over a specified time period
         get_selection_options:
-            returns a list of terms for populating a dropdown list for 
+            returns a list of terms for populating a dropdown list for
             selecting a stream, based on what has already been selected
         get_collection_streams:
             returns a list of stream information dictionaries describing all
@@ -76,7 +76,7 @@ class Connection(object):
 
         # These locks protect our core data structures.
         #
-        # ampy is often used in situations where requests may happen via 
+        # ampy is often used in situations where requests may happen via
         # multiple threads so we need to try and be thread-safe wherever
         # possible.
         self.collection_lock = Lock()
@@ -114,13 +114,13 @@ class Connection(object):
 
         client = NNTSCClient(s)
         return client
-            
+
     def _get_nntsc_message(self, client):
-        """ Receives and parses a message from NNTSC 
-        
+        """ Receives and parses a message from NNTSC
+
             Parameters:
               client -- the NNTSCClient that was used to make the original
-                        request   
+                        request
         """
         while 1:
             msg = client.parse_message()
@@ -174,7 +174,7 @@ class Connection(object):
             streams += msg[1]['streams']
             if msg[1]['more'] == False:
                 break
-        
+
         client.disconnect()
         return streams
 
@@ -224,13 +224,13 @@ class Connection(object):
             self.collections[col['id']] = {'name':name, 'label':label}
             self.collection_names[name] = col['id']
             self.collection_lock.release()
-            
+
 
     def get_collections(self):
         """ API function for requesting the list of available collections.
 
             If we don't have a local copy, query NNTSC for the collections
-            and then save the results for subsequent requests. Otherwise, 
+            and then save the results for subsequent requests. Otherwise,
             return the saved collection list.
         """
         self.collection_lock.acquire()
@@ -245,23 +245,23 @@ class Connection(object):
         # condition, but we shouldn't touch the collections often so hopefully
         # this won't be too much of an issue
         return self.collections;
-        
+
     def create_parser(self, name):
         """ Creates a 'parser' for the named collection.
-        
+
             A parser is necessary for being able to query NNTSC for data about
             the collection or any streams belonging to it.
-            
+
             If a parser for the named collection already exists, this function
             will immediately return -- this means you don't have to worry
             about only calling create_parser once for each collection; call it
             before doing any queries.
-            
+
             Otherwise, this function will create a new parser object for
             the requested collection and query NNTSC for all of the streams
             belonging to that collection. Details about the streams are
             saved locally and also passed into the new parser to allow it to
-            construct its own internal data structures for fast lookups. 
+            construct its own internal data structures for fast lookups.
 
             Params:
               name -- the name of the collection to create a parser for (not
@@ -284,59 +284,59 @@ class Connection(object):
                 print >> sys.stderr, "Error receiving collections from NNTSC"
                 return
             self.collection_lock.acquire()
-             
+
         if name not in self.collection_names.keys():
             print >> sys.stderr, "No NNTSC collection matching %s" % (name)
             return
         else:
             colid = self.collection_names[name]
         self.collection_lock.release()
-        
-        # Get the streams for the requested collection 
+
+        # Get the streams for the requested collection
         streams = self._request_streams(colid)
-       
+
         if name == "amp-icmp":
             parser = AmpIcmpParser()
             self.parser_lock.acquire()
-            self.parsers["amp-icmp"] = parser 
+            self.parsers["amp-icmp"] = parser
             self.parser_lock.release()
 
         if name == "rrd-smokeping":
             parser = SmokepingParser()
             self.parser_lock.acquire()
-            self.parsers["rrd-smokeping"] = parser 
+            self.parsers["rrd-smokeping"] = parser
             self.parser_lock.release()
 
         if name == "rrd-muninbytes":
             parser = MuninbytesParser()
             self.parser_lock.acquire()
-            self.parsers["rrd-muninbytes"] = parser 
+            self.parsers["rrd-muninbytes"] = parser
             self.parser_lock.release()
-        
+
         if name == "lpi-bytes":
             parser = LPIBytesParser()
             self.parser_lock.acquire()
-            self.parsers["lpi-bytes"] = parser 
+            self.parsers["lpi-bytes"] = parser
             self.parser_lock.release()
-            
+
         if name == "lpi-flows":
             parser = LPIFlowsParser()
             self.parser_lock.acquire()
-            self.parsers["lpi-flows"] = parser 
+            self.parsers["lpi-flows"] = parser
             self.parser_lock.release()
-            
+
         if name == "lpi-packets":
             parser = LPIPacketsParser()
             self.parser_lock.acquire()
-            self.parsers["lpi-packets"] = parser 
+            self.parsers["lpi-packets"] = parser
             self.parser_lock.release()
-            
+
         if name == "lpi-users":
             parser = LPIUsersParser()
             self.parser_lock.acquire()
-            self.parsers["lpi-users"] = parser 
+            self.parsers["lpi-users"] = parser
             self.parser_lock.release()
-            
+
 
 
         if parser != None:
@@ -375,7 +375,7 @@ class Connection(object):
 
         if colid not in self.collections:
             return
-        
+
         self.parser_lock.acquire()
         if self.collections[colid]['name'] not in self.parsers:
             self.parser_lock.release()
@@ -383,12 +383,12 @@ class Connection(object):
         parser = self.parsers[self.collections[colid]['name']]
         self.parser_lock.release()
 
-        self._update_stream_map(msg[1]['streams'], parser, colid) 
+        self._update_stream_map(msg[1]['streams'], parser, colid)
 
     def get_selection_options(self, name, params):
         """ Given a known set of stream parameters, return a list of possible
             values that can be used to select a valid stream.
-            
+
             This method is mainly used for populating dropdown lists in
             amp-web. An example use case: the collection is rrd-smokeping and
             the user has selected a source using the dropdown list. We call
@@ -402,7 +402,7 @@ class Connection(object):
             Params:
               name -- the name of the collection being queried
               params -- a dictionary describing the parameters that have
-                        already been selected. 
+                        already been selected.
 
             Returns:
               a list of valid values for a subsequent selection option, given
@@ -411,18 +411,18 @@ class Connection(object):
         self.parser_lock.acquire()
         if not self.parsers.has_key(name):
             return []
-        
+
         parser = self.parsers[name]
         self.parser_lock.release()
 
         # This is all handled within the parser, as the parameters that can
-        # be used as selection options will differ from collection to 
+        # be used as selection options will differ from collection to
         # collection.
         return parser.get_selection_options(params)
 
     def get_stream_info(self, streamid):
-        """ Returns the stream information dictionary for a given stream. 
-        
+        """ Returns the stream information dictionary for a given stream.
+
             Parameters:
               streamid -- the id of the stream that the info is requested for
         """
@@ -430,7 +430,7 @@ class Connection(object):
         if streamid not in self.streams:
             self.stream_lock.release()
             return {}
-            
+
         info = self.streams[streamid]['streaminfo']
         self.stream_lock.release()
         return info
@@ -441,7 +441,7 @@ class Connection(object):
             To be successful, the params dictionary must contain all of the
             possible selection parameters for the collection. For example,
             a rrd-muninbytes stream ID will only be found if the params
-            dictionary contains 'switch', 'interface' AND 'direction'. 
+            dictionary contains 'switch', 'interface' AND 'direction'.
 
             See also get_selection_options().
 
@@ -462,7 +462,7 @@ class Connection(object):
             return -1
         parser = self.parsers[name]
         self.parser_lock.release()
-        
+
         return parser.get_stream_id(params)
 
     def get_collection_streams(self, collection):
@@ -473,7 +473,7 @@ class Connection(object):
               collection -- the name of the collection to query
 
             Returns:
-             a list of dictionaries where each dictionary contains the 
+             a list of dictionaries where each dictionary contains the
              stream information for a stream belonging to the named collection.
              If the collection name is incorrect, an empty list is returned.
         """
@@ -487,7 +487,7 @@ class Connection(object):
         else:
             colid = self.collection_names[collection]
         self.collection_lock.release()
-        
+
 
         self.stream_lock.acquire()
         for s in self.streams.values():
@@ -518,16 +518,16 @@ class Connection(object):
             Valid values for the detail parameter are:
                 "full" -- return all available measurements
                 "minimal" -- return a minimal set of measurements
-    
+
             Parameters:
               stream -- the id number of the stream to fetch data for
               duration -- the length of the time period to fetch data for, in
                           seconds
               binsize -- the frequency at which data should be aggregated. If
                          None, the binsize is assumed to be the duration.
-              detail -- a string that describes the level of measurement detail 
+              detail -- a string that describes the level of measurement detail
                         that should be returned for each datapoint. If None,
-                        assumed to be "full". 
+                        assumed to be "full".
 
             Returns:
               an ampy Result object containing all of the requested measurement
@@ -537,16 +537,16 @@ class Connection(object):
         if stream not in self.streams:
             print >> sys.stderr, "Requested data for unknown stream: %d" % (stream)
             self.stream_lock.release()
-            return ampy.result.Result([])    
+            return ampy.result.Result([])
         self.stream_lock.release()
 
         # Default to returning only a single aggregated response
         if binsize is None:
             binsize = duration
-       
+
         if detail is None:
             detail = "full"
-        
+
         end = int(time.time())
         start = end - duration
 
@@ -574,7 +574,7 @@ class Connection(object):
                     #print "hit %s" % key
                     return ampy.result.Result(self.memcache.get(key))
                 #else:
-                #    print "miss %s" % key
+                    #print "miss %s" % key
             except pylibmc.SomeErrors:
                 # Nothing useful we can do, carry on as if data is not present.
                 pass
@@ -587,7 +587,7 @@ class Connection(object):
             using a start and end time.
 
             See also get_recent_data().
-            
+
             The detail parameter allows the user to limit the amount of data
             returned to them. For example, smokeping results store the
             latency measurements for each individual ping. Requesting "full"
@@ -603,7 +603,7 @@ class Connection(object):
             Valid values for the detail parameter are:
                 "full" -- return all available measurements
                 "minimal" -- return a minimal set of measurements
-    
+
             Parameters:
               stream -- the id number of the stream to fetch data for
               start -- the starting point of the time period, in seconds since
@@ -612,9 +612,9 @@ class Connection(object):
                      epoch. If None, assumed to be 'now'.
               binsize -- the frequency at which data should be aggregated. If
                          None, the binsize is assumed to be the duration.
-              detail -- a string that describes the level of measurement detail 
+              detail -- a string that describes the level of measurement detail
                         that should be returned for each datapoint. If None,
-                        assumed to be "full". 
+                        assumed to be "full".
 
             Returns:
               an ampy Result object containing all of the requested measurement
@@ -624,9 +624,9 @@ class Connection(object):
         if stream not in self.streams:
             print "Requested data for unknown stream: %d" % (stream)
             self.stream_lock.release()
-            return ampy.result.Result([])    
+            return ampy.result.Result([])
         self.stream_lock.release()
-        
+
         # FIXME: Consider limiting maximum durations based on binsize
         # if end is not set then assume "now".
         if end is None:
@@ -635,18 +635,17 @@ class Connection(object):
         # If start is not set then assume 5 minutes before the end.
         if start is None:
             start = end - (60*5)
-       
+
         if detail is None:
             detail = "full"
-        
-        
+
         # If we have memcache check if this data is available already.
         if self.memcache:
             # TODO investigate why src and dst are sometimes being given to us
             # as unicode by the tooltip data requests. Any unicode string here
             # makes the result type unicode, which memcache barfs on so for now
             # force the key to be a normal string type.
-            key = str("_".join([str(stream), str(start), str(end), 
+            key = str("_".join([str(stream), str(start), str(end),
                     str(binsize), str(detail)]))
             try:
                 if key in self.memcache:
@@ -673,16 +672,15 @@ class Connection(object):
         # do this, then there'll be a hideous straight line linking the
         # data points either side of the gap
         for d in data:
-            
+
             while d['binstart'] - nextts > freq:
                 if len(nogap_data) != 0:
                     nogap_data.append({'stream_id':stream, 'timestamp':nextts})
                 nextts += freq
             nogap_data.append(d)
             nextts = d['binstart'] + freq
-        
+
         return nogap_data
-        
 
 
     def _get_data(self, stream, start, end, binsize, detail, key, cachetime=60):
@@ -696,28 +694,28 @@ class Connection(object):
             Returns:
                 the same as get_period_data()
         """
-    
+
         self.stream_lock.acquire()
         parser = self.streams[stream]['parser']
         colid = self.streams[stream]['collection']
         self.stream_lock.release()
-        
+
         agg_columns = parser.get_aggregate_columns(detail)
         group_columns = parser.get_group_columns()
 
         if parser == None:
-            print >> sys.stderr, "Cannot fetch data -- no valid parser for stream %s" % (stream)     
-            return ampy.result.Result([])    
-        
+            print >> sys.stderr, "Cannot fetch data -- no valid parser for stream %s" % (stream)
+            return ampy.result.Result([])
+
         client = self._connect_nntsc()
         if client == None:
             print >> sys.stderr, "Cannot fetch data -- lost connection to NNTSC"
-            return ampy.result.Result([])    
-            
-        
+            return ampy.result.Result([])
+
+
         if client.request_aggregate(colid, [stream], start, end,
                 agg_columns, binsize, group_columns) == -1:
-            return ampy.result.Result([])    
+            return ampy.result.Result([])
 
         got_data = False
         data = []
@@ -756,9 +754,9 @@ class Connection(object):
             data = self._fill_missing(data, freq, stream)
 
         # Some collections have some specific formatting they like to do to
-        # the data before displaying it, e.g. rrd-smokeping combines the ping 
-        # data into a single list rather than being 20 separate dictionary 
-        # entries. 
+        # the data before displaying it, e.g. rrd-smokeping combines the ping
+        # data into a single list rather than being 20 separate dictionary
+        # entries.
         data = parser.format_data(data, stream, self.streams[stream]['streaminfo'])
         # Save the data in the cache
         if self.memcache:
