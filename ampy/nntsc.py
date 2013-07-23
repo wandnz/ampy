@@ -550,14 +550,25 @@ class Connection(object):
         end = int(time.time())
         start = end - duration
 
+        if duration <= (60 * 10):
+            cachetime = 60
+        elif duration <= (60 * 60):
+            cachetime = 60 * 5
+        elif duration <= (60 * 60 * 24):
+            cachetime = 60 * 30
+        elif duration <= (60 * 60 * 24 * 7):
+            cachetime = 60 * 60 * 3
+        else:
+            cachetime = 60 * 60 * 6
+
         # If we have memcache check if this data is available already.
         if self.memcache:
             # TODO investigate why src and dst are sometimes being given to us
             # as unicode by the tooltip data requests. Any unicode string here
             # makes the result type unicode, which memcache barfs on so for now
             # force the key to be a normal string type.
-            key = str("_".join([str(stream), str(start), str(end), 
-                    str(binsize), str(detail) ]))
+            key = str("_".join([str(stream), str(duration), str(binsize),
+                        str(detail)]))
             try:
                 if key in self.memcache:
                     #print "hit %s" % key
@@ -568,7 +579,8 @@ class Connection(object):
                 # Nothing useful we can do, carry on as if data is not present.
                 pass
 
-        return self._get_data(stream, start, end, binsize, detail)
+        return self._get_data(stream, start, end, binsize, detail, key,
+                cachetime)
 
     def get_period_data(self, stream, start, end, binsize, detail):
         """ Returns data measurements for a time period explicitly described
@@ -646,7 +658,7 @@ class Connection(object):
                 # Nothing useful we can do, carry on as if data is not present.
                 pass
 
-        return self._get_data(stream, start, end, binsize, detail)
+        return self._get_data(stream, start, end, binsize, detail, key)
 
     def _fill_missing(self, data, freq, stream):
         """ Internal function that populates the data list with 'empty'
@@ -672,7 +684,8 @@ class Connection(object):
         return nogap_data
         
 
-    def _get_data(self, stream, start, end, binsize, detail):
+
+    def _get_data(self, stream, start, end, binsize, detail, key, cachetime=60):
         """ Internal function that actually performs the NNTSC query to get
             measurement data, parses the responses and forms up the ampy
             Result object to be returned to the caller.
@@ -747,14 +760,10 @@ class Connection(object):
         # data into a single list rather than being 20 separate dictionary 
         # entries. 
         data = parser.format_data(data, stream, self.streams[stream]['streaminfo'])
-       
-        key = str("_".join([str(stream), str(start), str(end), str(binsize),
-                str(detail)]))
-        
         # Save the data in the cache
         if self.memcache:
             try:
-                self.memcache.set(key, data, self.cache_duration)
+                self.memcache.set(key, data, cachetime)
             except pylibmc.WriteError:
                 # Nothing useful we can do, carry on as if data was saved.
                 pass
