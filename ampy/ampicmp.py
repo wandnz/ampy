@@ -9,7 +9,7 @@ class AmpIcmpParser(object):
     def __init__(self):
         """ Initialises the parser """
 
-        # These dictionaries store local copies of data that relate to 
+        # These dictionaries store local copies of data that relate to
         # identifying streams, so we don't have to query the database
         # everytime someone selects a new 'source' on the graph page.
         #
@@ -19,14 +19,14 @@ class AmpIcmpParser(object):
 
 
         # Dictionary that maps (dest) to a set of sources that test to that
-        # destination. Allows us to look up sources based on a given 
+        # destination. Allows us to look up sources based on a given
         # destination
         self.sources = {}
 
         # Dictionary that maps (source) to a set of destinations for that source
         self.destinations = {}
 
-        # Dictionary that maps (source, dest) to a set of packet sizes that 
+        # Dictionary that maps (source, dest) to a set of packet sizes that
         # have been used to test between those two hosts
         self.sizes = {}
 
@@ -47,11 +47,11 @@ class AmpIcmpParser(object):
 
     def add_stream(self, s):
         """ Updates the internal maps based on a new stream
-            
+
             Parameters:
                 s -- the new stream, as returned by NNTSC
         """
-           
+
         if s['destination'] in self.sources:
             self.sources[s['destination']][s['source']] = 1
         else:
@@ -84,7 +84,7 @@ class AmpIcmpParser(object):
                 the id number of the matching stream, or -1 if no matching
                 stream can be found
         """
- 
+
         if 'source' not in params:
             return -1
         if 'destination' not in params:
@@ -111,16 +111,16 @@ class AmpIcmpParser(object):
     def format_data(self, received, stream, streaminfo):
         """ Formats the measurements retrieved from NNTSC into a nice format
             for subsequent analysis / plotting / etc.
-    
+
         """
-           
-        # Don't do anything to this data, it is probably fine as is 
+
+        # Don't do anything to this data, it is probably fine as is
         return received
 
     def get_selection_options(self, params):
         """ Returns the list of names to populate a dropdown list with, given
             a current set of selected parameters.
-        
+
             The '_requesting' parameter must be set to describe which dropdown
             you are trying to populate. If not set, this function will return
             an empty list.
@@ -223,8 +223,6 @@ class AmpIcmpParser(object):
             return list(srcs.intersection(mesh_sites))
         return list(srcs)
 
-
-    # XXX this should filter by mesh too
     def _get_destinations(self, source, mesh):
         """ Get a list of all destinations that are tested to by a given
             source. If the source is None, return all possible destinations.
