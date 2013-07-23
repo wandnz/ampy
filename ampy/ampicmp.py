@@ -172,6 +172,23 @@ class AmpIcmpParser(object):
             else:
                 return self._get_sizes(params['source'], params['destination'])
 
+        if params["_requesting"] == "site_info":
+            if 'site' in params:
+                return self._get_site_info(params['site'])
+            return {}
+
+        if params["_requesting"] == "source_meshes":
+            if 'site' in params:
+                return self._get_source_meshes(params['site'])
+            else:
+                return self._get_source_meshes(None)
+
+        if params["_requesting"] == "destination_meshes":
+            if 'site' in params:
+                return self._get_destination_meshes(params['site'])
+            else:
+                return self._get_destination_meshes(None)
+
         return []
 
     def _get_sources(self, dest, mesh):
@@ -255,5 +272,69 @@ class AmpIcmpParser(object):
             for d in v.keys():
                 sizes[d] = 1
         return sizes.keys()
+
+    def _get_source_meshes(self, site=None):
+        """ Fetch all source meshes, possibly filtered by a site """
+        if self.ampdb is None:
+            return []
+        # No site set, return all possible source meshes
+        if site is None:
+            return [{"name":x[0], "longname":x[1], "description":x[2]}
+            for x in self.ampdb.execute(
+                    "SELECT mesh_name, mesh_longname, mesh_description "
+                    "FROM mesh "
+                    "WHERE mesh_active = true AND mesh_is_src = true")]
+        # Site is set, return all source meshes that the site is a part of
+        return [{"name":x[0], "longname":x[1], "description":x[2]}
+        for x in self.ampdb.execute(sqlalchemy.text(
+                    "SELECT mesh_name, mesh_longname, mesh_description "
+                    "FROM active_mesh_members JOIN mesh "
+                    "ON active_mesh_members.meshname = mesh.mesh_name "
+                    "WHERE ampname = :site AND mesh_is_src = true"),
+                {"site": site})]
+
+    def _get_destination_meshes(self, site=None):
+        """ Fetch all destination meshes, possibly filtered by a site """
+        if self.ampdb is None:
+            return []
+        # No site set, return all possible destination meshes
+        if site is None:
+            return [{"name":x[0], "longname":x[1], "description":x[2]}
+            for x in self.ampdb.execute(
+                    "SELECT mesh_name, mesh_longname, mesh_description "
+                    "FROM mesh "
+                    "WHERE mesh_active = true AND mesh_is_dst = true")]
+        # Site is set, return all destination meshes that the site tests to
+        return [{"name":x[0], "longname":x[1], "description":x[2]}
+        for x in self.ampdb.execute(sqlalchemy.text(
+                    "SELECT mesh_name, mesh_longname, mesh_description "
+                    "FROM active_mesh_members JOIN mesh "
+                    "ON active_mesh_members.meshname = mesh.mesh_name "
+                    "WHERE ampname = :site AND mesh_is_dst = true"),
+                {"site": site})]
+
+    def _get_site_info(self, site):
+        """ Get more detailed and human readable information about a site """
+        # if we can't find the site then return *something* they can at
+        # least use, even if it doesn't have any useful information
+        unknown = {
+            "ampname": site,
+            "longname": site,
+            "description": "",
+            "location": "unknown location",
+        }
+        if self.ampdb is None:
+            return unknown
+        info = self.ampdb.execute(sqlalchemy.text(
+                    "SELECT site_ampname as ampname, "
+                    "site_longname as longname, "
+                    "site_location as location, "
+                    "site_description as description, "
+                    "site_active as active "
+                    "FROM site WHERE site_ampname = :site"),
+                    {"site": site}).first()
+        if info is None:
+            return unknown
+        return dict(info)
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :
