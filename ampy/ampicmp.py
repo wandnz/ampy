@@ -140,21 +140,31 @@ class AmpIcmpParser(object):
             of 'source' or 'destination' is not set, then a list of all
             packet sizes across all streams is returned.
         """
-            
+
         if "_requesting" not in params:
             return []
 
         if params["_requesting"] == 'sources':
             if 'destination' in params:
-                return self._get_sources(params['destination'])
+                destination = params['destination']
             else:
-                return self._get_sources(None)
+                destination = None
+            if 'mesh' in params:
+                mesh = params['mesh']
+            else:
+                mesh = None
+            return self._get_sources(destination, mesh)
 
         if params["_requesting"] == "destinations":
             if 'source' in params:
-                return self._get_destinations(params['source'])
+                source = params["source"]
             else:
-                return self._get_destinations(None)
+                source = None
+            if 'mesh' in params:
+                mesh = params['mesh']
+            else:
+                mesh = None
+            return self._get_destinations(source, mesh)
 
         if params["_requesting"] == "packet_sizes":
             if 'source' not in params or 'destination' not in params:
@@ -164,37 +174,71 @@ class AmpIcmpParser(object):
 
         return []
 
-    def _get_sources(self, dest):
-        """ Get a list of all sources that test to a given destination. 
+    def _get_sources(self, dest, mesh):
+        """ Get a list of all sources that test to a given destination.
             If the destination is None, return all known sources.
         """
+        # if the mesh is set then find the sites that belong
+        if mesh is not None and self.ampdb is not None:
+            mesh_sites = [x[0] for x in self.ampdb.execute(sqlalchemy.text(
+                        "SELECT ampname FROM active_mesh_members "
+                        "WHERE meshname = :mesh AND mesh_is_src = true "
+                        "ORDER BY ampname"),
+                    {"mesh": mesh})]
+
+        # if dest is set, find the sources that test to it
         if dest != None:
             if dest not in self.sources:
                 return []
+            elif mesh is not None:
+                # take the intersection of sources in mesh and sources with data
+                return list(
+                        set(self.sources[dest].keys()).intersection(mesh_sites))
             else:
                 return self.sources[dest].keys()
 
-        srcs = {}
+        srcs = set()
         for v in self.sources.values():
             for d in v.keys():
-                srcs[d] = 1
-        return srcs.keys()
+                srcs.add(d)
+        # take the intersection of sources in mesh and sources with data
+        if mesh is not None:
+            return list(srcs.intersection(mesh_sites))
+        return list(srcs)
 
-    def _get_destinations(self, source):
+
+    # XXX this should filter by mesh too
+    def _get_destinations(self, source, mesh):
         """ Get a list of all destinations that are tested to by a given
             source. If the source is None, return all possible destinations.
         """
+        # if the mesh is set then find the sites that belong
+        if mesh is not None and self.ampdb is not None:
+            mesh_sites = [x[0] for x in self.ampdb.execute(sqlalchemy.text(
+                        "SELECT ampname FROM active_mesh_members "
+                        "WHERE meshname = :mesh AND mesh_is_dst = true "
+                        "ORDER BY ampname"),
+                    {"mesh": mesh})]
+
+        # if source is set, find the destinations it tests to
         if source != None:
             if source not in self.destinations:
                 return []
+            elif mesh is not None:
+                return list(
+                        set(self.destinations[source].keys()).intersection(
+                            mesh_sites))
             else:
                 return self.destinations[source].keys()
 
-        dests = {}
+        dests = set()
         for v in self.destinations.values():
             for d in v.keys():
-                dests[d] = 1
-        return dests.keys()
+                dests.add(d)
+        # take the intersection of sources in mesh and sources with data
+        if mesh is not None:
+            return list(dests.intersection(mesh_sites))
+        return list(dests)
 
     def _get_sizes(self, source, dest):
         """ Get a list of all packet sizes used to test between a given
