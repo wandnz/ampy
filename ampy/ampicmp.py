@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys, string
+import sqlalchemy
 
 class AmpIcmpParser(object):
     """ Parser for the amp-icmp collection. """
@@ -32,6 +33,17 @@ class AmpIcmpParser(object):
         # Dictionary that maps (source, dest, size) to the corresponding
         # stream id
         self.streams = {}
+
+        # The AMP database stores site/mesh metadata
+        try:
+            # TODO make this configurable somewhere?
+            url = sqlalchemy.engine.url.URL("postgresql", database="amp2")
+            self.ampdb = sqlalchemy.create_engine(url)
+            # test query to see if the database connection was actually made:
+            # sqlalchemy is apparently stupid and doesn't let us easily check
+            self.ampdb.table_names()
+        except sqlalchemy.exc.OperationalError:
+            self.ampdb = None
 
     def add_stream(self, s):
         """ Updates the internal maps based on a new stream
