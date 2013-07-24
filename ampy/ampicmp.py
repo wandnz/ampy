@@ -97,10 +97,24 @@ class AmpIcmpParser(object):
             return -1
         return self.streams[key]
 
+    def get_aggregate_functions(self, detail):
+        """ Return the aggregation functions that should be applied to the
+            columns returned by get_aggregate_columns(). It should either be
+            a list of the same length, describing the aggregation function to
+            use for each column, or it should be a string describing the
+            function to use across all columns """
+        # the matrix view expects both the mean and stddev for the latency
+        if detail == "matrix":
+            return ["avg", "stddev", "avg"]
+        # normally we only concern ourselves with average values
+        return "avg"
+
     def get_aggregate_columns(self, detail):
         """ Return a list of columns in the data table for this collection
             that should be subject to data aggregation """
-
+        # the matrix view expects both the mean and stddev for the latency
+        if detail == "matrix":
+            return ["rtt", "rtt", "loss"]
         return ["rtt", "loss"]
 
     def get_group_columns(self):
