@@ -701,6 +701,14 @@ class Connection(object):
         self.stream_lock.release()
 
         agg_columns = parser.get_aggregate_columns(detail)
+        # Check if the parser implements the get_aggregate_functions function
+        # otherwise assume we just want the average.
+        # TODO everything should probably implement this function!
+        get_agg_func = getattr(parser, "get_aggregate_functions", None)
+        if callable(get_agg_func):
+            agg_functions = parser.get_aggregate_functions(detail)
+        else:
+            agg_functions = "avg"
         group_columns = parser.get_group_columns()
 
         if parser == None:
@@ -714,7 +722,7 @@ class Connection(object):
 
 
         if client.request_aggregate(colid, [stream], start, end,
-                agg_columns, binsize, group_columns) == -1:
+                agg_columns, binsize, group_columns, agg_functions) == -1:
             return ampy.result.Result([])
 
         got_data = False
