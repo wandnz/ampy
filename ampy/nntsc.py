@@ -749,7 +749,7 @@ class Connection(object):
                     continue
                 if msg[1]['streamid'] != stream:
                     continue
-                if msg[1]['aggregator'] != 'avg':
+                if msg[1]['aggregator'] != agg_functions:
                     continue
 
                 freq = msg[1]['binsize']
