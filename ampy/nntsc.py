@@ -135,12 +135,15 @@ class Connection(object):
 
             return msg
 
-    def _request_streams(self, colid):
+    def _request_streams(self, colid, startingfrom):
         """ Query NNTSC for all of the streams for a given collection
 
             Parameters:
               colid -- the id number of the collection to query for (not the
                        name!)
+              startingfrom -- the id of the last stream received for this
+                              collection, so you can ask for only new streams.
+                              If 0, you'll get all streams for the collection.
 
             Returns:
               a list of streams
@@ -153,7 +156,7 @@ class Connection(object):
             print >> sys.stderr, "Unable to connect to NNTSC exporter to request streams"
             return []
 
-        client.send_request(NNTSC_REQ_STREAMS, colid)
+        client.send_request(NNTSC_REQ_STREAMS, colid, startingfrom)
         while 1:
 
             msg = self._get_nntsc_message(client)
@@ -221,7 +224,7 @@ class Connection(object):
             label = name
 
             self.collection_lock.acquire()
-            self.collections[col['id']] = {'name':name, 'label':label}
+            self.collections[col['id']] = {'name':name, 'label':label, 'laststream':0}
             self.collection_names[name] = col['id']
             self.collection_lock.release()
             
@@ -292,9 +295,6 @@ class Connection(object):
             colid = self.collection_names[name]
         self.collection_lock.release()
         
-        # Get the streams for the requested collection 
-        streams = self._request_streams(colid)
-       
         if name == "amp-icmp":
             parser = AmpIcmpParser()
             self.parser_lock.acquire()
@@ -337,13 +337,12 @@ class Connection(object):
             self.parsers["lpi-users"] = parser 
             self.parser_lock.release()
             
-
-
         if parser != None:
-            self._update_stream_map(streams, parser, colid)
+            self._update_stream_map(name)
 
-    def _update_stream_map(self, streams, parser, colid):
-        """ Adds a list of streams to the internal stream map.
+    def _update_stream_map(self, collection):
+        """ Asks NNTSC for any streams that we don't know about and adds
+            them to our internal stream map.
 
             Also passes each stream to the provided parser, so it can update
             its own internal maps.
@@ -355,35 +354,40 @@ class Connection(object):
               colid -- the id number of the collection that the streams belong
                         to
         """
-        for s in streams:
+        self.collection_lock.acquire()
+        if collection not in self.collection_names.keys():
+            print >> sys.stderr, "No NNTSC collection matching %s" % (name)
+            return []
+        else:
+            colid = self.collection_names[collection]
+            laststream = self.collections[colid]['laststream']
+        self.collection_lock.release()
+        
+        self.parser_lock.acquire()
+        if collection not in self.parsers:
+            parser = None
+        else:
+            parser = self.parsers[collection]
+        self.parser_lock.release()
+        
+        newstreams = []
+        # Check if there are any new streams for this collection
+        if parser != None:
+            newstreams = self._request_streams(colid, laststream)
+        
+        for s in newstreams:
             self.stream_lock.acquire()
             self.streams[s['stream_id']] = {'parser':parser, 'streaminfo':s,
                     'collection':colid}
             self.stream_lock.release()
+            
             parser.add_stream(s)
+            
+            self.collection_lock.acquire()
+            if s['stream_id'] > self.collections[colid]['laststream']:
+                self.collections[colid]['laststream'] = s['stream_id']
+            self.collection_lock.release()
 
-    def _process_new_streams(self, msg):
-        """ Processes a NNTSC_STREAMS message and updates the internal maps
-            to include the new streams.
-
-            Parameters:
-              msg -- the received NNTSC_STREAMS message
-        """
-
-        # XXX Dunno if this actually works - kinda tricky to test
-        colid = msg[1]['collection']
-
-        if colid not in self.collections:
-            return
-        
-        self.parser_lock.acquire()
-        if self.collections[colid]['name'] not in self.parsers:
-            self.parser_lock.release()
-            return
-        parser = self.parsers[self.collections[colid]['name']]
-        self.parser_lock.release()
-
-        self._update_stream_map(msg[1]['streams'], parser, colid) 
 
     def get_selection_options(self, name, params):
         """ Given a known set of stream parameters, return a list of possible
@@ -414,6 +418,8 @@ class Connection(object):
         
         parser = self.parsers[name]
         self.parser_lock.release()
+
+        self._update_stream_map(name)
 
         # This is all handled within the parser, as the parameters that can
         # be used as selection options will differ from collection to 
@@ -462,6 +468,8 @@ class Connection(object):
             return -1
         parser = self.parsers[name]
         self.parser_lock.release()
+       
+        self._update_stream_map(name)
         
         return parser.get_stream_id(params)
 
@@ -488,6 +496,7 @@ class Connection(object):
             colid = self.collection_names[collection]
         self.collection_lock.release()
         
+        self._update_stream_map(collection) 
 
         self.stream_lock.acquire()
         for s in self.streams.values():
@@ -722,7 +731,7 @@ class Connection(object):
 
             # Look out for STREAM packets describing new streams
             if msg[0] == NNTSC_STREAMS:
-                self._process_new_streams(msg[1])
+                continue
 
             if msg[0] == NNTSC_HISTORY:
                 # Sanity checks
