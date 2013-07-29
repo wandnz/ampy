@@ -29,6 +29,7 @@ try:
 except ImportError:
     _have_memcache = False
 
+STREAM_CHECK_FREQUENCY = 60 * 5
 
 class Connection(object):
     """ Class that is used to query NNTSC. Will store information about
@@ -224,7 +225,7 @@ class Connection(object):
             label = name
 
             self.collection_lock.acquire()
-            self.collections[col['id']] = {'name':name, 'label':label, 'laststream':0}
+            self.collections[col['id']] = {'name':name, 'label':label, 'laststream':0, 'lastchecked':0}
             self.collection_names[name] = col['id']
             self.collection_lock.release()
             
@@ -357,12 +358,17 @@ class Connection(object):
         self.collection_lock.acquire()
         if collection not in self.collection_names.keys():
             print >> sys.stderr, "No NNTSC collection matching %s" % (name)
-            return []
+            return 
         else:
             colid = self.collection_names[collection]
             laststream = self.collections[colid]['laststream']
+            lastchecked = self.collections[colid]['lastchecked']
         self.collection_lock.release()
         
+        now = time.time()
+        if now < (lastchecked + STREAM_CHECK_FREQUENCY):
+            return
+
         self.parser_lock.acquire()
         if collection not in self.parsers:
             parser = None
@@ -386,7 +392,9 @@ class Connection(object):
             self.collection_lock.acquire()
             if s['stream_id'] > self.collections[colid]['laststream']:
                 self.collections[colid]['laststream'] = s['stream_id']
+            self.collections[colid]['lastchecked'] = now
             self.collection_lock.release()
+
 
 
     def get_selection_options(self, name, params):
