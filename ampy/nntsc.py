@@ -162,6 +162,7 @@ class Connection(object):
 
             msg = self._get_nntsc_message(client)
             if msg == None:
+                client.disconnect()
                 return []
 
             # Check if we got a complete parsed message, otherwise read some
@@ -197,6 +198,7 @@ class Connection(object):
 
         msg = self._get_nntsc_message(client)
         if msg == None:
+            client.disconnect()
             return None
 
         if msg[0] != NNTSC_COLLECTIONS:
@@ -721,6 +723,7 @@ class Connection(object):
         
         if client.request_aggregate(colid, [stream], start, end,
                 agg_columns, binsize, group_columns) == -1:
+            client.disconnect()
             return ampy.result.Result([])    
 
         got_data = False
