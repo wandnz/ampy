@@ -205,9 +205,12 @@ class AmpIcmpParser(object):
 
         return []
 
+    #XXX This is all duplicated by the amp traceroute parser, can we merge
+    # these bits together into a higher level object?
     def _get_sources(self, dest, mesh):
         """ Get a list of all sources that test to a given destination.
-            If the destination is None, return all known sources.
+            If the destination is None, return all known sources. Only
+            sources for which there is data should be returned here.
         """
         # if the mesh is set then find the sites that belong
         if mesh is not None and self.ampdb is not None:
@@ -260,13 +263,16 @@ class AmpIcmpParser(object):
             else:
                 return self.destinations[source].keys()
 
+        # if mesh is set but no source, then simply return everything in the
+        # mesh, regardless if there is data for it or not
+        if mesh is not None:
+            return mesh_sites
+
+        # otherwise just return every destination there is data for
         dests = set()
         for v in self.destinations.values():
             for d in v.keys():
                 dests.add(d)
-        # take the intersection of sources in mesh and sources with data
-        if mesh is not None:
-            return list(dests.intersection(mesh_sites))
         return list(dests)
 
     def _get_sizes(self, source, dest):
