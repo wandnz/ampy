@@ -32,8 +32,14 @@ class Connection(object):
         self.apikey = "cathyisastud"
 
         # The database stores AMP data as well as site/mesh metadata
-        url = sqlalchemy.engine.url.URL("postgresql", database="amp2")
-        self.db = sqlalchemy.create_engine(url)
+        try:
+            url = sqlalchemy.engine.url.URL("postgresql", database="amp2")
+            self.db = sqlalchemy.create_engine(url)
+            # test query to see if the database connection was actually made:
+            # sqlalchemy is apparently stupid and doesn't let us easily check
+            self.db.table_names()
+        except sqlalchemy.exc.OperationalError:
+            self.db = None
 
         # For now we will cache everything on localhost for 60 seconds.
         if _have_memcache:
@@ -51,6 +57,8 @@ class Connection(object):
 
     def get_sources(self, mesh=None, start=None, end=None):
         """ Get all source monitors """
+        if self.db is None:
+            return []
         # TODO Filter results based on having specific test data available?
         # TODO Filter results based on data during start and end times
         if mesh is not None:
@@ -65,6 +73,8 @@ class Connection(object):
 
     def get_destinations(self, src=None, mesh=None, start=None, end=None):
         """ Get all destinations from the given source """
+        if self.db is None:
+            return []
         # TODO Filter results based on having specific test data available?
         # TODO Filter results based on data during start and end times
         # src=None, mesh=set - return all dests in the given mesh
@@ -113,6 +123,8 @@ class Connection(object):
 
     def get_site_info(self, site):
         """ Get more detailed and human readable information about a site """
+        if self.db is None:
+            return {}
         info = self.db.execute(sqlalchemy.text(
                     "SELECT site_ampname as ampname, "
                     "site_longname as longname, "
@@ -127,6 +139,8 @@ class Connection(object):
     
     def get_mesh_info(self, mesh):
         """ Get more detailed and human readable information about a mesh """
+        if self.db is None:
+            return {}
         info = self.db.execute(sqlalchemy.text(
                     "SELECT mesh_name as name, "
                     "mesh_longname as longname, "
@@ -142,6 +156,8 @@ class Connection(object):
 
     def get_source_meshes(self, site=None):
         """ Fetch all source meshes, possibly filtered by a site """
+        if self.db is None:
+            return []
         # No site set, return all possible source meshes
         if site is None:
             return [x[0] for x in self.db.execute(
@@ -155,6 +171,8 @@ class Connection(object):
     
     def get_destination_meshes(self, site=None):
         """ Fetch all destination meshes, possibly filtered by a site """
+        if self.db is None:
+            return []
         # No site set, return all possible destination meshes
         if site is None:
             return [x[0] for x in self.db.execute(

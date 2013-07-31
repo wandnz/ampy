@@ -3,8 +3,8 @@
 import sys, string
 import sqlalchemy
 
-class AmpIcmpParser(object):
-    """ Parser for the amp-icmp collection. """
+class AmpTracerouteParser(object):
+    """ Parser for the amp-traceroute collection. """
 
     def __init__(self):
         """ Initialises the parser """
@@ -104,8 +104,8 @@ class AmpIcmpParser(object):
             use for each column, or it should be a string describing the
             function to use across all columns """
         # the matrix view expects both the mean and stddev for the latency
-        if detail == "matrix":
-            return ["avg", "stddev", "avg"]
+        #if detail == "matrix":
+        #    return ["avg", "stddev", "avg"]
         # normally we only concern ourselves with average values
         return "avg"
 
@@ -113,9 +113,9 @@ class AmpIcmpParser(object):
         """ Return a list of columns in the data table for this collection
             that should be subject to data aggregation """
         # the matrix view expects both the mean and stddev for the latency
-        if detail == "matrix":
-            return ["rtt", "rtt", "loss"]
-        return ["rtt", "loss"]
+        #if detail == "matrix":
+        #    return ["rtt", "rtt", "loss"]
+        return ["length"]
 
     def get_group_columns(self):
         """ Return a list of columns in the streams table that should be used
@@ -205,7 +205,7 @@ class AmpIcmpParser(object):
 
         return []
 
-    #XXX This is all duplicated by the amp traceroute parser, can we merge
+    #XXX This is all duplicated by the amp icmp parser, can we merge
     # these bits together into a higher level object?
     def _get_sources(self, dest, mesh):
         """ Get a list of all sources that test to a given destination.
@@ -268,7 +268,6 @@ class AmpIcmpParser(object):
         if mesh is not None:
             return mesh_sites
 
-        # otherwise just return every destination there is data for
         dests = set()
         for v in self.destinations.values():
             for d in v.keys():
@@ -331,6 +330,7 @@ class AmpIcmpParser(object):
                     "WHERE ampname = :site AND mesh_is_dst = true"),
                 {"site": site})]
 
+    # XXX this is repeated between all amp things, should be extracted
     def _get_site_info(self, site):
         """ Get more detailed and human readable information about a site """
         # if we can't find the site then return *something* they can at
