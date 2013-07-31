@@ -20,6 +20,7 @@ from ampy.lpipackets import LPIPacketsParser
 from ampy.lpiflows import LPIFlowsParser
 from ampy.lpiusers import LPIUsersParser
 from ampy.ampicmp import AmpIcmpParser
+from ampy.amptraceroute import AmpTracerouteParser
 
 from threading import Lock
 
@@ -301,6 +302,12 @@ class Connection(object):
             self.parsers["amp-icmp"] = parser
             self.parser_lock.release()
 
+        if name == "amp-traceroute":
+            parser = AmpTracerouteParser()
+            self.parser_lock.acquire()
+            self.parsers["amp-traceroute"] = parser
+            self.parser_lock.release()
+
         if name == "rrd-smokeping":
             parser = SmokepingParser()
             self.parser_lock.acquire()
@@ -487,7 +494,6 @@ class Connection(object):
         else:
             colid = self.collection_names[collection]
         self.collection_lock.release()
-
 
         self.stream_lock.acquire()
         for s in self.streams.values():
