@@ -212,7 +212,6 @@ class AmpTracerouteParser(object):
             If the destination is None, return all known sources. Only
             sources for which there is data should be returned here.
         """
-        print "get_sources(), dest=%s mesh=%s" % (dest, mesh)
         # if the mesh is set then find the sites that belong
         if mesh is not None and self.ampdb is not None:
             mesh_sites = [x[0] for x in self.ampdb.execute(sqlalchemy.text(
