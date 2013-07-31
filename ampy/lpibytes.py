@@ -10,12 +10,12 @@ class LPIBytesParser(object):
 
         # Map containing all the valid sources
         self.sources = {}
-        # Maps (source) to a set of users measured from that source
-        self.users = {}
         # Map containing all the valid protocols
         self.protocols = {}
         # Maps containing all the valid directions
         self.directions = {}
+        # Maps (source, proto, dir) to a set of users
+        self.users = {}
 
     def add_stream(self, s):
         """ Updates the internal maps based on a new stream 
@@ -30,10 +30,10 @@ class LPIBytesParser(object):
         self.protocols[s['protocol']] = 1
         self.directions[s['dir']] = 1
 
-        if s['source'] in self.users:
-            self.users[s['source']][s['user']] = 1
+        if (s['source'], s['protocol'], s['dir']) in self.users:
+            self.users[(s['source'], s['protocol'], s['dir'])][s['user']] = 1
         else:
-            self.users[s['source']] = { s['user']:1 }
+            self.users[(s['source'], s['protocol'], s['dir'])] = { s['user']:1 }
 
         
         self.streams[(s['source'], s['user'], s['protocol'], s['dir'])] = s['stream_id']
@@ -125,10 +125,9 @@ class LPIBytesParser(object):
             return self._get_directions()
 
         if params['_requesting'] == 'users':
-            if 'source' in params:
-                return self._get_users(params['source'])
-            else:
+            if 'source' not in params or 'protocol' not in params or 'direction' not in params :
                 return self._get_users(None)
+            return self._get_users(params)
 
         return []
 
@@ -136,13 +135,14 @@ class LPIBytesParser(object):
         """ Get the names of all of the sources that have lpi bytes data """
         return self.sources.keys()
 
-    def _get_users(self, source):
+    def _get_users(self, params):
         """ Get all users that were measured by a given source """
-        if source != None:
-            if source not in self.users:
+        if params != None:
+            key = (params['source'], params['protocol'], params['direction'])
+            if key not in self.users:
                 return []
             else:
-                return self.users[source].keys()
+                return self.users[key].keys()
 
         users = {}
         for v in self.users.values():
