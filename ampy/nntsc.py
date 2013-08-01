@@ -583,6 +583,8 @@ class Connection(object):
         else:
             cachetime = 60 * 60 * 6
 
+        key = None
+
         # If we have memcache check if this data is available already.
         if self.memcache:
             # TODO investigate why src and dst are sometimes being given to us
@@ -660,6 +662,8 @@ class Connection(object):
 
         if detail is None:
             detail = "full"
+
+        key = None
 
         # If we have memcache check if this data is available already.
         if self.memcache:
