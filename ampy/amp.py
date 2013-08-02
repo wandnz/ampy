@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: ascii -*-
 
-"""
-"""
-
 import sqlalchemy
 
 class AmpParser(object):
-    """
+    """ Base class for all the AMP data types. Deals with all the things that
+        the AMP data has in common - the AMP metadata database and fetching
+        sources, destinations, meshes, site info, etc.
     """
 
     def __init__(self):
@@ -59,12 +58,6 @@ class AmpParser(object):
             this will return the list of destinations tested to by that source.
             If 'source' is not set, then all possible destinations will be
             returned.
-
-            If '_requesting' is set to 'packet_sizes' and 'source' is set and
-            'destination' is set, this will return the list of packet sizes
-            used in tests between that source and that destination. If either
-            of 'source' or 'destination' is not set, then a list of all
-            packet sizes across all streams is returned.
         """
 
         if "_requesting" not in params:
@@ -108,7 +101,8 @@ class AmpParser(object):
                 return self._get_destination_meshes(params['site'])
             else:
                 return self._get_destination_meshes(None)
-
+        # if we don't know what the user wants, return an empty list and
+        # hopefully the more specific child class knows how to get it
         return []
 
     def _get_sources(self, dest, mesh):

@@ -97,6 +97,12 @@ class AmpTracerouteParser(amp.AmpParser):
     def get_selection_options(self, params):
         """ Returns the list of names to populate a dropdown list with, given
             a current set of selected parameters.
+
+            If '_requesting' is set to 'packet_sizes' and 'source' is set and
+            'destination' is set, this will return the list of packet sizes
+            used in tests between that source and that destination. If either
+            of 'source' or 'destination' is not set, then a list of all
+            packet sizes across all streams is returned.
         """
         # let the parent take care of this if it is an operation common to
         # all AMP tests: fetching sites, meshes, etc
