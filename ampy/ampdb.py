@@ -5,14 +5,9 @@
 ampdb handles database connections and working with AMP data
 """
 
-import ampy.engine
 import ampy.netevmon
 import ampy.nntsc
 
-
-def create():
-    """ Creates and returns instance of an ampdb connection """
-    return ampy.engine.Connection()
 
 def create_netevmon_engine(host, dbname, pwd):
     return ampy.netevmon.Connection(host, dbname, pwd)
