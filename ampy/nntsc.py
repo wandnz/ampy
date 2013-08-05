@@ -150,7 +150,6 @@ class Connection(object):
               a list of streams
         """
         streams = []
-
         client = self._connect_nntsc()
 
         if client == None:
@@ -179,7 +178,7 @@ class Connection(object):
             streams += msg[1]['streams']
             if msg[1]['more'] == False:
                 break
-
+        
         client.disconnect()
         return streams
 
@@ -220,13 +219,15 @@ class Connection(object):
 
 
     def _lookup_collection(self, name):
+        self.collection_lock.acquire()
         if self._load_collections() == -1:
             print >> sys.stderr, "Unable to load collections for %s" % (name)
+            self.collection_lock.release()
             return None, None
 
-        self.collection_lock.acquire()
         if name not in self.collection_names.keys():
             print >> sys.stderr, "No NNTSC collection matching %s" % (name)
+            self.collection_lock.release()
             return None, None
         else:
             colid = self.collection_names[name]
@@ -239,15 +240,12 @@ class Connection(object):
         """ Acquire a list of all collections from NNTSC and store them
             locally for future requests
         """
-        self.collection_lock.acquire()
         if self.collections != {}:
-            self.collection_lock.release()
             return
         
         collections = self._request_collections()
 
         if collections == None:
-            self.collection_lock.release()
             return -1
 
         for col in collections:
@@ -258,7 +256,6 @@ class Connection(object):
             label = name
             self.collections[col['id']] = {'name':name, 'label':label, 'laststream':0, 'lastchecked':0, 'streamlock':Lock()}
             self.collection_names[name] = col['id']
-        self.collection_lock.release()
 
 
     def get_collections(self):
@@ -268,12 +265,11 @@ class Connection(object):
             and then save the results for subsequent requests. Otherwise,
             return the saved collection list.
         """
+        self.collection_lock.acquire()
         if self._load_collections() == -1:
             print >> sys.stderr, "Error receiving collections from NNTSC"
+        self.collection_lock.release()
 
-        # XXX This is outside of the lock so could be subject to a race
-        # condition, but we shouldn't touch the collections often so hopefully
-        # this won't be too much of an issue
         return self.collections;
 
     def create_parser(self, name):
@@ -545,14 +541,6 @@ class Connection(object):
             return ampy.result.Result([])
         self._update_stream_map(collection, parser)
         
-        streamlock = coldata['streamlock']
-        
-        streamlock.acquire()
-        if stream not in self.streams:
-            print >> sys.stderr, "Requested data for unknown stream: %d" % (stream)
-            streamlock.release()
-            return ampy.result.Result([])
-        streamlock.release()
 
         # Default to returning only a single aggregated response
         if binsize is None:
@@ -644,15 +632,6 @@ class Connection(object):
             return ampy.result.Result([])
         self._update_stream_map(collection, parser)
         
-        streamlock = coldata['streamlock']
-        
-        streamlock.acquire()
-        if stream not in self.streams:
-            print >> sys.stderr, "Requested data for unknown stream: %d" % (stream)
-            streamlock.release()
-            return ampy.result.Result([])
-        streamlock.release()
-
         # FIXME: Consider limiting maximum durations based on binsize
         # if end is not set then assume "now".
         if end is None:
