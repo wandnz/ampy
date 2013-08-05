@@ -9,7 +9,7 @@ import sys
 import sqlalchemy
 import ampy.result
 
-import socket
+import socket, os
 from libnntsc.export import *
 from libnntsc.client.nntscclient import NNTSCClient
 
@@ -83,7 +83,6 @@ class Connection(object):
         # possible.
         self.collection_lock = Lock()
         self.parser_lock = Lock()
-        self.stream_lock = Lock()
 
         # For now we will cache everything on localhost for 60 seconds.
         if _have_memcache:
@@ -210,14 +209,45 @@ class Connection(object):
         client.disconnect()
         return msg[1]['collections']
 
+    def _lookup_parser(self, name):
+        self.parser_lock.acquire()
+        if not self.parsers.has_key(name):
+            return None
+        parser = self.parsers[name]
+        self.parser_lock.release()
+        
+        return parser
+
+
+    def _lookup_collection(self, name):
+        if self._load_collections() == -1:
+            print >> sys.stderr, "Unable to load collections for %s" % (name)
+            return None, None
+
+        self.collection_lock.acquire()
+        if name not in self.collection_names.keys():
+            print >> sys.stderr, "No NNTSC collection matching %s" % (name)
+            return None, None
+        else:
+            colid = self.collection_names[name]
+            coldata = self.collections[colid]
+
+        self.collection_lock.release()
+        return colid, coldata        
 
     def _load_collections(self):
         """ Acquire a list of all collections from NNTSC and store them
             locally for future requests
         """
+        self.collection_lock.acquire()
+        if self.collections != {}:
+            self.collection_lock.release()
+            return
+        
         collections = self._request_collections()
 
         if collections == None:
+            self.collection_lock.release()
             return -1
 
         for col in collections:
@@ -226,11 +256,9 @@ class Connection(object):
             # TODO Add nice printable names to the collection table in NNTSC
             # that we can use to populate dropdown lists / graph labels etc.
             label = name
-
-            self.collection_lock.acquire()
-            self.collections[col['id']] = {'name':name, 'label':label, 'laststream':0, 'lastchecked':0}
+            self.collections[col['id']] = {'name':name, 'label':label, 'laststream':0, 'lastchecked':0, 'streamlock':Lock()}
             self.collection_names[name] = col['id']
-            self.collection_lock.release()
+        self.collection_lock.release()
 
 
     def get_collections(self):
@@ -240,13 +268,8 @@ class Connection(object):
             and then save the results for subsequent requests. Otherwise,
             return the saved collection list.
         """
-        self.collection_lock.acquire()
-        if self.collections == {}:
-            self.collection_lock.release()
-            if self._load_collections() == -1:
-                print >> sys.stderr, "Error receiving collections from NNTSC"
-        else:
-            self.collection_lock.release()
+        if self._load_collections() == -1:
+            print >> sys.stderr, "Error receiving collections from NNTSC"
 
         # XXX This is outside of the lock so could be subject to a race
         # condition, but we shouldn't touch the collections often so hopefully
@@ -281,76 +304,36 @@ class Connection(object):
         if name in self.parsers:
             self.parser_lock.release()
             return
-        self.parser_lock.release()
-
-        # Grab the collections if we haven't already
-        self.collection_lock.acquire()
-        if self.collections == {}:
-            self.collection_lock.release()
-            if self._load_collections() == -1:
-                print >> sys.stderr, "Error receiving collections from NNTSC"
-                return
-            self.collection_lock.acquire()
-
-        if name not in self.collection_names.keys():
-            print >> sys.stderr, "No NNTSC collection matching %s" % (name)
-            return
-        else:
-            colid = self.collection_names[name]
-        self.collection_lock.release()
 
         if name == "amp-icmp":
             parser = AmpIcmpParser()
-            self.parser_lock.acquire()
-            self.parsers["amp-icmp"] = parser
-            self.parser_lock.release()
 
         if name == "amp-traceroute":
             parser = AmpTracerouteParser()
-            self.parser_lock.acquire()
-            self.parsers["amp-traceroute"] = parser
-            self.parser_lock.release()
 
         if name == "rrd-smokeping":
             parser = SmokepingParser()
-            self.parser_lock.acquire()
-            self.parsers["rrd-smokeping"] = parser
-            self.parser_lock.release()
 
         if name == "rrd-muninbytes":
             parser = MuninbytesParser()
-            self.parser_lock.acquire()
-            self.parsers["rrd-muninbytes"] = parser
-            self.parser_lock.release()
 
         if name == "lpi-bytes":
             parser = LPIBytesParser()
-            self.parser_lock.acquire()
-            self.parsers["lpi-bytes"] = parser
-            self.parser_lock.release()
 
         if name == "lpi-flows":
             parser = LPIFlowsParser()
-            self.parser_lock.acquire()
-            self.parsers["lpi-flows"] = parser
-            self.parser_lock.release()
 
         if name == "lpi-packets":
             parser = LPIPacketsParser()
-            self.parser_lock.acquire()
-            self.parsers["lpi-packets"] = parser
-            self.parser_lock.release()
 
         if name == "lpi-users":
             parser = LPIUsersParser()
-            self.parser_lock.acquire()
-            self.parsers["lpi-users"] = parser
-            self.parser_lock.release()
 
         if parser != None:
-            self._update_stream_map(name)
+            self.parsers[name] = parser
+        self.parser_lock.release()
 
-    def _update_stream_map(self, collection):
+    def _update_stream_map(self, collection, parser):
         """ Asks NNTSC for any streams that we don't know about and adds
             them to our internal stream map.
 
@@ -358,51 +341,41 @@ class Connection(object):
             its own internal maps.
 
             Parameters:
-              streams -- a list of streams to be added to the stream map
-              parser -- the parser for the collection that the streams belong
-                        to
-              colid -- the id number of the collection that the streams belong
-                        to
+                collection -- the name of the collection to request streams for
+                parser -- the parser to push the new streams to
         """
-        self.collection_lock.acquire()
-        if collection not in self.collection_names.keys():
-            print >> sys.stderr, "No NNTSC collection matching %s" % (name)
-            return 
-        else:
-            colid = self.collection_names[collection]
-            laststream = self.collections[colid]['laststream']
-            lastchecked = self.collections[colid]['lastchecked']
-        self.collection_lock.release()
+       
+        colid, coldata = self._lookup_collection(collection)
         
+        if colid == None:
+            return
+        
+        laststream = coldata['laststream']
+        lastchecked = coldata['lastchecked']
+        streamlock = coldata['streamlock']
+
         now = time.time()
         if now < (lastchecked + STREAM_CHECK_FREQUENCY):
             return
 
-        self.parser_lock.acquire()
-        if collection not in self.parsers:
-            parser = None
-        else:
-            parser = self.parsers[collection]
-        self.parser_lock.release()
-        
-        newstreams = []
         # Check if there are any new streams for this collection
-        if parser != None:
-            newstreams = self._request_streams(colid, laststream)
+        streamlock.acquire()
+        newstreams = self._request_streams(colid, laststream)
         
         for s in newstreams:
-            self.stream_lock.acquire()
             self.streams[s['stream_id']] = {'parser':parser, 'streaminfo':s,
                     'collection':colid}
-            self.stream_lock.release()
             
             parser.add_stream(s)
+            if s['stream_id'] > laststream:
+                laststream = s['stream_id']
+        streamlock.release()
+        
+        self.collection_lock.acquire()
+        self.collections[colid]['laststream'] = laststream
+        self.collections[colid]['lastchecked'] = now
+        self.collection_lock.release()
             
-            self.collection_lock.acquire()
-            if s['stream_id'] > self.collections[colid]['laststream']:
-                self.collections[colid]['laststream'] = s['stream_id']
-            self.collections[colid]['lastchecked'] = now
-            self.collection_lock.release()
 
     def get_selection_options(self, name, params):
         """ Given a known set of stream parameters, return a list of possible
@@ -427,33 +400,43 @@ class Connection(object):
               a list of valid values for a subsequent selection option, given
               the provided earlier selections.
         """
-        self.parser_lock.acquire()
-        if not self.parsers.has_key(name):
+        parser = self._lookup_parser(name)
+        if parser == None:
             return []
-
-        parser = self.parsers[name]
-        self.parser_lock.release()
-
-        self._update_stream_map(name)
+        self._update_stream_map(name, parser)
 
         # This is all handled within the parser, as the parameters that can
         # be used as selection options will differ from collection to
         # collection.
         return parser.get_selection_options(params)
 
-    def get_stream_info(self, streamid):
+    def get_stream_info(self, name, streamid):
         """ Returns the stream information dictionary for a given stream.
 
             Parameters:
+              name -- the collection that the stream belongs to
               streamid -- the id of the stream that the info is requested for
         """
-        self.stream_lock.acquire()
+        parser = self._lookup_parser(name)
+        if parser == None:
+            return {}
+
+    
+        colid, coldata = self._lookup_collection(name)
+        if colid == None:
+            return {}
+        streamlock = coldata['streamlock']
+
+        self._update_stream_map(name, parser)
+        
+        streamlock.acquire()
         if streamid not in self.streams:
-            self.stream_lock.release()
+            print "Failed to get stream info", streamid, self
+            streamlock.release()
             return {}
 
         info = self.streams[streamid]['streaminfo']
-        self.stream_lock.release()
+        streamlock.release()
         return info
 
     def get_stream_id(self, name, params):
@@ -478,12 +461,11 @@ class Connection(object):
               the given parameters. -1 is returned if a unique match was not
               possible.
         """
-        self.parser_lock.acquire()
-        if not self.parsers.has_key(name):
-            return -1
-        parser = self.parsers[name]
-        self.parser_lock.release()
-        self._update_stream_map(name)
+        parser = self._lookup_parser(name)
+        if parser == None:
+            return -1 
+
+        self._update_stream_map(name, parser)
         return parser.get_stream_id(params)
 
     def get_collection_streams(self, collection):
@@ -501,25 +483,25 @@ class Connection(object):
 
         colstreams = []
 
-        self.collection_lock.acquire()
-        if collection not in self.collection_names.keys():
-            print >> sys.stderr, "No NNTSC collection matching %s" % (name)
-            return []
-        else:
-            colid = self.collection_names[collection]
-        self.collection_lock.release()
+        colid, coldata = self._lookup_collection(collection)
+        if colid == None:
+            return -1
+        parser = self._lookup_parser(collection)
+        if parser == None:
+            return -1 
 
-        self._update_stream_map(collection)
+        self._update_stream_map(collection, parser)
 
-        self.stream_lock.acquire()
+        streamlock = coldata['streamlock']
+        streamlock.acquire()
         for s in self.streams.values():
             if s['collection'] == colid:
                 colstreams.append(s['streaminfo'])
 
-        self.stream_lock.release()
+        streamlock.release()
         return colstreams
 
-    def get_recent_data(self, stream, duration, binsize, detail):
+    def get_recent_data(self, collection, stream, duration, binsize, detail):
         """ Returns data measurements for a time period starting at 'now' and
             going back a specified number of seconds.
 
@@ -555,12 +537,22 @@ class Connection(object):
               an ampy Result object containing all of the requested measurement
               data. If the request fails, this Result object will be empty.
         """
-        self.stream_lock.acquire()
+        colid, coldata = self._lookup_collection(collection)
+        if colid == None:
+            return ampy.result.Result([])
+        parser = self._lookup_parser(collection)
+        if parser == None:
+            return ampy.result.Result([])
+        self._update_stream_map(collection, parser)
+        
+        streamlock = coldata['streamlock']
+        
+        streamlock.acquire()
         if stream not in self.streams:
             print >> sys.stderr, "Requested data for unknown stream: %d" % (stream)
-            self.stream_lock.release()
+            streamlock.release()
             return ampy.result.Result([])
-        self.stream_lock.release()
+        streamlock.release()
 
         # Default to returning only a single aggregated response
         if binsize is None:
@@ -603,10 +595,10 @@ class Connection(object):
                 # Nothing useful we can do, carry on as if data is not present.
                 pass
 
-        return self._get_data(stream, start, end, binsize, detail, key,
-                cachetime)
+        return self._get_data(colid, stream, start, end, binsize, detail, key, 
+                    parser, cachetime)
 
-    def get_period_data(self, stream, start, end, binsize, detail):
+    def get_period_data(self, collection, stream, start, end, binsize, detail):
         """ Returns data measurements for a time period explicitly described
             using a start and end time.
 
@@ -644,12 +636,22 @@ class Connection(object):
               an ampy Result object containing all of the requested measurement
               data. If the request fails, this Result object will be empty.
         """
-        self.stream_lock.acquire()
-        if stream not in self.streams:
-            print "Requested data for unknown stream: %d" % (stream)
-            self.stream_lock.release()
+        colid, coldata = self._lookup_collection(collection)
+        if colid == None:
             return ampy.result.Result([])
-        self.stream_lock.release()
+        parser = self._lookup_parser(collection)
+        if parser == None:
+            return ampy.result.Result([])
+        self._update_stream_map(collection, parser)
+        
+        streamlock = coldata['streamlock']
+        
+        streamlock.acquire()
+        if stream not in self.streams:
+            print >> sys.stderr, "Requested data for unknown stream: %d" % (stream)
+            streamlock.release()
+            return ampy.result.Result([])
+        streamlock.release()
 
         # FIXME: Consider limiting maximum durations based on binsize
         # if end is not set then assume "now".
@@ -683,7 +685,8 @@ class Connection(object):
                 # Nothing useful we can do, carry on as if data is not present.
                 pass
 
-        return self._get_data(stream, start, end, binsize, detail, key)
+        return self._get_data(colid, stream, start, end, binsize, detail, key, 
+                parser)
 
     def _fill_missing(self, data, freq, stream):
         """ Internal function that populates the data list with 'empty'
@@ -709,7 +712,8 @@ class Connection(object):
         return nogap_data
 
 
-    def _get_data(self, stream, start, end, binsize, detail, key, cachetime=60):
+    def _get_data(self, colid, stream, start, end, binsize, detail, key, parser,
+            cachetime=60):
         """ Internal function that actually performs the NNTSC query to get
             measurement data, parses the responses and forms up the ampy
             Result object to be returned to the caller.
@@ -720,11 +724,10 @@ class Connection(object):
             Returns:
                 the same as get_period_data()
         """
+        if parser == None:
+            print >> sys.stderr, "Cannot fetch data -- no valid parser for stream %s" % (stream)
+            return ampy.result.Result([])
 
-        self.stream_lock.acquire()
-        parser = self.streams[stream]['parser']
-        colid = self.streams[stream]['collection']
-        self.stream_lock.release()
 
         agg_columns = parser.get_aggregate_columns(detail)
         # Check if the parser implements the get_aggregate_functions function
@@ -736,10 +739,6 @@ class Connection(object):
         else:
             agg_functions = "avg"
         group_columns = parser.get_group_columns()
-
-        if parser == None:
-            print >> sys.stderr, "Cannot fetch data -- no valid parser for stream %s" % (stream)
-            return ampy.result.Result([])
 
         client = self._connect_nntsc()
         if client == None:
