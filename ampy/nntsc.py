@@ -211,6 +211,7 @@ class Connection(object):
     def _lookup_parser(self, name):
         self.parser_lock.acquire()
         if not self.parsers.has_key(name):
+            self.parser_lock.release()
             return None
         parser = self.parsers[name]
         self.parser_lock.release()
@@ -254,7 +255,7 @@ class Connection(object):
             # TODO Add nice printable names to the collection table in NNTSC
             # that we can use to populate dropdown lists / graph labels etc.
             label = name
-            self.collections[col['id']] = {'name':name, 'label':label, 'laststream':0, 'lastchecked':0, 'streamlock':Lock()}
+            self.collections[col['id']] = {'name':name, 'label':label, 'laststream':0, 'lastchecked':0, 'streamlock':Lock(), 'module':col['module']}
             self.collection_names[name] = col['id']
 
 
@@ -481,10 +482,10 @@ class Connection(object):
 
         colid, coldata = self._lookup_collection(collection)
         if colid == None:
-            return -1
+            return []
         parser = self._lookup_parser(collection)
         if parser == None:
-            return -1 
+            return [] 
 
         self._update_stream_map(collection, parser)
 
@@ -496,6 +497,59 @@ class Connection(object):
 
         streamlock.release()
         return colstreams
+
+    def _query_related(self, collection, streaminfo):
+        self.create_parser(collection)
+        parser = self._lookup_parser(collection)
+        if parser == None:
+            return {}
+       
+        self._update_stream_map(collection, parser)
+        return parser.get_graphtab_stream(streaminfo) 
+
+    def _get_related_collections(self, colmodule):
+        # We should already have a set of collections loaded by this point
+        self.collection_lock.acquire()
+
+        relatives = []
+
+        for k,v in self.collections.items():
+            if v['module'] == colmodule:
+                relatives.append(v['name'])
+        self.collection_lock.release()
+        return relatives
+
+    def get_related_streams(self, collection, streamid):
+        colid, coldata = self._lookup_collection(collection)
+        if colid == None:
+            return {}
+        
+        parser = self._lookup_parser(collection)
+        if parser == None:
+            return {}
+       
+        self._update_stream_map(collection, parser)
+       
+        streamlock = coldata['streamlock']
+         
+        streamlock.acquire()
+        if streamid not in self.streams:
+            print "Failed to get stream info", streamid, self
+            streamlock.release()
+            return {}
+
+        info = self.streams[streamid]['streaminfo']
+        streamlock.release()
+
+        relatedcols = self._get_related_collections(coldata['module'])
+
+        result = {}
+        for rel in relatedcols:
+            relstreams = self._query_related(rel, info)
+            for s in relstreams:
+                result[s['title']] = s
+
+        return result
 
     def get_recent_data(self, collection, stream, duration, binsize, detail):
         """ Returns data measurements for a time period starting at 'now' and

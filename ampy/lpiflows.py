@@ -120,6 +120,46 @@ class LPIFlowsParser(object):
 
         return []
 
+    def get_graphtab_stream(self, streaminfo):
+        """ Given the description of a stream from a similar collection,
+            return the stream id of streams from this collection that are
+            suitable for display on a graphtab alongside the main graph (where
+            the main graph shows the stream that was passed into this function)
+        """
+        if 'source' not in streaminfo or 'protocol' not in streaminfo:   
+            return []
+        
+        params = {'source':streaminfo['source'],
+                'protocol':streaminfo['protocol']}
+        
+        # Hopefully direction will kinda go away as a parameter eventually.
+        # Ideally, we would show 'in' and 'out' on the same graph 
+        if 'direction' not in streaminfo:
+            params['direction'] = 'in'       
+        else:
+            params['direction'] = streaminfo['direction']      
+ 
+        if 'user' not in streaminfo:
+            params['user'] = 'all'
+        else:
+            params['user'] = streaminfo['user']
+
+        params['metric'] = 'peak'
+        peak = self.get_stream_id(params)
+
+        params['metric'] = 'new'
+        new = self.get_stream_id(params)
+
+        ret = []
+        if peak != -1:
+            ret.append({'streamid':peak, 'title':'Flows (Peak)', \
+                    'collection':'lpi-flows'})
+        if new != -1:
+            ret.append({'streamid':new, 'title':'Flows (New)', \
+                    'collection':'lpi-flows'})
+
+        return ret
+
     def _get_sources(self):
         """ Get the names of all of the sources that have lpi flows data """
         return self.sources.keys()
