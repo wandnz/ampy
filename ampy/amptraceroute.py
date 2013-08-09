@@ -152,7 +152,7 @@ class AmpTracerouteParser(amp.AmpParser):
             params['packet_size'] = sizes[0]
 
         return [{'streamid':self.get_stream_id(params), 'title':"Traceroute", \
-                'collection':'amp-icmp'}]
+                'collection':'amp-traceroute'}]
 
     def _get_sizes(self, source, dest):
         """ Get a list of all packet sizes used to test between a given
