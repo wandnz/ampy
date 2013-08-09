@@ -362,7 +362,7 @@ class Connection(object):
         for s in newstreams:
             self.streams[s['stream_id']] = {'parser':parser, 'streaminfo':s,
                     'collection':colid}
-            
+           
             parser.add_stream(s)
             if s['stream_id'] > laststream:
                 laststream = s['stream_id']
@@ -372,8 +372,7 @@ class Connection(object):
         self.collections[colid]['laststream'] = laststream
         self.collections[colid]['lastchecked'] = now
         self.collection_lock.release()
-            
-
+           
     def get_selection_options(self, name, params):
         """ Given a known set of stream parameters, return a list of possible
             values that can be used to select a valid stream.
@@ -529,7 +528,6 @@ class Connection(object):
             return {}
        
         self._update_stream_map(collection, parser)
-       
         streamlock = coldata['streamlock']
          
         streamlock.acquire()

@@ -146,10 +146,10 @@ class LPIBytesParser(object):
        
         # Hopefully direction will kinda go away as a parameter eventually.
         # Ideally, we would show 'in' and 'out' on the same graph 
-        if 'direction' not in streaminfo:
+        if 'dir' not in streaminfo:
             params['direction'] = 'in'
         else:
-            params['direction'] = streaminfo['direction']       
+            params['direction'] = streaminfo['dir']       
  
         if 'user' not in streaminfo:
             params['user'] = 'all'
