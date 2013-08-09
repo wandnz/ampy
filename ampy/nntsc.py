@@ -549,6 +549,36 @@ class Connection(object):
 
         return result
 
+    def _data_request_prep(self, collection, stream):
+        """ Utility function that looks up the parser and collection ID 
+            required for a _get_data call. Also checks if the stream is
+            actually present in the collection.
+
+            Returns a tuple (colid, parser) if everything was successful.
+            Returns None if the collection doesn't exist, there is no parser
+            for the collection or the stream doesn't exist in the collection.
+        """
+        colid, coldata = self._lookup_collection(collection)
+        if colid == None:
+            return None
+        parser = self._lookup_parser(collection)
+        if parser == None:
+            return None
+        self._update_stream_map(collection, parser)
+        
+        streamlock = coldata['streamlock']
+         
+        streamlock.acquire()
+        if stream not in self.streams:
+            print "Failed to find stream %s in collection %s" % \
+                    (stream, collection)
+            streamlock.release()
+            return None
+        streamlock.release()
+
+        return colid, parser
+
+
     def get_recent_data(self, collection, stream, duration, binsize, detail):
         """ Returns data measurements for a time period starting at 'now' and
             going back a specified number of seconds.
@@ -585,13 +615,12 @@ class Connection(object):
               an ampy Result object containing all of the requested measurement
               data. If the request fails, this Result object will be empty.
         """
-        colid, coldata = self._lookup_collection(collection)
-        if colid == None:
+        
+        check = self._data_request_prep(collection, stream)
+        if check == None:
             return ampy.result.Result([])
-        parser = self._lookup_parser(collection)
-        if parser == None:
-            return ampy.result.Result([])
-        self._update_stream_map(collection, parser)
+
+        colid, parser = check
         
 
         # Default to returning only a single aggregated response
@@ -676,13 +705,11 @@ class Connection(object):
               an ampy Result object containing all of the requested measurement
               data. If the request fails, this Result object will be empty.
         """
-        colid, coldata = self._lookup_collection(collection)
-        if colid == None:
+        check = self._data_request_prep(collection, stream)
+        if check == None:
             return ampy.result.Result([])
-        parser = self._lookup_parser(collection)
-        if parser == None:
-            return ampy.result.Result([])
-        self._update_stream_map(collection, parser)
+
+        colid, parser = check
         
         # FIXME: Consider limiting maximum durations based on binsize
         # if end is not set then assume "now".
@@ -822,6 +849,7 @@ class Connection(object):
         # the data before displaying it, e.g. rrd-smokeping combines the ping
         # data into a single list rather than being 20 separate dictionary
         # entries.
+
         data = parser.format_data(data, stream, self.streams[stream]['streaminfo'])
         # Save the data in the cache
         if self.memcache:
