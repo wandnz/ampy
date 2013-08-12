@@ -136,6 +136,29 @@ class SmokepingParser(object):
 
         return [self.get_stream_id(params)]
 
+    def get_graphtab_stream(self, streaminfo):
+        """ Given the description of a streams from a similar collection,
+            return the stream id of the streams from this collection that are
+            suitable for display on a graphtab alongside the main graph (where
+            the main graph shows the stream passed into this function)
+        """
+
+        # TODO do some sort of translation between 'host', 'destination',
+        # 'target' and other parameters that mean similar things but have
+        # different names
+        if 'source' not in streaminfo or 'host' not in streaminfo:
+            return []
+
+        params = {'source':streaminfo['source'],
+                'host':streaminfo['host']} 
+
+        stream = self.get_stream_id(params)
+        if stream == -1:
+            return []
+        
+        return [{'streamid':stream, 'title':'Latency', 
+                'collection':'rrd-smokeping'}]
+
     def _get_sources(self, dst):
         """ Get a list of all sources that are test to a given destination.
             

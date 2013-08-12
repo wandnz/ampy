@@ -125,6 +125,43 @@ class AmpIcmpParser(amp.AmpParser):
                 return self._get_sizes(params['source'], params['destination'])
         return []
 
+    def get_graphtab_stream(self, streaminfo):
+        """ Given the description of a stream from a similar collection,
+            return the stream id of the stream from this collection that is 
+            suitable for display on a graphtab alongside the main graph for
+            the provided stream.
+        """
+
+        if 'source' not in streaminfo or 'destination' not in streaminfo:
+            return []
+
+        sizes = self._get_sizes(streaminfo['source'],
+                streaminfo['destination'])
+
+        if sizes == []:
+            return []
+
+        params = {'source':streaminfo['source'],
+                'destination':streaminfo['destination']}
+
+        # First, try to find a packet size that matches the packet size of
+        # the original stream.
+        # If that fails, try to use a 84 byte packet size (as this is the
+        # default for icmp tests)
+        # If that fails, pick the smallest size available
+
+        if 'packet_size' in streaminfo and streaminfo['packet_size'] in sizes:
+            params['packet_size'] = streaminfo['packet_size']
+        elif '84' in sizes:
+            params['packet_size'] = '84'
+        else:
+            sizes.sort(key=int)
+            params['packet_size'] = sizes[0]
+
+        return [{'streamid':self.get_stream_id(params), 'title':"Latency", \
+                'collection':'amp-icmp'}]
+
+
     def _get_sizes(self, source, dest):
         """ Get a list of all packet sizes used to test between a given
             source and destination. If either source or dest is None, return

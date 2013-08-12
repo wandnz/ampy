@@ -131,6 +131,36 @@ class LPIBytesParser(object):
 
         return []
 
+    def get_graphtab_stream(self, streaminfo):
+        """ Given the description of a streams from a similar collection,
+            return the stream id of the streams from this collection that are
+            suitable for display on a graphtab alongside the main graph (where
+            the main graph shows the stream passed into this function)
+        """
+
+        if 'source' not in streaminfo or 'protocol' not in streaminfo:
+            return []
+        
+        params = {'source':streaminfo['source'], 
+                'protocol':streaminfo['protocol']}
+       
+        # Hopefully direction will kinda go away as a parameter eventually.
+        # Ideally, we would show 'in' and 'out' on the same graph 
+        if 'dir' not in streaminfo:
+            params['direction'] = 'in'
+        else:
+            params['direction'] = streaminfo['dir']       
+ 
+        if 'user' not in streaminfo:
+            params['user'] = 'all'
+        else:
+            params['user'] = streaminfo['user']
+
+        return [{'streamid':self.get_stream_id(params), 'title':"Bytes", \
+                'collection':'lpi-bytes'}]
+            
+
+
     def _get_sources(self):
         """ Get the names of all of the sources that have lpi bytes data """
         return self.sources.keys()
