@@ -22,10 +22,12 @@ from ampy.lpiusers import LPIUsersParser
 from ampy.ampicmp import AmpIcmpParser
 from ampy.amptraceroute import AmpTracerouteParser
 
+
 from threading import Lock
 
 try:
     import pylibmc
+    from ampy.caching import AmpyCache
     _have_memcache = True
 except ImportError:
     _have_memcache = False
@@ -60,6 +62,9 @@ class Connection(object):
         get_collection_streams:
             returns a list of stream information dictionaries describing all
             of the streams that belong to a particular collection
+        get_related_streams:
+            returns a list of streams from other collections that share
+            common properties with a given stream
     """
     def __init__(self, host="localhost", port=61234):
         """ Initialises the Connection class
@@ -86,14 +91,7 @@ class Connection(object):
 
         # For now we will cache everything on localhost for 60 seconds.
         if _have_memcache:
-            # TODO should cache duration be based on the amount of data?
-            self.cache_duration = 60
-            self.memcache = pylibmc.Client(
-                    ["127.0.0.1"],
-                    behaviors={
-                        "tcp_nodelay": True,
-                        "no_block": True,
-                        })
+            self.memcache = AmpyCache(12)
         else:
             self.memcache = False
 
@@ -579,9 +577,11 @@ class Connection(object):
         return colid, parser
 
 
-    def get_recent_data(self, collection, stream, duration, binsize, detail):
-        """ Returns data measurements for a time period starting at 'now' and
-            going back a specified number of seconds.
+    def get_recent_data(self, collection, stream, duration, detail):
+        """ Returns aggregated data measurements for a time period starting 
+            at 'now' and going back a specified number of seconds. This
+            function is mainly useful for getting summary statistics for the
+            last hour, day, week etc. 
 
             See also get_period_data().
 
@@ -605,8 +605,6 @@ class Connection(object):
               stream -- the id number of the stream to fetch data for
               duration -- the length of the time period to fetch data for, in
                           seconds
-              binsize -- the frequency at which data should be aggregated. If
-                         None, the binsize is assumed to be the duration.
               detail -- a string that describes the level of measurement detail
                         that should be returned for each datapoint. If None,
                         assumed to be "full".
@@ -622,54 +620,38 @@ class Connection(object):
 
         colid, parser = check
         
-
-        # Default to returning only a single aggregated response
-        if binsize is None:
-            binsize = duration
-
         if detail is None:
             detail = "full"
 
         end = int(time.time())
         start = end - duration
 
-        if duration <= (60 * 10):
-            cachetime = 60
-        elif duration <= (60 * 60):
-            cachetime = 60 * 5
-        elif duration <= (60 * 60 * 24):
-            cachetime = 60 * 30
-        elif duration <= (60 * 60 * 24 * 7):
-            cachetime = 60 * 60 * 3
-        else:
-            cachetime = 60 * 60 * 6
-
-        key = None
 
         # If we have memcache check if this data is available already.
         if self.memcache:
-            # TODO investigate why src and dst are sometimes being given to us
-            # as unicode by the tooltip data requests. Any unicode string here
-            # makes the result type unicode, which memcache barfs on so for now
-            # force the key to be a normal string type.
-            key = str("_".join([str(stream), str(duration), str(binsize),
-                        str(detail)]))
-            try:
-                if key in self.memcache:
-                    #print "hit %s" % key
-                    return ampy.result.Result(self.memcache.get(key))
-                #else:
-                    #print "miss %s" % key
-            except pylibmc.SomeErrors:
-                # Nothing useful we can do, carry on as if data is not present.
-                pass
+            
+            query = {'stream': stream, 'duration':duration, 'detail':detail}
+            cached = self.memcache.check_recent(query)
 
-        return self._get_data(colid, stream, start, end, binsize, detail, key, 
-                    parser, cachetime)
+            if cached != []:
+                return ampy.result.Result(cached)
+
+        result, freq = self._get_data(colid, stream, start, end, duration, 
+                detail, parser)
+
+        result = parser.format_data(result, stream, 
+                self.streams[stream]['streaminfo'])
+
+        # Make sure we cache this result
+        if self.memcache:
+            self.memcache.store_recent(query, result)
+
+        return ampy.result.Result(result)
 
     def get_period_data(self, collection, stream, start, end, binsize, detail):
         """ Returns data measurements for a time period explicitly described
-            using a start and end time.
+            using a start and end time. The main purpose of this function is
+            for querying for time series data that can be used to plot graphs.
 
             See also get_recent_data().
 
@@ -690,6 +672,7 @@ class Connection(object):
                 "minimal" -- return a minimal set of measurements
 
             Parameters:
+              collection -- the name of the collection the stream belongs to
               stream -- the id number of the stream to fetch data for
               start -- the starting point of the time period, in seconds since
                        the epoch. If None, assumed to be 5 minutes before 'end'.
@@ -716,35 +699,82 @@ class Connection(object):
         if end is None:
             end = int(time.time())
 
-        # If start is not set then assume 5 minutes before the end.
+        # If start is not set then assume 2 hours before the end.
         if start is None:
-            start = end - (60*5)
+            start = end - (60 * 60 * 2)
 
         if detail is None:
             detail = "full"
 
-        key = None
-
-        # If we have memcache check if this data is available already.
         if self.memcache:
-            # TODO investigate why src and dst are sometimes being given to us
-            # as unicode by the tooltip data requests. Any unicode string here
-            # makes the result type unicode, which memcache barfs on so for now
-            # force the key to be a normal string type.
-            key = str("_".join([str(stream), str(start), str(end),
-                    str(binsize), str(detail)]))
-            try:
-                if key in self.memcache:
-                    #print "hit %s" % key
-                    return ampy.result.Result(self.memcache.get(key))
-                #else:
-                #    print "miss %s" % key
-            except pylibmc.SomeErrors:
-                # Nothing useful we can do, carry on as if data is not present.
-                pass
+            datafreq = 0
+            blocks = self.memcache.get_caching_blocks(stream, start, end, 
+                    binsize, detail)
+            required, cached = self.memcache.search_cached_blocks(blocks)
+        
+            queryresults = []
+            for r in required:
+                qr, freq = self._get_data(colid, stream, r['start'], 
+                        r['end'], r['binsize'], detail, parser)
+                queryresults += qr
+                
+                if datafreq == 0:
+                    datafreq = freq
 
-        return self._get_data(colid, stream, start, end, binsize, detail, key, 
-                parser)
+            return self._process_blocks(blocks, cached, queryresults, 
+                    stream, parser, datafreq)     
+       
+        # Fallback option for cases where memcache isn't installed
+        # XXX Should we just make memcache a requirement for ampy??
+        data, freq = self._get_data(colid, stream, start, end, binsize, 
+                detail)
+
+        if freq != 0 and len(data) != 0:
+            data = self._fill_missing(data, freq, stream)
+
+        # Some collections have some specific formatting they like to do to
+        # the data before displaying it, e.g. rrd-smokeping combines the ping
+        # data into a single list rather than being 20 separate dictionary
+        # entries.
+
+        data = parser.format_data(data, stream, self.streams[stream]['streaminfo'])
+        return ampy.result.Result(data)
+
+    def _process_blocks(self, blocks, cached, queried, stream, parser, freq):
+        data = []
+
+        for b in blocks:
+
+            if freq > b['binsize']:
+                b['binsize'] = freq
+
+            # If this block was cached, just chuck the cached data into our
+            # result and move on to the next block
+            if b['start'] in cached:
+                data += cached[b['start']]
+                continue
+
+            blockdata = []
+            ts = b['start']
+
+            while ts < b['end']:
+                if len(queried) > 0 and int(queried[0]['binstart']) == ts:
+                    datum = queried[0]
+                    queried = queried[1:]
+                else:
+                    datum = {"binstart":ts, "timestamp":ts, "stream_id":stream}
+
+                blockdata.append(datum)
+                ts += b['binsize']
+
+            blockdata = parser.format_data(blockdata, stream,
+                    self.streams[stream]['streaminfo'])
+            data += blockdata
+            
+            # Got all the data for this uncached block -- cache it
+            self.memcache.store_block(b, blockdata)
+
+        return ampy.result.Result(data) 
 
     def _fill_missing(self, data, freq, stream):
         """ Internal function that populates the data list with 'empty'
@@ -760,9 +790,9 @@ class Connection(object):
         # data points either side of the gap
         for d in data:
 
-            while d['binstart'] - nextts > freq:
-                if len(nogap_data) != 0:
-                    nogap_data.append({'stream_id':stream, 'timestamp':nextts})
+            while d['binstart'] - nextts >= freq:
+                nogap_data.append({'binstart':nextts, 'stream_id':stream, 
+                        'timestamp':nextts})
                 nextts += freq
             nogap_data.append(d)
             nextts = d['binstart'] + freq
@@ -770,17 +800,20 @@ class Connection(object):
         return nogap_data
 
 
-    def _get_data(self, colid, stream, start, end, binsize, detail, key, parser,
-            cachetime=60):
+    def _get_data(self, colid, stream, start, end, binsize, detail, parser):
         """ Internal function that actually performs the NNTSC query to get
-            measurement data, parses the responses and forms up the ampy
-            Result object to be returned to the caller.
+            measurement data, parses the responses and formats the results
+            appropriately.
+
+            Returns a list of formatted results that can be used to create
+            an ampy Result object.
 
             Parameters:
                 the same as get_period_data()
 
             Returns:
-                the same as get_period_data()
+                a list of formatted results that can be used to create
+                an ampy Result object.
         """
         if parser == None:
             print >> sys.stderr, "Cannot fetch data -- no valid parser for stream %s" % (stream)
@@ -842,26 +875,7 @@ class Connection(object):
                     got_data = True
         client.disconnect()
 
-        if freq != 0 and len(data) != 0:
-            data = self._fill_missing(data, freq, stream)
-
-        # Some collections have some specific formatting they like to do to
-        # the data before displaying it, e.g. rrd-smokeping combines the ping
-        # data into a single list rather than being 20 separate dictionary
-        # entries.
-
-        data = parser.format_data(data, stream, self.streams[stream]['streaminfo'])
-        # Save the data in the cache
-        if self.memcache:
-            try:
-                self.memcache.set(key, data, cachetime)
-            except pylibmc.WriteError:
-                # Nothing useful we can do, carry on as if data was saved.
-                pass
-
-        return ampy.result.Result(data)
-
-
+        return data, freq
 
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :
