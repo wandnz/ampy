@@ -746,9 +746,14 @@ class Connection(object):
             print >> sys.stderr, "Cannot fetch data -- lost connection to NNTSC"
             return ampy.result.Result([])
 
+        if detail == "percentiles":
+            result = client.request_percentiles(colid, [stream], start, end,
+                    agg_columns, binsize, group_columns, agg_functions)
+        else:
+            result = client.request_aggregate(colid, [stream], start, end,
+                    agg_columns, binsize, group_columns, agg_functions)
 
-        if client.request_aggregate(colid, [stream], start, end,
-                agg_columns, binsize, group_columns, agg_functions) == -1:
+        if result == -1:
             client.disconnect()
             return ampy.result.Result([])
 
