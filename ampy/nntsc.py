@@ -742,11 +742,47 @@ class Connection(object):
 
     def _process_blocks(self, blocks, cached, queried, stream, parser, freq):
         data = []
+        now = int(time.time())
 
         for b in blocks:
-
+        
+            # Situations where the measurement frequency is greater than our
+            # requested binsize are tricky. The returned values may not line
+            # up nicely with the blocks that we are expecting, so we have to
+            # do things a little differently
             if freq > b['binsize']:
-                b['binsize'] = freq
+                
+                # Measurements are only going to be present at 'freq' intervals
+                incrementby = freq
+
+                # In this case, we should use the timestamp field. The
+                # binstart field is calculated based on the requested binsize,
+                # but whereas timestamp will correspond to the last, i.e. the
+                # only, measurement included in the bin.
+                usekey = 'timestamp'
+
+                # Our block start and end values have been calculated based on
+                # the requested binsize. These won't line up nicely with the 
+                # bins present in queried, so we need to adjust our start and
+                # end times to make sure every measurement ends up in the
+                # right block
+                if (b['start'] % freq) != 0:
+                    ts = b['start'] + (freq - (b['start'] % freq))
+                else:
+                    ts = b['start']
+                if (b['end'] % freq) != 0:
+                    end = b['end'] + (freq - (b['end'] % freq))
+                else:
+                    end = b['end']
+            else:
+                # This is the general case where the binsize we requested
+                # is greater than or equal to the measurement frequency
+
+                # We don't need to try and hax our blocks at all
+                incrementby = b['binsize']
+                ts = b['start']
+                end = b['end']
+                usekey = 'binstart'
 
             # If this block was cached, just chuck the cached data into our
             # result and move on to the next block
@@ -755,21 +791,26 @@ class Connection(object):
                 continue
 
             blockdata = []
-            ts = b['start']
+        
 
             while ts < b['end']:
-                if len(queried) > 0 and int(queried[0]['binstart']) == ts:
+                if ts > now:
+                    break
+                if len(queried) > 0 and \
+                        int(queried[0][usekey]) - ts < incrementby:
                     datum = queried[0]
                     queried = queried[1:]
                 else:
                     datum = {"binstart":ts, "timestamp":ts, "stream_id":stream}
 
                 blockdata.append(datum)
-                ts += b['binsize']
+                ts += incrementby
 
             blockdata = parser.format_data(blockdata, stream,
                     self.streams[stream]['streaminfo'])
-            data += blockdata
+    
+            if blockdata != []:
+                data += blockdata
             
             # Got all the data for this uncached block -- cache it
             self.memcache.store_block(b, blockdata)
