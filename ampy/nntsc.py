@@ -811,9 +811,8 @@ class Connection(object):
     
             if blockdata != []:
                 data += blockdata
-            
-            # Got all the data for this uncached block -- cache it
-            self.memcache.store_block(b, blockdata)
+                # Got all the data for this uncached block -- cache it
+                self.memcache.store_block(b, blockdata)
 
         return ampy.result.Result(data) 
 
