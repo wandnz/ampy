@@ -127,7 +127,7 @@ class AmpIcmpParser(amp.AmpParser):
 
     def get_graphtab_stream(self, streaminfo):
         """ Given the description of a stream from a similar collection,
-            return the stream id of the stream from this collection that is 
+            return the stream id of the stream from this collection that is
             suitable for display on a graphtab alongside the main graph for
             the provided stream.
         """
