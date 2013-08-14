@@ -70,19 +70,16 @@ class MuninbytesParser(object):
         
         return self.streams[key] 
 
+    def request_data(self, client, colid, stream, start, end, binsize, detail):
+        """ Based on the level of detail requested, forms and sends a request
+            to NNTSC for aggregated data.
+        """
+        aggcols = ["bytes"]
+        aggfuncs = ["avg"]
+        group = ["stream_id"]
 
-    def get_aggregate_columns(self, detail):
-        """ Return a list of columns in the data table for this collection
-            that should be subject to data aggregation """
-        
-        # There is no "mininal" level of detail for this data, so just return
-        # the same list regardless
-        return ["bytes"]   
- 
-    def get_group_columns(self):
-        """ Return a list of columns in the streams table that should be used
-            to group aggregated data """
-        return ["stream_id"]
+        return client.request_aggregate(colid, [stream], start, end,
+                aggcols, binsize, group, aggfuncs)
 
     def format_data(self, received, stream, streaminfo):
         """ Formats the measurements retrieved from NNTSC into a nice format

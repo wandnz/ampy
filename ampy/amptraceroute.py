@@ -68,24 +68,19 @@ class AmpTracerouteParser(amp.AmpParser):
             return -1
         return self.streams[key]
 
-    def get_aggregate_functions(self, detail):
-        """ Return the aggregation functions that should be applied to the
-            columns returned by get_aggregate_columns(). It should either be
-            a list of the same length, describing the aggregation function to
-            use for each column, or it should be a string describing the
-            function to use across all columns """
-        return "avg"
+    def request_data(self, client, colid, stream, start, end, binsize, detail):
+        """ Based on the level of detail requested, forms and sends a request
+            to NNTSC for aggregated data.
+        """
 
-    def get_aggregate_columns(self, detail):
-        """ Return a list of columns in the data table for this collection
-            that should be subject to data aggregation """
-        return ["length"]
+        # Detail is irrelevant at this point
+        aggcols = ["length"]
+        aggfuncs = ["avg"]
+        group = ["stream_id"]
 
-    def get_group_columns(self):
-        """ Return a list of columns in the streams table that should be used
-            to group aggregated data """
-        return ["stream_id"]
-
+        return client.request_aggregate(colid, [stream], start, end, aggcols,
+                binsize, group, aggfuncs)
+                
     def format_data(self, received, stream, streaminfo):
         """ Formats the measurements retrieved from NNTSC into a nice format
             for subsequent analysis / plotting / etc.

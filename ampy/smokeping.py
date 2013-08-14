@@ -59,27 +59,27 @@ class SmokepingParser(object):
         if key not in self.streams:
             return -1
         return self.streams[key]
-        
-    def get_aggregate_columns(self, detail):
-        """ Return a list of columns in the streams table for this collection
-            that should be subject to data aggregation """
-
-        # If we're mininal, don't include the individual ping measurements
+       
+    def request_data(self, client, colid, stream, start, end, binsize, detail):
+        """ Based on the level of detail requested, forms and sends a request
+            to NNTSC for aggregated data.
+        """
         if detail == "minimal":
-            return ["median", "loss"]
+            aggcols = ["median", "loss"]
+            aggfuncs = ["avg", "avg"]
+        else:
+            aggcols = ["uptime", "loss", "median",
+                'ping1', 'ping2', 'ping3', 'ping4', 'ping5', 'ping6', 'ping7',
+                'ping8', 'ping9', 'ping10', 'ping11', 'ping12', 'ping13',
+                'ping14', 'ping15', 'ping16', 'ping17', 'ping18', 'ping19',
+                'ping20']
+            aggfuncs = ["avg"] * len(aggcols)
 
-        return ['uptime', 'loss', 'median',
-            'ping1', 'ping2', 'ping3', 'ping4', 'ping5', 'ping6', 'ping7', 
-            'ping8', 'ping9', 'ping10', 'ping11', 'ping12', 'ping13', 
-            'ping14', 'ping15', 'ping16', 'ping17', 'ping18', 'ping19', 
-            'ping20']
+        group = ["stream_id"]
 
-    def get_group_columns(self):
-        """ Return a list of columns in the streams table that should be used
-            to group aggregated data """
-
-        return ["stream_id"]
-
+        return client.request_aggregate(colid, [stream], start, end,
+                aggcols, binsize, group, aggfuncs)
+   
     def format_data(self, received, stream, streaminfo):
         """ Formats the measurements retrieved from NNTSC into a nice format
             for subsequent analysis / plotting / etc.

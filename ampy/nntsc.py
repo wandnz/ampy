@@ -840,14 +840,6 @@ class Connection(object):
         return nogap_data
 
 
-    # TODO move most of this into the dataparsers themselves - create a client
-    # then give it to the parser and get it to request the data from nntsc.
-    # This should mean all the get_aggregate_columns(), get_group_columns()
-    # etc functions can remain internal to the parser and we don't need to
-    # call them all here. This also can mean different request functions can
-    # be used easily based on the data parser and the detail requested: e.g
-    # this will make it much nicer for AMP data to fetch percentile/full
-    # data without making the codepath for every collection fugly.
     def _get_data(self, colid, stream, start, end, binsize, detail, parser):
         """ Internal function that actually performs the NNTSC query to get
             measurement data, parses the responses and formats the results
@@ -868,30 +860,13 @@ class Connection(object):
             return ampy.result.Result([])
 
 
-        agg_columns = parser.get_aggregate_columns(detail)
-        # Check if the parser implements the get_aggregate_functions function
-        # otherwise assume we just want the average.
-        # TODO everything should probably implement this function!
-        get_agg_func = getattr(parser, "get_aggregate_functions", None)
-        if callable(get_agg_func):
-            agg_functions = parser.get_aggregate_functions(detail)
-        else:
-            agg_functions = "avg"
-        group_columns = parser.get_group_columns()
-
         client = self._connect_nntsc()
         if client == None:
             print >> sys.stderr, "Cannot fetch data -- lost connection to NNTSC"
             return ampy.result.Result([])
 
-        # XXX detail level for AMP ICMP wanting percentile data should probably
-        # be "full" to match how rrd-smokeping does it.
-        if detail == "percentiles":
-            result = client.request_percentiles(colid, [stream], start, end,
-                    agg_columns, binsize, group_columns, agg_functions)
-        else:
-            result = client.request_aggregate(colid, [stream], start, end,
-                    agg_columns, binsize, group_columns, agg_functions)
+        result = parser.request_data(client, colid, stream, start, end, 
+                binsize, detail)
 
         if result == -1:
             client.disconnect()
@@ -921,8 +896,8 @@ class Connection(object):
                     continue
                 if msg[1]['streamid'] != stream:
                     continue
-                if msg[1]['aggregator'] != agg_functions:
-                    continue
+                #if msg[1]['aggregator'] != agg_functions:
+                #   continue
 
                 freq = msg[1]['binsize']
                 data += msg[1]['data']
