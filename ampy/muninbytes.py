@@ -141,6 +141,29 @@ class MuninbytesParser(object):
         # only available option is to return the matching stream (?)
         return [self.get_stream_id(params)]
 
+    def get_graphtab_stream(self, streaminfo):
+        """ Given the description of a streams from a similar collection,
+            return the stream id of the streams from this collection that are
+            suitable for display on a graphtab alongside the main graph (where
+            the main graph shows the stream passed into this function)
+        """
+        if 'switch' not in streaminfo or 'interfacelabel' not in streaminfo:
+            return []
+        
+        if 'direction' not in streaminfo:
+            return []
+
+        params = {'switch':streaminfo['switch'], 
+            'interface':streaminfo['interfacelabel'], 
+            'direction':streaminfo['direction']}
+
+        stream = self.get_stream_id(params)
+        if stream == -1:
+            return []
+        
+        return [{'streamid':stream, 'title':'Bytes',
+                'collection':'rrd-muninbytes'}]
+
 
     def _get_switches(self):
         """ Get the names of all switches that have munin data """
