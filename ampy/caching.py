@@ -10,7 +10,7 @@ class AmpyCache(object):
                     "tcp_nodelay": True,
                     "no_block": True,
                 })
-        #self.memcache.flush_all()
+        self.memcache.flush_all()
     
     def get_caching_blocks(self, stream, start, end, binsize, detail):
         blocks = []

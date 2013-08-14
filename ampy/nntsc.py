@@ -770,10 +770,6 @@ class Connection(object):
                     ts = b['start'] + (freq - (b['start'] % freq))
                 else:
                     ts = b['start']
-                #if (b['end'] % freq) != 0:
-                #   end = b['end'] + (freq - (b['end'] % freq))
-                #else:
-                #    end = b['end']
             else:
                 # This is the general case where the binsize we requested
                 # is greater than or equal to the measurement frequency
