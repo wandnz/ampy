@@ -16,10 +16,12 @@ class AmpyCache(object):
         blocks = []
         blocksize = binsize * self.blocksize
 
-        blockts = (start - (start % blocksize)) - blocksize
+        prefetch = 2 * blocksize
+
+        blockts = (start - (start % blocksize)) - prefetch
         now = int(time.time())
 
-        while blockts < end + blocksize:
+        while blockts < end + prefetch:
             if blockts > now:
                 break
 
@@ -69,7 +71,9 @@ class AmpyCache(object):
             # If we get here, this block is disconnected from the previous
             # missing block(s). Finalise 'current' and start a new one based
             # on the current block.
-            missing.append(current)
+            missing.append({'start':current['start'], 'end':current['end'],
+                    'binsize':current['binsize']})
+            
             current['start'] = b['start']
             current['end'] = b['end']
             current['binsize'] = b['binsize']

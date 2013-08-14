@@ -715,7 +715,7 @@ class Connection(object):
             queryresults = []
             for r in required:
                 qr, freq = self._get_data(colid, stream, r['start'], 
-                        r['end'], r['binsize'], detail, parser)
+                        r['end']-1, r['binsize'], detail, parser)
                 queryresults += qr
                 
                 if datafreq == 0:
@@ -770,10 +770,10 @@ class Connection(object):
                     ts = b['start'] + (freq - (b['start'] % freq))
                 else:
                     ts = b['start']
-                if (b['end'] % freq) != 0:
-                    end = b['end'] + (freq - (b['end'] % freq))
-                else:
-                    end = b['end']
+                #if (b['end'] % freq) != 0:
+                #   end = b['end'] + (freq - (b['end'] % freq))
+                #else:
+                #    end = b['end']
             else:
                 # This is the general case where the binsize we requested
                 # is greater than or equal to the measurement frequency
@@ -796,6 +796,7 @@ class Connection(object):
             while ts < b['end']:
                 if ts > now:
                     break
+                
                 if len(queried) > 0 and \
                         int(queried[0][usekey]) - ts < incrementby:
                     datum = queried[0]
