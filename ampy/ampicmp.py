@@ -68,30 +68,29 @@ class AmpIcmpParser(amp.AmpParser):
             return -1
         return self.streams[key]
 
-    def get_aggregate_functions(self, detail):
-        """ Return the aggregation functions that should be applied to the
-            columns returned by get_aggregate_columns(). It should either be
-            a list of the same length, describing the aggregation function to
-            use for each column, or it should be a string describing the
-            function to use across all columns """
+    def request_data(self, client, colid, stream, start, end, binsize, detail):
+        """ Based on the level of detail requested, forms and sends a request
+            to NNTSC for aggregated data.
+        """
+  
         # the matrix view expects both the mean and stddev for the latency
         if detail == "matrix":
-            return ["avg", "stddev", "avg"]
-        # normally we only concern ourselves with average values
-        return "avg"
+            aggfuncs = ["avg", "stddev", "avg"]
+            aggcols = ["rtt", "rtt", "loss"]
+        else:
+            aggfuncs = ["avg", "avg"]
+            aggcols = ["rtt", "loss"]
 
-    def get_aggregate_columns(self, detail):
-        """ Return a list of columns in the data table for this collection
-            that should be subject to data aggregation """
-        # the matrix view expects both the mean and stddev for the latency
-        if detail == "matrix":
-            return ["rtt", "rtt", "loss"]
-        return ["rtt", "loss"]
+        # 'full' implies a smokeping-style graph, so we'll need to grab
+        # the percentile data 
+        if detail == "full":
+            result = client.request_percentiles(colid, [stream], start, end,
+                    aggcols, binsize, ["stream_id"], aggfuncs)
+        else:
+            result = client.request_aggregate(colid, [stream], start, end,
+                    aggcols, binsize, ["stream_id"], aggfuncs)
 
-    def get_group_columns(self):
-        """ Return a list of columns in the streams table that should be used
-            to group aggregated data """
-        return ["stream_id"]
+        return result
 
     def format_data(self, received, stream, streaminfo):
         """ Formats the measurements retrieved from NNTSC into a nice format
