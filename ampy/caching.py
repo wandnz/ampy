@@ -10,7 +10,11 @@ class AmpyCache(object):
                     "tcp_nodelay": True,
                     "no_block": True,
                 })
+        self.mcpool = pylibmc.ThreadMappedPool(self.memcache)
         self.memcache.flush_all()
+   
+    def __del__(self):
+        self.mcpool.relinquish()
     
     def get_caching_blocks(self, stream, start, end, binsize, detail):
         blocks = []
@@ -47,12 +51,13 @@ class AmpyCache(object):
 
         for b in blocks:
 
-            try:
-                if b['cachekey'] in self.memcache:
-                    cached[b['start']] = self.memcache.get(b['cachekey'])
-                    continue
-            except pylibmc.SomeErrors:
-                pass
+            with self.mcpool.reserve() as mc:
+                try:
+                    if b['cachekey'] in mc:
+                        cached[b['start']] = mc.get(b['cachekey'])
+                        continue
+                except pylibmc.SomeErrors:
+                    pass
 
             # If we get here, the block wasn't in our cache
             if current['binsize'] == 0:
@@ -89,19 +94,22 @@ class AmpyCache(object):
         key = str("_".join([str(query['stream']), str(query['duration']), 
                 str(query['detail']), "recent"]))
 
-        try:
-            if key in self.memcache:
-                return self.memcache.get(key)
-        except pylibmc.SomeErrors:
-            pass
+        with self.mcpool.reserve() as mc:
+            try:
+                if key in mc:
+                    return mc.get(key)
+            except pylibmc.SomeErrors:
+                pass
 
         return []
 
     def store_block(self, block, blockdata):
-        try:
-            self.memcache.set(block['cachekey'], blockdata, block['cachetime'])
-        except pylibmc.WriteError:
-            pass
+
+        with self.mcpool.reserve() as mc:
+            try:
+                mc.set(block['cachekey'], blockdata, block['cachetime'])
+            except pylibmc.WriteError:
+                pass
 
     def store_recent(self, query, result):
 
@@ -119,10 +127,12 @@ class AmpyCache(object):
         
         key = str("_".join([str(query['stream']), str(query['duration']), 
                 str(query['detail']), "recent"]))
-        try:
-            self.memcache.set(key, result, cachetime)
-        except pylibmc.WriteError:
-            pass
+        
+        with self.mcpool.reserve() as mc:
+            try:
+                mc.set(key, result, cachetime)
+            except pylibmc.WriteError:
+                pass
 
     
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :

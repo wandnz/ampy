@@ -805,7 +805,7 @@ class Connection(object):
 
             blockdata = parser.format_data(blockdata, stream,
                     self.streams[stream]['streaminfo'])
-    
+   
             if blockdata != []:
                 data += blockdata
                 # Got all the data for this uncached block -- cache it
