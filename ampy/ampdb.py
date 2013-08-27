@@ -9,8 +9,8 @@ import ampy.netevmon
 import ampy.nntsc
 
 
-def create_netevmon_engine(host, dbname, pwd):
-    return ampy.netevmon.Connection(host, dbname, pwd)
+def create_netevmon_engine(host, dbname, pwd, user):
+    return ampy.netevmon.Connection(host, dbname, pwd, user)
 
 # Use this engine to get at core NNTSC information, e.g. the collection list
 def create_nntsc_engine(host, port):
