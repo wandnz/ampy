@@ -727,7 +727,7 @@ class Connection(object):
         # Fallback option for cases where memcache isn't installed
         # XXX Should we just make memcache a requirement for ampy??
         data, freq = self._get_data(colid, stream, start, end, binsize, 
-                detail)
+                detail, parser)
 
         if freq != 0 and len(data) != 0:
             data = self._fill_missing(data, freq, stream)
