@@ -66,7 +66,7 @@ class Connection(object):
             returns a list of streams from other collections that share
             common properties with a given stream
     """
-    def __init__(self, host="localhost", port=61234):
+    def __init__(self, host="localhost", port=61234, ampconfig=None):
         """ Initialises the Connection class
 
             Parameters:
@@ -80,6 +80,25 @@ class Connection(object):
 
         self.parsers = {}
         self.streams = {}
+
+        self.ampdbconfig = {}
+
+        # Store the configuration for the amp2 metadata db, if possible
+        if ampconfig != None:
+            if 'host' in ampconfig:
+                self.ampdbconfig['host'] = ampconfig['host']
+            else:
+                self.ampdbconfig['host'] = None
+            
+            if 'user' in ampconfig:
+                self.ampdbconfig['user'] = ampconfig['user']
+            else:
+                self.ampdbconfig['user'] = None
+
+            if 'pwd' in ampconfig:
+                self.ampdbconfig['pwd'] = ampconfig['pwd']
+            else:
+                self.ampdbconfig['pwd'] = None
 
         # These locks protect our core data structures.
         #
@@ -301,10 +320,10 @@ class Connection(object):
             return
 
         if name == "amp-icmp":
-            parser = AmpIcmpParser()
+            parser = AmpIcmpParser(self.ampdbconfig)
 
         if name == "amp-traceroute":
-            parser = AmpTracerouteParser()
+            parser = AmpTracerouteParser(self.ampdbconfig)
 
         if name == "rrd-smokeping":
             parser = SmokepingParser()
