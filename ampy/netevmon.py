@@ -43,9 +43,9 @@ class Connection(object):
             view_table = Table(v, self.metadata, autoload=True)
  
 
-    def __init__(self, host=None, name="events", pwd=None):
+    def __init__(self, host=None, name="events", pwd=None, user=None):
         cstring = URL('postgresql', password=pwd, \
-                host=host, database=name)
+                host=host, database=name, username=user)
 
         self.engine = create_engine(cstring, echo=False)
         self.inspector = reflection.Inspector.from_engine(self.engine)
