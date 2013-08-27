@@ -6,10 +6,10 @@ import amp
 class AmpTracerouteParser(amp.AmpParser):
     """ Parser for the amp-traceroute collection. """
 
-    def __init__(self):
+    def __init__(self, dbconfig):
         """ Initialises the parser """
         # we need all the same initialisation everything AMP related does
-        super(AmpTracerouteParser, self).__init__()
+        super(AmpTracerouteParser, self).__init__(dbconfig)
 
         # Dictionary that maps (source, dest) to a set of packet sizes that
         # have been used to test between those two hosts

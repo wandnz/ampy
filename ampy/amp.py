@@ -9,7 +9,7 @@ class AmpParser(object):
         sources, destinations, meshes, site info, etc.
     """
 
-    def __init__(self):
+    def __init__(self, dbconfig):
         """ Initialises an AMP connection """
         # These dictionaries store local copies of data that relate to
         # identifying streams, so we don't have to query the database
@@ -34,7 +34,9 @@ class AmpParser(object):
         # The AMP database stores site/mesh metadata
         try:
             # TODO make this configurable somewhere?
-            url = sqlalchemy.engine.url.URL("postgresql", database="amp2")
+            url = sqlalchemy.engine.url.URL("postgresql", database="amp2",
+                    username=dbconfig['user'], host=dbconfig['host'], 
+                    password=dbconfig['pwd'])
             self.ampdb = sqlalchemy.create_engine(url)
             # test query to see if the database connection was actually made:
             # sqlalchemy is apparently stupid and doesn't let us easily check
@@ -110,6 +112,7 @@ class AmpParser(object):
             If the destination is None, return all known sources. Only
             sources for which there is data should be returned here.
         """
+        mesh_sites = []
         # if the mesh is set then find the sites that belong
         if mesh is not None and self.ampdb is not None:
             mesh_sites = [x[0] for x in self.ampdb.execute(sqlalchemy.text(
@@ -143,6 +146,7 @@ class AmpParser(object):
             source. If the source is None, return all possible destinations.
         """
         # if the mesh is set then find the sites that belong
+        mesh_sites = []
         if mesh is not None and self.ampdb is not None:
             mesh_sites = [x[0] for x in self.ampdb.execute(sqlalchemy.text(
                         "SELECT ampname FROM active_mesh_members "
