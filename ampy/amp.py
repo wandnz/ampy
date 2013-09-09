@@ -74,7 +74,7 @@ class AmpParser(object):
                 mesh = params['mesh']
             else:
                 mesh = None
-            return self._get_sources(destination, mesh)
+            return sorted(self._get_sources(destination, mesh))
 
         if params["_requesting"] == "destinations":
             if 'source' in params:
@@ -85,7 +85,7 @@ class AmpParser(object):
                 mesh = params['mesh']
             else:
                 mesh = None
-            return self._get_destinations(source, mesh)
+            return sorted(self._get_destinations(source, mesh))
 
         if params["_requesting"] == "site_info":
             if 'site' in params:
