@@ -11,7 +11,6 @@ class AmpyCache(object):
                     "no_block": True,
                 })
         self.mcpool = pylibmc.ThreadMappedPool(self.memcache)
-        self.memcache.flush_all()
    
     def __del__(self):
         self.mcpool.relinquish()
