@@ -807,6 +807,7 @@ class Connection(object):
 
             blockdata = []
         
+            seendata = False
 
             while ts < b['end']:
                 if ts > now:
@@ -816,10 +817,12 @@ class Connection(object):
                         int(queried[0][usekey]) - ts < incrementby:
                     datum = queried[0]
                     queried = queried[1:]
+                    seendata = True
                 else:
                     datum = {"binstart":ts, "timestamp":ts, "stream_id":stream}
 
-                blockdata.append(datum)
+                if seendata:
+                    blockdata.append(datum)
                 ts += incrementby
 
             blockdata = parser.format_data(blockdata, stream,
