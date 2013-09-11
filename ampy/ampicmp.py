@@ -68,7 +68,7 @@ class AmpIcmpParser(amp.AmpParser):
             return -1
         return self.streams[key]
 
-    def request_data(self, client, colid, stream, start, end, binsize, detail):
+    def request_data(self, client, colid, streams, start, end, binsize, detail):
         """ Based on the level of detail requested, forms and sends a request
             to NNTSC for aggregated data.
         """
@@ -84,12 +84,11 @@ class AmpIcmpParser(amp.AmpParser):
         # 'full' implies a smokeping-style graph, so we'll need to grab
         # the percentile data 
         if detail == "full":
-            result = client.request_percentiles(colid, [stream], start, end,
+            result = client.request_percentiles(colid, streams, start, end,
                     aggcols, binsize, ["stream_id"], aggfuncs)
         else:
-            result = client.request_aggregate(colid, [stream], start, end,
+            result = client.request_aggregate(colid, streams, start, end,
                     aggcols, binsize, ["stream_id"], aggfuncs)
-
         return result
 
     def format_data(self, received, stream, streaminfo):

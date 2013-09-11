@@ -68,7 +68,7 @@ class AmpTracerouteParser(amp.AmpParser):
             return -1
         return self.streams[key]
 
-    def request_data(self, client, colid, stream, start, end, binsize, detail):
+    def request_data(self, client, colid, streams, start, end, binsize, detail):
         """ Based on the level of detail requested, forms and sends a request
             to NNTSC for aggregated data.
         """
@@ -78,7 +78,7 @@ class AmpTracerouteParser(amp.AmpParser):
         aggfuncs = ["avg"]
         group = ["stream_id"]
 
-        return client.request_aggregate(colid, [stream], start, end, aggcols,
+        return client.request_aggregate(colid, streams, start, end, aggcols,
                 binsize, group, aggfuncs)
                 
     def format_data(self, received, stream, streaminfo):

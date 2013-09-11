@@ -119,6 +119,7 @@ class Connection(object):
             easily make requests and receive responses
         """
         try:
+            print "CONNECTING"
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         except socket.error, msg:
             print >> sys.stderr, "Failed to create socket: %s" % (msg[1])
@@ -596,7 +597,7 @@ class Connection(object):
         return colid, parser
 
 
-    def get_recent_data(self, collection, stream, duration, detail):
+    def get_recent_data(self, collection, stream_ids, duration, detail):
         """ Returns aggregated data measurements for a time period starting 
             at 'now' and going back a specified number of seconds. This
             function is mainly useful for getting summary statistics for the
@@ -632,40 +633,75 @@ class Connection(object):
               an ampy Result object containing all of the requested measurement
               data. If the request fails, this Result object will be empty.
         """
-        
-        check = self._data_request_prep(collection, stream)
-        if check == None:
-            return ampy.result.Result([])
 
-        colid, parser = check
-        
+        info = {}
+        cached = {}
+        queries = []
         if detail is None:
             detail = "full"
-
         end = int(time.time())
         start = end - duration
+        collection_id = None
+        parser = None
 
+        # check each stream_id to see if we need to query for it - some will
+        # be invalid, some will be cached already, so don't fetch those ones
+        for stream_id in stream_ids:
+            # an invalid or unknown stream_id has empty data, don't query it
+            if stream_id > 0:
+                info[stream_id] = self._data_request_prep(collection, stream_id)
+            if stream_id < 0 or info[stream_id] == None:
+                cached[stream_id] = []
+                continue
 
-        # If we have memcache check if this data is available already.
-        if self.memcache:
-            
-            query = {'stream': stream, 'duration':duration, 'detail':detail}
-            cached = self.memcache.check_recent(query)
+            # If we have memcache check if this data is available already.
+            if self.memcache:
+                key = {
+                    'stream': stream_id,
+                    'duration': duration,
+                    'detail':detail
+                }
+                data = self.memcache.check_recent(key)
 
-            if cached != []:
-                return ampy.result.Result(cached)
+                if data != []:
+                    cached[stream_id] = data
+                    continue
+            # Otherwise, we don't have it already so add to the list to query
+            queries.append(stream_id)
 
-        result, freq = self._get_data(colid, stream, start, end, duration, 
-                detail, parser)
+        # if there are any stream_ids that we don't already have data for, now
+        # is the time to fetch them and cache them for later
+        if len(queries) > 0:
+            # fetch all the data that we don't already have
+            collection_id, parser = info[stream_id]
+            result = self._get_data(collection_id, queries, start, end,
+                    duration, detail, parser)
 
-        result = parser.format_data(result, stream, 
-                self.streams[stream]['streaminfo'])
+            # do any special formatting that the parser requires
+            for stream_id in result.keys():
+                result[stream_id] = parser.format_data(result[stream_id],
+                        stream_id, self.streams[stream_id]['streaminfo'])
 
-        # Make sure we cache this result
-        if self.memcache:
-            self.memcache.store_recent(query, result)
+            # Make sure we cache any results we just fetched
+            if self.memcache:
+                for stream_id in result.keys():
+                    key = {
+                        'stream': stream_id,
+                        'duration': duration,
+                        'detail': detail
+                    }
+                    self.memcache.store_recent(key, result[stream_id]["data"])
 
-        return ampy.result.Result(result)
+        # Put together the results from cached and recently fetched data
+        results = []
+        for stream_id in stream_ids:
+            if stream_id in cached:
+                results.append(cached[stream_id])
+            elif stream_id in result:
+                results.append(result[stream_id]["data"])
+            else:
+                results.append([])
+        return results
 
     def get_period_data(self, collection, stream, start, end, binsize, detail):
         """ Returns data measurements for a time period explicitly described
@@ -733,9 +769,10 @@ class Connection(object):
         
             queryresults = []
             for r in required:
-                qr, freq = self._get_data(colid, stream, r['start'], 
+                qr = self._get_data(colid, [stream], r['start'], 
                         r['end']-1, r['binsize'], detail, parser)
-                queryresults += qr
+                freq = qr[stream]["freq"]
+                queryresults += qr[stream]["data"]
                 
                 if datafreq == 0:
                     datafreq = freq
@@ -745,7 +782,7 @@ class Connection(object):
        
         # Fallback option for cases where memcache isn't installed
         # XXX Should we just make memcache a requirement for ampy??
-        data, freq = self._get_data(colid, stream, start, end, binsize, 
+        data, freq = self._get_data(colid, [stream], start, end, binsize, 
                 detail, parser)
 
         if freq != 0 and len(data) != 0:
@@ -856,7 +893,7 @@ class Connection(object):
         return nogap_data
 
 
-    def _get_data(self, colid, stream, start, end, binsize, detail, parser):
+    def _get_data(self, colid, stream_ids, start, end, binsize, detail, parser):
         """ Internal function that actually performs the NNTSC query to get
             measurement data, parses the responses and formats the results
             appropriately.
@@ -872,7 +909,7 @@ class Connection(object):
                 an ampy Result object.
         """
         if parser == None:
-            print >> sys.stderr, "Cannot fetch data -- no valid parser for stream %s" % (stream)
+            print >> sys.stderr, "Cannot fetch data -- no valid parser for stream %s" % (stream_ids)
             return ampy.result.Result([])
 
 
@@ -881,7 +918,7 @@ class Connection(object):
             print >> sys.stderr, "Cannot fetch data -- lost connection to NNTSC"
             return ampy.result.Result([])
 
-        result = parser.request_data(client, colid, stream, start, end, 
+        result = parser.request_data(client, colid, stream_ids, start, end,
                 binsize, detail)
 
         if result == -1:
@@ -889,10 +926,12 @@ class Connection(object):
             return ampy.result.Result([])
 
         got_data = False
-        data = []
+        data = {}
         freq = 0
+        count = 0
 
-        while not got_data:
+        while count < len(stream_ids) or not got_data:
+            print "waiting for data"
             msg = self._get_nntsc_message(client)
             if msg == None:
                 break
@@ -910,18 +949,21 @@ class Connection(object):
                 # Sanity checks
                 if msg[1]['collection'] != colid:
                     continue
-                if msg[1]['streamid'] != stream:
+                stream_id = msg[1]['streamid']
+                if stream_id not in stream_ids:
                     continue
                 #if msg[1]['aggregator'] != agg_functions:
                 #   continue
-
-                freq = msg[1]['binsize']
-                data += msg[1]['data']
+                if stream_id not in data:
+                    count += 1
+                    data[stream_id] = {}
+                    data[stream_id]["data"] = []
+                    data[stream_id]["freq"] = msg[1]['binsize']
+                data[stream_id]["data"] += msg[1]['data']
                 if msg[1]['more'] == False:
                     got_data = True
         client.disconnect()
-
-        return data, freq
+        return data
 
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :
