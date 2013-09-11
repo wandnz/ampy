@@ -635,7 +635,7 @@ class Connection(object):
         """
 
         info = {}
-        cached = {}
+        data = {}
         queries = []
         if detail is None:
             detail = "full"
@@ -651,7 +651,7 @@ class Connection(object):
             if stream_id > 0:
                 info[stream_id] = self._data_request_prep(collection, stream_id)
             if stream_id < 0 or info[stream_id] == None:
-                cached[stream_id] = []
+                data[stream_id] = []
                 continue
 
             # If we have memcache check if this data is available already.
@@ -661,10 +661,10 @@ class Connection(object):
                     'duration': duration,
                     'detail':detail
                 }
-                data = self.memcache.check_recent(key)
+                cached = self.memcache.check_recent(key)
 
-                if data != []:
-                    cached[stream_id] = data
+                if cached != []:
+                    data[stream_id] = cached
                     continue
             # Otherwise, we don't have it already so add to the list to query
             queries.append(stream_id)
@@ -692,16 +692,11 @@ class Connection(object):
                     }
                     self.memcache.store_recent(key, result[stream_id]["data"])
 
-        # Put together the results from cached and recently fetched data
-        results = []
-        for stream_id in stream_ids:
-            if stream_id in cached:
-                results.append(cached[stream_id])
-            elif stream_id in result:
-                results.append(result[stream_id]["data"])
-            else:
-                results.append([])
-        return results
+            # we only store the data portion of the result (not freq etc),
+            # so merge that with cached data
+            for k,v in result.iteritems():
+                data[k] = v["data"]
+        return data
 
     def get_period_data(self, collection, stream, start, end, binsize, detail):
         """ Returns data measurements for a time period explicitly described
