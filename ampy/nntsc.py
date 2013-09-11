@@ -79,7 +79,6 @@ class Connection(object):
         self.port = port
 
         self.parsers = {}
-        self.streams = {}
 
         self.ampdbconfig = {}
 
@@ -260,7 +259,7 @@ class Connection(object):
         """
         if self.collections != {}:
             return
-        
+       
         collections = self._request_collections()
 
         if collections == None:
@@ -272,7 +271,9 @@ class Connection(object):
             # TODO Add nice printable names to the collection table in NNTSC
             # that we can use to populate dropdown lists / graph labels etc.
             label = name
-            self.collections[col['id']] = {'name':name, 'label':label, 'laststream':0, 'lastchecked':0, 'streamlock':Lock(), 'module':col['module']}
+            self.collections[col['id']] = {'name':name, 'label':label, 
+                    'laststream':0, 'lastchecked':0, 'streamlock':Lock(), 
+                    'module':col['module'], 'streams':{}}
             self.collection_names[name] = col['id']
 
 
@@ -347,6 +348,86 @@ class Connection(object):
             self.parsers[name] = parser
         self.parser_lock.release()
 
+
+    def _update_uncached_streams(self, colid, coldata, parser):
+        
+        newstreams = []
+        streamlock = coldata['streamlock']
+        streams = coldata['streams']
+        laststream = coldata['laststream']
+        
+        # Check if there are any new streams for this collection
+        streamlock.acquire()
+        newstreams = self._request_streams(colid, laststream)
+        
+        for s in newstreams:
+            streams[s['stream_id']] = {'parser':parser, 'streaminfo':s,
+                    'collection':colid}
+            parser.add_stream(s)
+            if s['stream_id'] > laststream:
+                laststream = s['stream_id']
+        streamlock.release()
+        
+        self.collection_lock.acquire()
+        now = time.time()
+        self.collections[colid]['laststream'] = laststream
+        self.collections[colid]['lastchecked'] = now
+        self.collection_lock.release()
+
+    def _update_cached_streams(self, colid, coldata, parser):
+        
+        newstreams = []
+        streamlist = []
+
+        cached = self.memcache.check_collection_streams(colid)
+        
+        streamlock = coldata['streamlock']
+        streams = coldata['streams']
+        streamlock.acquire()
+        if len(cached) == 0: 
+            # Nothing in the cache, so we need to ask NNTSC for them
+            reqstreams = self._request_streams(colid, 0)
+            for s in reqstreams:
+                streamlist.append(s["stream_id"])
+                # Cache the individual stream info
+                self.memcache.store_streaminfo(s, s['stream_id'])
+
+                # Update our local record of the stream -- note that parser
+                # can't be cached, which is why streams still exists
+                streams[s['stream_id']] = {'parser':parser, 
+                        'streaminfo':s, 'collection':colid}
+
+                # The parser also needs to be made aware of the stream for
+                # get_selection_options()
+                parser.add_stream(s)
+            
+            # Cache a record of all the stream ids we have for this collection
+            self.memcache.store_collection_streams(colid, set(streamlist))
+        else:
+            # Sets are awesome
+            existing = set(streams.keys())
+
+            # Find all streams that are in the cache that we don't already
+            # know about
+            newstreams = cached.difference(existing).union(existing.difference(cached))
+            for s in newstreams:
+                cachedinfo = self.memcache.check_streaminfo(s)
+                if cachedinfo != {}:
+                    streams[s] = {'parser':parser, 
+                            'streaminfo':cachedinfo, 'collection':colid}
+                    parser.add_stream(cachedinfo)
+                else:
+                    # TODO Delete the stream from the parser too
+                    # e.g. parser.remove_stream(streams[s]['streaminfo'])
+                    del streams[s]
+        
+        streamlock.release()
+        
+        self.collection_lock.acquire()
+        now = time.time()
+        self.collections[colid]['lastchecked'] = now
+        self.collection_lock.release()
+
     def _update_stream_map(self, collection, parser):
         """ Asks NNTSC for any streams that we don't know about and adds
             them to our internal stream map.
@@ -358,37 +439,25 @@ class Connection(object):
                 collection -- the name of the collection to request streams for
                 parser -- the parser to push the new streams to
         """
-       
         colid, coldata = self._lookup_collection(collection)
-        
+    
         if colid == None:
             return
-        
-        laststream = coldata['laststream']
+    
         lastchecked = coldata['lastchecked']
-        streamlock = coldata['streamlock']
-
+        
+        # Avoid requesting new stream information if we have done so recently
         now = time.time()
         if now < (lastchecked + STREAM_CHECK_FREQUENCY):
             return
-
-        # Check if there are any new streams for this collection
-        streamlock.acquire()
-        newstreams = self._request_streams(colid, laststream)
         
-        for s in newstreams:
-            self.streams[s['stream_id']] = {'parser':parser, 'streaminfo':s,
-                    'collection':colid}
-           
-            parser.add_stream(s)
-            if s['stream_id'] > laststream:
-                laststream = s['stream_id']
-        streamlock.release()
-        
-        self.collection_lock.acquire()
-        self.collections[colid]['laststream'] = laststream
-        self.collections[colid]['lastchecked'] = now
-        self.collection_lock.release()
+        # We have two different code paths, depending on whether you have
+        # memcache available or not
+        if self.memcache:
+            self._update_cached_streams(colid, coldata, parser)
+        else:
+            self._update_uncached_streams(colid, coldata, parser)
+      
            
     def get_selection_options(self, name, params):
         """ Given a known set of stream parameters, return a list of possible
@@ -430,25 +499,35 @@ class Connection(object):
               name -- the collection that the stream belongs to
               streamid -- the id of the stream that the info is requested for
         """
+        # If we have a memcache and this stream is in there, just grab the
+        # stream info straight out of there
+        if self.memcache:
+            info = self.memcache.check_streaminfo(streamid);
+
+            if info != {}:
+                return info
+        
+        # Otherwise, we'll have to do this the old-fashioned way
+    
         parser = self._lookup_parser(name)
         if parser == None:
             return {}
-
     
         colid, coldata = self._lookup_collection(name)
         if colid == None:
             return {}
         streamlock = coldata['streamlock']
+        streams = coldata['streams']
 
         self._update_stream_map(name, parser)
         
         streamlock.acquire()
-        if streamid not in self.streams:
-            print "Failed to get stream info", streamid, self
+        if streamid not in streams:
+            print "Failed to get stream info", streamid, coldata
             streamlock.release()
             return {}
-
-        info = self.streams[streamid]['streaminfo']
+    
+        info = streams[streamid]['streaminfo']
         streamlock.release()
         return info
 
@@ -506,10 +585,10 @@ class Connection(object):
         self._update_stream_map(collection, parser)
 
         streamlock = coldata['streamlock']
+        streams = coldata['streams']
         streamlock.acquire()
-        for s in self.streams.values():
-            if s['collection'] == colid:
-                colstreams.append(s['streaminfo'])
+        for s in streams.values():
+            colstreams.append(s['streaminfo'])
 
         streamlock.release()
         return colstreams
@@ -546,14 +625,14 @@ class Connection(object):
        
         self._update_stream_map(collection, parser)
         streamlock = coldata['streamlock']
-         
+        streams = coldata['streams'] 
         streamlock.acquire()
-        if streamid not in self.streams:
-            print "Failed to get stream info", streamid, self
+        if streamid not in streams:
+            print "Failed to get stream info", streamid, coldata
             streamlock.release()
             return {}
 
-        info = self.streams[streamid]['streaminfo']
+        info = streams[streamid]['streaminfo']
         streamlock.release()
 
         relatedcols = self._get_related_collections(coldata['module'])
@@ -584,16 +663,17 @@ class Connection(object):
         self._update_stream_map(collection, parser)
         
         streamlock = coldata['streamlock']
-         
+        streams = coldata['streams'] 
         streamlock.acquire()
-        if stream not in self.streams:
+        if stream not in streams:
             print "Failed to find stream %s in collection %s" % \
                     (stream, collection)
             streamlock.release()
             return None
+        streaminfo = streams[stream]['streaminfo']
         streamlock.release()
 
-        return colid, parser
+        return colid, parser, streaminfo
 
 
     def get_recent_data(self, collection, stream, duration, detail):
@@ -637,7 +717,7 @@ class Connection(object):
         if check == None:
             return ampy.result.Result([])
 
-        colid, parser = check
+        colid, parser, streaminfo = check
         
         if detail is None:
             detail = "full"
@@ -658,8 +738,7 @@ class Connection(object):
         result, freq = self._get_data(colid, stream, start, end, duration, 
                 detail, parser)
 
-        result = parser.format_data(result, stream, 
-                self.streams[stream]['streaminfo'])
+        result = parser.format_data(result, stream, streaminfo)
 
         # Make sure we cache this result
         if self.memcache:
@@ -711,7 +790,7 @@ class Connection(object):
         if check == None:
             return ampy.result.Result([])
 
-        colid, parser = check
+        colid, parser, streaminfo = check
         
         # FIXME: Consider limiting maximum durations based on binsize
         # if end is not set then assume "now".
@@ -741,7 +820,7 @@ class Connection(object):
                     datafreq = freq
 
             return self._process_blocks(blocks, cached, queryresults, 
-                    stream, parser, datafreq)     
+                    stream, streaminfo, parser, datafreq)     
        
         # Fallback option for cases where memcache isn't installed
         # XXX Should we just make memcache a requirement for ampy??
@@ -756,10 +835,11 @@ class Connection(object):
         # data into a single list rather than being 20 separate dictionary
         # entries.
 
-        data = parser.format_data(data, stream, self.streams[stream]['streaminfo'])
+        data = parser.format_data(data, stream, streaminfo)
         return ampy.result.Result(data)
 
-    def _process_blocks(self, blocks, cached, queried, stream, parser, freq):
+    def _process_blocks(self, blocks, cached, queried, stream, streaminfo, 
+            parser, freq):
         data = []
         now = int(time.time())
 
@@ -825,8 +905,7 @@ class Connection(object):
                     blockdata.append(datum)
                 ts += incrementby
 
-            blockdata = parser.format_data(blockdata, stream,
-                    self.streams[stream]['streaminfo'])
+            blockdata = parser.format_data(blockdata, stream, streaminfo)
    
             if blockdata != []:
                 data += blockdata
