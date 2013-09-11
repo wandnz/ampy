@@ -102,6 +102,57 @@ class AmpyCache(object):
 
         return []
 
+    def check_collection_streams(self, colid):
+        key = str("_".join(["colstreams", str(colid)]))
+
+        with self.mcpool.reserve() as mc:
+            try:
+                if key in mc:
+                    return mc.get(key)
+
+            except pylibmc.SomeErrors:
+                pass
+
+        return []
+
+    def check_streaminfo(self, streamid):
+        key = str("_".join(["streaminfo", str(streamid)]))
+        
+        with self.mcpool.reserve() as mc:
+            try:
+                if key in mc:
+                    return mc.get(key)
+
+            except pylibmc.SomeErrors:
+                pass
+
+        return {}
+
+    def store_streaminfo(self, stream, streamid):
+        infokey = str("_".join(["streaminfo", str(streamid)]))
+
+        with self.mcpool.reserve() as mc:
+            try:
+                # Individual streams are very unlikely to change, so we can
+                # hang onto the stream info for a while
+                mc.set(infokey, stream, 60 * 60 * 24)
+            except pylibmc.WriteError:
+                pass
+
+    def store_collection_streams(self, colid, streams):
+
+        idkey = str("_".join(["colstreams", str(colid)]))
+        with self.mcpool.reserve() as mc:
+            try:
+                # Expire this reasonably frequently, so we can learn about
+                # new or deleted streams. Our main goal is to avoid making
+                # multiple near-simultaneous requests for the same data 
+                # because our ajax requests get spread across multiple 
+                # processes.
+                mc.set(idkey, streams, 60 * 30)
+            except pylibmc.WriteError:
+                pass
+
     def store_block(self, block, blockdata):
 
         with self.mcpool.reserve() as mc:

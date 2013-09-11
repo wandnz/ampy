@@ -347,6 +347,87 @@ class Connection(object):
             self.parsers[name] = parser
         self.parser_lock.release()
 
+    def _update_uncached_streams(self, collection, parser):
+        
+        newstreams = []
+        colid, coldata = self._lookup_collection(collection)
+    
+        if colid == None:
+            return
+
+        now = time.time()
+        streamlock = coldata['streamlock']
+        laststream = coldata['laststream']
+        lastchecked = coldata['lastchecked']
+        if now < (lastchecked + STREAM_CHECK_FREQUENCY):
+            return
+        
+        # Check if there are any new streams for this collection
+        streamlock.acquire()
+        newstreams = self._request_streams(colid, laststream)
+        
+        for s in newstreams:
+            self.streams[s['stream_id']] = {'parser':parser, 'streaminfo':s,
+                    'collection':colid}
+            parser.add_stream(s)
+            if s['stream_id'] > laststream:
+                laststream = s['stream_id']
+        streamlock.release()
+        
+        self.collection_lock.acquire()
+        self.collections[colid]['laststream'] = laststream
+        self.collections[colid]['lastchecked'] = now
+        self.collection_lock.release()
+
+    def _update_cached_streams(self, collection, parser):
+        
+        newstreams = []
+        streamlist = []
+        colid, coldata = self._lookup_collection(collection)
+    
+        if colid == None:
+            return
+
+        newstreams = self.memcache.check_collection_streams(colid)
+        
+        streamlock = coldata['streamlock']
+        streamlock.acquire()
+        if newstreams == []: 
+            reqstreams = self._request_streams(colid, 0)
+            for s in reqstreams:
+                streamlist.append(s["stream_id"])
+                self.memcache.store_streaminfo(s, s['stream_id'])
+                self.streams[s['stream_id']] = {'parser':parser, 
+                        'streaminfo':s, 'collection':colid}
+                parser.add_stream(s)
+
+            self.memcache.store_collection_streams(colid, streamlist)
+        else:
+            # XXX Can we do something smart here to avoid looping over 
+            # newstreams if it is the same as self.streams.keys()? Will this
+            # comparison save us any time over just blindly looping and 
+            # inserting?
+            strkeys = self.streams.keys()
+            strkeys.sort()
+            newstreams.sort()
+
+            if newstreams == strkeys:
+                streamlock.release()
+                return
+            
+            for s in newstreams:
+                cachedinfo = self.memcache.check_streaminfo(s)
+                if cachedinfo != {} and s not in self.streams:
+                    self.streams[s] = {'parser':parser, 
+                            'streaminfo':cachedinfo, 'collection':colid}
+                    parser.add_stream(cachedinfo)
+                elif cachedinfo == {} and s in self.streams:
+                    del self.streams[s]
+                    # TODO Remove the stream from the parser too?   
+                    
+        
+        streamlock.release()
+
     def _update_stream_map(self, collection, parser):
         """ Asks NNTSC for any streams that we don't know about and adds
             them to our internal stream map.
@@ -358,37 +439,14 @@ class Connection(object):
                 collection -- the name of the collection to request streams for
                 parser -- the parser to push the new streams to
         """
-       
-        colid, coldata = self._lookup_collection(collection)
-        
-        if colid == None:
-            return
-        
-        laststream = coldata['laststream']
-        lastchecked = coldata['lastchecked']
-        streamlock = coldata['streamlock']
-
-        now = time.time()
-        if now < (lastchecked + STREAM_CHECK_FREQUENCY):
-            return
-
-        # Check if there are any new streams for this collection
-        streamlock.acquire()
-        newstreams = self._request_streams(colid, laststream)
-        
-        for s in newstreams:
-            self.streams[s['stream_id']] = {'parser':parser, 'streaminfo':s,
-                    'collection':colid}
-           
-            parser.add_stream(s)
-            if s['stream_id'] > laststream:
-                laststream = s['stream_id']
-        streamlock.release()
-        
-        self.collection_lock.acquire()
-        self.collections[colid]['laststream'] = laststream
-        self.collections[colid]['lastchecked'] = now
-        self.collection_lock.release()
+    
+        # We have two different code paths, depending on whether you have
+        # memcache available or not
+        if self.memcache:
+            self._update_cached_streams(collection, parser)
+        else:
+            self._update_uncached_streams(collection, parser)
+      
            
     def get_selection_options(self, name, params):
         """ Given a known set of stream parameters, return a list of possible
