@@ -766,6 +766,8 @@ class Connection(object):
             for r in required:
                 qr = self._get_data(colid, [stream], r['start'], 
                         r['end']-1, r['binsize'], detail, parser)
+                if len(qr) == 0:
+                    return {}
                 freq = qr[stream]["freq"]
                 queryresults += qr[stream]["data"]
                 
