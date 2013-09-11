@@ -355,6 +355,7 @@ class Connection(object):
         if colid == None:
             return
 
+        # Avoid requesting new stream information if we have done so recently
         now = time.time()
         streamlock = coldata['streamlock']
         laststream = coldata['laststream']
@@ -388,42 +389,43 @@ class Connection(object):
         if colid == None:
             return
 
-        newstreams = self.memcache.check_collection_streams(colid)
+        cached = self.memcache.check_collection_streams(colid)
         
         streamlock = coldata['streamlock']
         streamlock.acquire()
-        if newstreams == []: 
+        if len(cached) == 0: 
+            # Nothing in the cache, so we need to ask NNTSC for them
             reqstreams = self._request_streams(colid, 0)
             for s in reqstreams:
                 streamlist.append(s["stream_id"])
+                # Cache the individual stream info
                 self.memcache.store_streaminfo(s, s['stream_id'])
+
+                # Update our local record of the stream -- note that parser
+                # can't be cached, which is why self.streams still exists
                 self.streams[s['stream_id']] = {'parser':parser, 
                         'streaminfo':s, 'collection':colid}
+
+                # The parser also needs to be made aware of the stream for
+                # get_selection_options()
                 parser.add_stream(s)
-
-            self.memcache.store_collection_streams(colid, streamlist)
-        else:
-            # XXX Can we do something smart here to avoid looping over 
-            # newstreams if it is the same as self.streams.keys()? Will this
-            # comparison save us any time over just blindly looping and 
-            # inserting?
-            strkeys = self.streams.keys()
-            strkeys.sort()
-            newstreams.sort()
-
-            if newstreams == strkeys:
-                streamlock.release()
-                return
             
+            # Cache a record of all the stream ids we have for this collection
+            self.memcache.store_collection_streams(colid, set(streamlist))
+        else:
+            # Sets are awesome
+            existing = set(self.streams.keys())
+
+            # Find all streams that are in the cache that we don't already
+            # know about
+            newstreams = cached.difference(existing)
+
             for s in newstreams:
                 cachedinfo = self.memcache.check_streaminfo(s)
-                if cachedinfo != {} and s not in self.streams:
+                if cachedinfo != {}:
                     self.streams[s] = {'parser':parser, 
                             'streaminfo':cachedinfo, 'collection':colid}
                     parser.add_stream(cachedinfo)
-                elif cachedinfo == {} and s in self.streams:
-                    del self.streams[s]
-                    # TODO Remove the stream from the parser too?   
                     
         
         streamlock.release()
