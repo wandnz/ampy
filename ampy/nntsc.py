@@ -910,20 +910,20 @@ class Connection(object):
         """
         if parser == None:
             print >> sys.stderr, "Cannot fetch data -- no valid parser for stream %s" % (stream_ids)
-            return ampy.result.Result([])
+            return {}
 
 
         client = self._connect_nntsc()
         if client == None:
             print >> sys.stderr, "Cannot fetch data -- lost connection to NNTSC"
-            return ampy.result.Result([])
+            return {}
 
         result = parser.request_data(client, colid, stream_ids, start, end,
                 binsize, detail)
 
         if result == -1:
             client.disconnect()
-            return ampy.result.Result([])
+            return {}
 
         got_data = False
         data = {}
