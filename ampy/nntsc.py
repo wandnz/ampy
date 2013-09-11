@@ -490,10 +490,19 @@ class Connection(object):
               name -- the collection that the stream belongs to
               streamid -- the id of the stream that the info is requested for
         """
+        # If we have a memcache and this stream is in there, just grab the
+        # stream info straight out of there
+        if self.memcache:
+            info = self.memcache.check_streaminfo(streamid);
+
+            if info != {}:
+                return info
+        
+        # Otherwise, we'll have to do this the old-fashioned way
+    
         parser = self._lookup_parser(name)
         if parser == None:
             return {}
-
     
         colid, coldata = self._lookup_collection(name)
         if colid == None:
