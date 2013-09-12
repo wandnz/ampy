@@ -88,7 +88,7 @@ class Connection(object):
                 self.ampdbconfig['host'] = ampconfig['host']
             else:
                 self.ampdbconfig['host'] = None
-            
+
             if 'user' in ampconfig:
                 self.ampdbconfig['user'] = ampconfig['user']
             else:
@@ -194,7 +194,7 @@ class Connection(object):
             streams += msg[1]['streams']
             if msg[1]['more'] == False:
                 break
-        
+
         client.disconnect()
         return streams
 
@@ -231,7 +231,7 @@ class Connection(object):
             return None
         parser = self.parsers[name]
         self.parser_lock.release()
-        
+
         return parser
 
 
@@ -251,7 +251,7 @@ class Connection(object):
             coldata = self.collections[colid]
 
         self.collection_lock.release()
-        return colid, coldata        
+        return colid, coldata
 
     def _load_collections(self):
         """ Acquire a list of all collections from NNTSC and store them
@@ -259,7 +259,7 @@ class Connection(object):
         """
         if self.collections != {}:
             return
-       
+
         collections = self._request_collections()
 
         if collections == None:
@@ -271,8 +271,8 @@ class Connection(object):
             # TODO Add nice printable names to the collection table in NNTSC
             # that we can use to populate dropdown lists / graph labels etc.
             label = name
-            self.collections[col['id']] = {'name':name, 'label':label, 
-                    'laststream':0, 'lastchecked':0, 'streamlock':Lock(), 
+            self.collections[col['id']] = {'name':name, 'label':label,
+                    'laststream':0, 'lastchecked':0, 'streamlock':Lock(),
                     'module':col['module'], 'streams':{}}
             self.collection_names[name] = col['id']
 
@@ -350,16 +350,16 @@ class Connection(object):
 
 
     def _update_uncached_streams(self, colid, coldata, parser):
-        
+
         newstreams = []
         streamlock = coldata['streamlock']
         streams = coldata['streams']
         laststream = coldata['laststream']
-        
+
         # Check if there are any new streams for this collection
         streamlock.acquire()
         newstreams = self._request_streams(colid, laststream)
-        
+
         for s in newstreams:
             streams[s['stream_id']] = {'parser':parser, 'streaminfo':s,
                     'collection':colid}
@@ -367,7 +367,7 @@ class Connection(object):
             if s['stream_id'] > laststream:
                 laststream = s['stream_id']
         streamlock.release()
-        
+
         self.collection_lock.acquire()
         now = time.time()
         self.collections[colid]['laststream'] = laststream
@@ -375,16 +375,16 @@ class Connection(object):
         self.collection_lock.release()
 
     def _update_cached_streams(self, colid, coldata, parser):
-        
+
         newstreams = []
         streamlist = []
 
         cached = self.memcache.check_collection_streams(colid)
-        
+
         streamlock = coldata['streamlock']
         streams = coldata['streams']
         streamlock.acquire()
-        if len(cached) == 0: 
+        if len(cached) == 0:
             # Nothing in the cache, so we need to ask NNTSC for them
             reqstreams = self._request_streams(colid, 0)
             for s in reqstreams:
@@ -394,13 +394,13 @@ class Connection(object):
 
                 # Update our local record of the stream -- note that parser
                 # can't be cached, which is why streams still exists
-                streams[s['stream_id']] = {'parser':parser, 
+                streams[s['stream_id']] = {'parser':parser,
                         'streaminfo':s, 'collection':colid}
 
                 # The parser also needs to be made aware of the stream for
                 # get_selection_options()
                 parser.add_stream(s)
-            
+
             # Cache a record of all the stream ids we have for this collection
             self.memcache.store_collection_streams(colid, set(streamlist))
         else:
@@ -413,16 +413,16 @@ class Connection(object):
             for s in newstreams:
                 cachedinfo = self.memcache.check_streaminfo(s)
                 if cachedinfo != {}:
-                    streams[s] = {'parser':parser, 
+                    streams[s] = {'parser':parser,
                             'streaminfo':cachedinfo, 'collection':colid}
                     parser.add_stream(cachedinfo)
                 else:
                     # TODO Delete the stream from the parser too
                     # e.g. parser.remove_stream(streams[s]['streaminfo'])
                     del streams[s]
-        
+
         streamlock.release()
-        
+
         self.collection_lock.acquire()
         now = time.time()
         self.collections[colid]['lastchecked'] = now
@@ -440,25 +440,25 @@ class Connection(object):
                 parser -- the parser to push the new streams to
         """
         colid, coldata = self._lookup_collection(collection)
-    
+
         if colid == None:
             return
-    
+
         lastchecked = coldata['lastchecked']
-        
+
         # Avoid requesting new stream information if we have done so recently
         now = time.time()
         if now < (lastchecked + STREAM_CHECK_FREQUENCY):
             return
-        
+
         # We have two different code paths, depending on whether you have
         # memcache available or not
         if self.memcache:
             self._update_cached_streams(colid, coldata, parser)
         else:
             self._update_uncached_streams(colid, coldata, parser)
-      
-           
+
+
     def get_selection_options(self, name, params):
         """ Given a known set of stream parameters, return a list of possible
             values that can be used to select a valid stream.
@@ -506,13 +506,13 @@ class Connection(object):
 
             if info != {}:
                 return info
-        
+
         # Otherwise, we'll have to do this the old-fashioned way
-    
+
         parser = self._lookup_parser(name)
         if parser == None:
             return {}
-    
+
         colid, coldata = self._lookup_collection(name)
         if colid == None:
             return {}
@@ -520,13 +520,13 @@ class Connection(object):
         streams = coldata['streams']
 
         self._update_stream_map(name, parser)
-        
+
         streamlock.acquire()
         if streamid not in streams:
             print "Failed to get stream info", streamid, coldata
             streamlock.release()
             return {}
-    
+
         info = streams[streamid]['streaminfo']
         streamlock.release()
         return info
@@ -555,7 +555,7 @@ class Connection(object):
         """
         parser = self._lookup_parser(name)
         if parser == None:
-            return -1 
+            return -1
 
         self._update_stream_map(name, parser)
         return parser.get_stream_id(params)
@@ -580,7 +580,7 @@ class Connection(object):
             return []
         parser = self._lookup_parser(collection)
         if parser == None:
-            return [] 
+            return []
 
         self._update_stream_map(collection, parser)
 
@@ -598,9 +598,9 @@ class Connection(object):
         parser = self._lookup_parser(collection)
         if parser == None:
             return {}
-       
+
         self._update_stream_map(collection, parser)
-        return parser.get_graphtab_stream(streaminfo) 
+        return parser.get_graphtab_stream(streaminfo)
 
     def _get_related_collections(self, colmodule):
         # We should already have a set of collections loaded by this point
@@ -618,14 +618,14 @@ class Connection(object):
         colid, coldata = self._lookup_collection(collection)
         if colid == None:
             return {}
-        
+
         parser = self._lookup_parser(collection)
         if parser == None:
             return {}
-       
+
         self._update_stream_map(collection, parser)
         streamlock = coldata['streamlock']
-        streams = coldata['streams'] 
+        streams = coldata['streams']
         streamlock.acquire()
         if streamid not in streams:
             print "Failed to get stream info", streamid, coldata
@@ -646,7 +646,7 @@ class Connection(object):
         return result
 
     def _data_request_prep(self, collection, stream):
-        """ Utility function that looks up the parser and collection ID 
+        """ Utility function that looks up the parser and collection ID
             required for a _get_data call. Also checks if the stream is
             actually present in the collection.
 
@@ -661,9 +661,9 @@ class Connection(object):
         if parser == None:
             return None
         self._update_stream_map(collection, parser)
-        
+
         streamlock = coldata['streamlock']
-        streams = coldata['streams'] 
+        streams = coldata['streams']
         streamlock.acquire()
         if stream not in streams:
             print "Failed to find stream %s in collection %s" % \
@@ -677,10 +677,10 @@ class Connection(object):
 
 
     def get_recent_data(self, collection, stream_ids, duration, detail):
-        """ Returns aggregated data measurements for a time period starting 
+        """ Returns aggregated data measurements for a time period starting
             at 'now' and going back a specified number of seconds. This
             function is mainly useful for getting summary statistics for the
-            last hour, day, week etc. 
+            last hour, day, week etc.
 
             See also get_period_data().
 
@@ -824,7 +824,7 @@ class Connection(object):
             return ampy.result.Result([])
 
         colid, parser, streaminfo = check
-        
+
         # FIXME: Consider limiting maximum durations based on binsize
         # if end is not set then assume "now".
         if end is None:
@@ -839,28 +839,28 @@ class Connection(object):
 
         if self.memcache:
             datafreq = 0
-            blocks = self.memcache.get_caching_blocks(stream, start, end, 
+            blocks = self.memcache.get_caching_blocks(stream, start, end,
                     binsize, detail)
             required, cached = self.memcache.search_cached_blocks(blocks)
-        
+
             queryresults = []
             for r in required:
-                qr = self._get_data(colid, [stream], r['start'], 
+                qr = self._get_data(colid, [stream], r['start'],
                         r['end']-1, r['binsize'], detail, parser)
                 if len(qr) == 0:
                     return {}
                 freq = qr[stream]["freq"]
                 queryresults += qr[stream]["data"]
-                
+
                 if datafreq == 0:
                     datafreq = freq
 
-            return self._process_blocks(blocks, cached, queryresults, 
-                    stream, streaminfo, parser, datafreq)     
-       
+            return self._process_blocks(blocks, cached, queryresults,
+                    stream, streaminfo, parser, datafreq)
+
         # Fallback option for cases where memcache isn't installed
         # XXX Should we just make memcache a requirement for ampy??
-        data, freq = self._get_data(colid, [stream], start, end, binsize, 
+        data, freq = self._get_data(colid, [stream], start, end, binsize,
                 detail, parser)
 
         if freq != 0 and len(data) != 0:
@@ -874,19 +874,19 @@ class Connection(object):
         data = parser.format_data(data, stream, streaminfo)
         return ampy.result.Result(data)
 
-    def _process_blocks(self, blocks, cached, queried, stream, streaminfo, 
+    def _process_blocks(self, blocks, cached, queried, stream, streaminfo,
             parser, freq):
         data = []
         now = int(time.time())
 
         for b in blocks:
-        
+
             # Situations where the measurement frequency is greater than our
             # requested binsize are tricky. The returned values may not line
             # up nicely with the blocks that we are expecting, so we have to
             # do things a little differently
             if freq > b['binsize']:
-                
+
                 # Measurements are only going to be present at 'freq' intervals
                 incrementby = freq
 
@@ -897,7 +897,7 @@ class Connection(object):
                 usekey = 'timestamp'
 
                 # Our block start and end values have been calculated based on
-                # the requested binsize. These won't line up nicely with the 
+                # the requested binsize. These won't line up nicely with the
                 # bins present in queried, so we need to adjust our start and
                 # end times to make sure every measurement ends up in the
                 # right block
@@ -922,13 +922,13 @@ class Connection(object):
                 continue
 
             blockdata = []
-        
+
             seendata = False
 
             while ts < b['end']:
                 if ts > now:
                     break
-                
+
                 if len(queried) > 0 and \
                         int(queried[0][usekey]) - ts < incrementby:
                     datum = queried[0]
@@ -942,13 +942,13 @@ class Connection(object):
                 ts += incrementby
 
             blockdata = parser.format_data(blockdata, stream, streaminfo)
-   
+
             if blockdata != []:
                 data += blockdata
                 # Got all the data for this uncached block -- cache it
                 self.memcache.store_block(b, blockdata)
 
-        return ampy.result.Result(data) 
+        return ampy.result.Result(data)
 
     def _fill_missing(self, data, freq, stream):
         """ Internal function that populates the data list with 'empty'
@@ -965,7 +965,7 @@ class Connection(object):
         for d in data:
 
             while d['binstart'] - nextts >= freq:
-                nogap_data.append({'binstart':nextts, 'stream_id':stream, 
+                nogap_data.append({'binstart':nextts, 'stream_id':stream,
                         'timestamp':nextts})
                 nextts += freq
             nogap_data.append(d)

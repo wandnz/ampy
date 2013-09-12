@@ -72,7 +72,7 @@ class AmpIcmpParser(amp.AmpParser):
         """ Based on the level of detail requested, forms and sends a request
             to NNTSC for aggregated data.
         """
-  
+
         # the matrix view expects both the mean and stddev for the latency
         if detail == "matrix":
             aggfuncs = ["avg", "stddev", "avg"]
@@ -82,7 +82,7 @@ class AmpIcmpParser(amp.AmpParser):
             aggcols = ["rtt", "loss"]
 
         # 'full' implies a smokeping-style graph, so we'll need to grab
-        # the percentile data 
+        # the percentile data
         if detail == "full":
             result = client.request_percentiles(colid, streams, start, end,
                     aggcols, binsize, ["stream_id"], aggfuncs)

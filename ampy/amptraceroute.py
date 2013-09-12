@@ -80,7 +80,7 @@ class AmpTracerouteParser(amp.AmpParser):
 
         return client.request_aggregate(colid, streams, start, end, aggcols,
                 binsize, group, aggfuncs)
-                
+
     def format_data(self, received, stream, streaminfo):
         """ Formats the measurements retrieved from NNTSC into a nice format
             for subsequent analysis / plotting / etc.
@@ -115,21 +115,21 @@ class AmpTracerouteParser(amp.AmpParser):
 
     def get_graphtab_stream(self, streaminfo):
         """ Given the description of a stream from a similar collection,
-            return the stream id of the stream from this collection that is 
+            return the stream id of the stream from this collection that is
             suitable for display on a graphtab alongside the main graph for
             the provided stream.
         """
 
         if 'source' not in streaminfo or 'destination' not in streaminfo:
-            return [] 
+            return []
 
-        sizes = self._get_sizes(streaminfo['source'], 
+        sizes = self._get_sizes(streaminfo['source'],
                 streaminfo['destination'])
-        
+
         if sizes == []:
             return []
 
-        params = {'source':streaminfo['source'], 
+        params = {'source':streaminfo['source'],
                 'destination':streaminfo['destination']}
 
         # First, try to find a packet size that matches the packet size of
@@ -137,7 +137,7 @@ class AmpTracerouteParser(amp.AmpParser):
         # If that fails, try to use a 60 byte packet size (as this is the
         # default for traceroute tests)
         # If that fails, pick the smallest size available
-        
+
         if 'packet_size' in streaminfo and streaminfo['packet_size'] in sizes:
             params['packet_size'] = streaminfo['packet_size']
         elif '60' in sizes:
