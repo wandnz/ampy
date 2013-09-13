@@ -18,7 +18,7 @@ class LPIBytesParser(object):
         self.users = {}
 
     def add_stream(self, s):
-        """ Updates the internal maps based on a new stream 
+        """ Updates the internal maps based on a new stream
 
             Parameters:
               s -- the new stream, as returned by NNTSC
@@ -35,7 +35,7 @@ class LPIBytesParser(object):
         else:
             self.users[(s['source'], s['protocol'], s['dir'])] = { s['user']:1 }
 
-        
+
         self.streams[(s['source'], s['user'], s['protocol'], s['dir'])] = s['stream_id']
 
     def get_stream_id(self, params):
@@ -68,22 +68,21 @@ class LPIBytesParser(object):
             return -1
         return self.streams[key]
 
-    def request_data(self, client, colid, stream, start, end, binsize, detail):
+    def request_data(self, client, colid, streams, start, end, binsize, detail):
         """ Based on the level of detail requested, forms and sends a request
             to NNTSC for aggregated data.
         """
         aggcols = ["bytes"]
         aggfuncs = ["avg"]
         group = ["stream_id"]
-
-        return client.request_aggregate(colid, [stream], start, end,
+        return client.request_aggregate(colid, streams, start, end,
                 aggcols, binsize, group, aggfuncs)
- 
+
     def format_data(self, received, stream, streaminfo):
         """ Formats the measurements retrieved from NNTSC into a nice format
             for subsequent analysis / plotting / etc.
 
-            In the case of lpi-bytes, we need to convert the 'bytes' value 
+            In the case of lpi-bytes, we need to convert the 'bytes' value
             stored in the database into Mbps
         """
 
@@ -105,7 +104,7 @@ class LPIBytesParser(object):
     def get_selection_options(self, params):
         """ Returns the list of names to populate a dropdown list with, given
             a current set of selected parameters.
-            
+
             params must have a field called "_requesting" which describes
             which of the possible stream parameters you are interested in.
 
@@ -139,17 +138,17 @@ class LPIBytesParser(object):
 
         if 'source' not in streaminfo or 'protocol' not in streaminfo:
             return []
-        
-        params = {'source':streaminfo['source'], 
+
+        params = {'source':streaminfo['source'],
                 'protocol':streaminfo['protocol']}
-       
+
         # Hopefully direction will kinda go away as a parameter eventually.
-        # Ideally, we would show 'in' and 'out' on the same graph 
+        # Ideally, we would show 'in' and 'out' on the same graph
         if 'dir' not in streaminfo:
             params['direction'] = 'in'
         else:
-            params['direction'] = streaminfo['dir']       
- 
+            params['direction'] = streaminfo['dir']
+
         if 'user' not in streaminfo:
             params['user'] = 'all'
         else:
@@ -157,7 +156,7 @@ class LPIBytesParser(object):
 
         return [{'streamid':self.get_stream_id(params), 'title':"Bytes", \
                 'collection':'lpi-bytes'}]
-            
+
 
 
     def _get_sources(self):

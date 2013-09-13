@@ -21,14 +21,14 @@ class MuninbytesParser(object):
         self.switches = {}
 
     def add_stream(self, s):
-        """ Updates the internal maps based on a new stream 
+        """ Updates the internal maps based on a new stream
 
             Parameters:
               s -- the new stream, as returned by NNTSC
         """
 
         self.switches[s['switch']] = 1
-        
+
         if s['switch'] in self.interfaces:
             self.interfaces[s['switch']][s['interfacelabel']] = 1
         else:
@@ -39,8 +39,8 @@ class MuninbytesParser(object):
         else:
             self.directions[(s['switch'], s['interfacelabel'])] = {s['direction']:1}
 
-        self.streams[(s['switch'], s['interfacelabel'], s["direction"])] = s['stream_id']       
- 
+        self.streams[(s['switch'], s['interfacelabel'], s["direction"])] = s['stream_id']
+
 
     def get_stream_id(self, params):
         """ Finds the stream ID that matches the given (switch, interface, dir)
@@ -67,10 +67,10 @@ class MuninbytesParser(object):
         key = (params['switch'], params['interface'], params['direction'])
         if key not in self.streams:
             return -1
-        
-        return self.streams[key] 
 
-    def request_data(self, client, colid, stream, start, end, binsize, detail):
+        return self.streams[key]
+
+    def request_data(self, client, colid, streams, start, end, binsize, detail):
         """ Based on the level of detail requested, forms and sends a request
             to NNTSC for aggregated data.
         """
@@ -78,7 +78,7 @@ class MuninbytesParser(object):
         aggfuncs = ["avg"]
         group = ["stream_id"]
 
-        return client.request_aggregate(colid, [stream], start, end,
+        return client.request_aggregate(colid, streams, start, end,
                 aggcols, binsize, group, aggfuncs)
 
     def format_data(self, received, stream, streaminfo):
@@ -108,14 +108,14 @@ class MuninbytesParser(object):
         """ Returns the list of names to populate a dropdown list with, given
             a current set of selected parameters.
 
-            If a 'switch' parameter is not given, this will return the list of 
+            If a 'switch' parameter is not given, this will return the list of
             switches.
 
-            If a 'switch' parameter is given but no 'interface' parameter, 
+            If a 'switch' parameter is given but no 'interface' parameter,
             this will return the list of interfaces on that switch.
 
             If a 'switch' and an 'interface' parameter are given but no
-            'direction' parameter, this will return the list of directions for 
+            'direction' parameter, this will return the list of directions for
             that interface.
 
             If all three parameters are given, a list containing the ID of
@@ -146,18 +146,18 @@ class MuninbytesParser(object):
         """
         if 'switch' not in streaminfo or 'interfacelabel' not in streaminfo:
             return []
-        
+
         if 'direction' not in streaminfo:
             return []
 
-        params = {'switch':streaminfo['switch'], 
-            'interface':streaminfo['interfacelabel'], 
+        params = {'switch':streaminfo['switch'],
+            'interface':streaminfo['interfacelabel'],
             'direction':streaminfo['direction']}
 
         stream = self.get_stream_id(params)
         if stream == -1:
             return []
-        
+
         return [{'streamid':stream, 'title':'Bytes',
                 'collection':'rrd-muninbytes'}]
 
@@ -180,7 +180,7 @@ class MuninbytesParser(object):
             for d in v.keys():
                 interfaces[d] = 1
         return interfaces.keys()
- 
+
     def _get_directions(self, switch, interface):
         """ Get all available directions for a given switch / interface combo """
         if switch != None and interface != None:
