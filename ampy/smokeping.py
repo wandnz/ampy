@@ -18,7 +18,7 @@ class SmokepingParser(object):
         self.destinations = {}
 
     def add_stream(self, s):
-        """ Updates the internal maps based on a new stream 
+        """ Updates the internal maps based on a new stream
 
             Parameters:
               s -- the new stream, as returned by NNTSC
@@ -54,12 +54,12 @@ class SmokepingParser(object):
             return -1
         if 'host' not in params:
             return -1
-        
+
         key = (params['source'], params['host'])
         if key not in self.streams:
             return -1
         return self.streams[key]
-       
+
     def request_data(self, client, colid, streams, start, end, binsize, detail):
         """ Based on the level of detail requested, forms and sends a request
             to NNTSC for aggregated data.
@@ -79,12 +79,12 @@ class SmokepingParser(object):
 
         return client.request_aggregate(colid, streams, start, end,
                 aggcols, binsize, group, aggfuncs)
-   
+
     def format_data(self, received, stream, streaminfo):
         """ Formats the measurements retrieved from NNTSC into a nice format
             for subsequent analysis / plotting / etc.
 
-            In this case, this means combining the individual ping 
+            In this case, this means combining the individual ping
             measurements, e.g. ping1, ping2, ping3 etc., into a single list
             called 'pings'.
         """
@@ -104,7 +104,7 @@ class SmokepingParser(object):
                 else:
                     newdict[k] = v
 
-            if export_pings: 
+            if export_pings:
                 newdict["pings"] = pings
 
             formatted.append(newdict)
@@ -130,7 +130,7 @@ class SmokepingParser(object):
 
         if 'source' not in params:
             return self._get_sources(params['host'])
-  
+
         if 'host' not in params:
             return self._get_destinations(params['source'])
 
@@ -150,18 +150,18 @@ class SmokepingParser(object):
             return []
 
         params = {'source':streaminfo['source'],
-                'host':streaminfo['host']} 
+                'host':streaminfo['host']}
 
         stream = self.get_stream_id(params)
         if stream == -1:
             return []
-        
-        return [{'streamid':stream, 'title':'Latency', 
+
+        return [{'streamid':stream, 'title':'Latency',
                 'collection':'rrd-smokeping'}]
 
     def _get_sources(self, dst):
         """ Get a list of all sources that are test to a given destination.
-            
+
             If dst is None, then returns a list of all known sources.
         """
         if dst != None:
@@ -177,7 +177,7 @@ class SmokepingParser(object):
 
     def _get_destinations(self, src):
         """ Get a list of all destinations that are tested to a given source.
-            
+
             If src is None, then returns a list of all known destinations.
         """
         if src != None:

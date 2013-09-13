@@ -16,7 +16,7 @@ class LPIUsersParser(object):
         self.metrics = {}
 
     def add_stream(self, s):
-        """ Updates the internal maps based on a new stream 
+        """ Updates the internal maps based on a new stream
 
             Parameters:
               s -- the new stream, as returned by NNTSC
@@ -92,7 +92,7 @@ class LPIUsersParser(object):
 
         if params['_requesting'] == 'protocols':
             return self._get_protocols()
-        
+
         if params['_requesting'] == 'metrics':
             return self._get_metrics()
 
@@ -107,21 +107,21 @@ class LPIUsersParser(object):
 
         if 'source' not in streaminfo or 'protocol' not in streaminfo:
             return []
-    
+
         params = {'source':streaminfo['source'],
                 'protocol':streaminfo['protocol'],
                 'metric':'active'}
-        active = self.get_stream_id(params)    
- 
+        active = self.get_stream_id(params)
+
         params['metric'] = 'observed'
         observed = self.get_stream_id(params)
 
         ret = []
         if active != -1:
-            ret.append({'streamid':active, 'title':'Users (Active)', 
+            ret.append({'streamid':active, 'title':'Users (Active)',
                     'collection':'lpi-users'})
         if observed != -1:
-            ret.append({'streamid':observed, 'title':'Users (Observed)', 
+            ret.append({'streamid':observed, 'title':'Users (Observed)',
                     'collection':'lpi-users'})
         return ret
 

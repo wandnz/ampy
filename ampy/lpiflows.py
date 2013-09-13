@@ -18,7 +18,7 @@ class LPIFlowsParser(object):
         self.directions = {}
 
     def add_stream(self, s):
-        """ Updates the internal maps based on a new stream 
+        """ Updates the internal maps based on a new stream
 
             Parameters:
               s -- the new stream, as returned by NNTSC
@@ -34,8 +34,8 @@ class LPIFlowsParser(object):
             self.users[(s['source'], s['protocol'], s['dir'])][s['user']] = 1
         else:
             self.users[(s['source'], s['protocol'], s['dir'])] = { s['user']:1 }
- 
-        
+
+
         self.streams[(s['source'], s['user'], s['protocol'], s['dir'], s['metric'])] = s['stream_id']
 
     def get_stream_id(self, params):
@@ -125,19 +125,19 @@ class LPIFlowsParser(object):
             suitable for display on a graphtab alongside the main graph (where
             the main graph shows the stream that was passed into this function)
         """
-        if 'source' not in streaminfo or 'protocol' not in streaminfo:   
+        if 'source' not in streaminfo or 'protocol' not in streaminfo:
             return []
-        
+
         params = {'source':streaminfo['source'],
                 'protocol':streaminfo['protocol']}
-        
+
         # Hopefully direction will kinda go away as a parameter eventually.
-        # Ideally, we would show 'in' and 'out' on the same graph 
+        # Ideally, we would show 'in' and 'out' on the same graph
         if 'dir' not in streaminfo:
-            params['direction'] = 'in'       
+            params['direction'] = 'in'
         else:
-            params['direction'] = streaminfo['dir']      
- 
+            params['direction'] = streaminfo['dir']
+
         if 'user' not in streaminfo:
             params['user'] = 'all'
         else:
@@ -170,7 +170,7 @@ class LPIFlowsParser(object):
             if key not in self.users:
                 return []
             else:
-                return self.users[key].keys()         
+                return self.users[key].keys()
 
         users = {}
         for v in self.users.values():
