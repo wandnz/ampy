@@ -532,12 +532,12 @@ class Connection(object):
         return info
 
     def get_stream_id(self, name, params):
-        """ Finds the ID of the stream that matches the provided parameters.
+        """ Finds the ID of the streams that match the provided parameters.
 
-            To be successful, the params dictionary must contain all of the
-            possible selection parameters for the collection. For example,
-            a rrd-muninbytes stream ID will only be found if the params
-            dictionary contains 'switch', 'interface' AND 'direction'.
+            To be successful, the params dictionary must contain most if not
+            all of the possible selection parameters for the collection. For 
+            example, a rrd-muninbytes stream ID will only be found if the 
+            params dictionary contains 'switch', 'interface' AND 'direction'.
 
             See also get_selection_options().
 
@@ -549,8 +549,8 @@ class Connection(object):
                         stream.
 
             Returns:
-              the id number of the stream that is uniquely identified by
-              the given parameters. -1 is returned if a unique match was not
+              a list of id numbers for the streams that match the given 
+              parameters. An empty list is returned if a unique match was not
               possible.
         """
         parser = self._lookup_parser(name)
@@ -614,7 +614,7 @@ class Connection(object):
         self.collection_lock.release()
         return relatives
 
-    def get_related_streams(self, collection, streamid):
+    def get_related_streams(self, collection, streamids):
         colid, coldata = self._lookup_collection(collection)
         if colid == None:
             return {}
@@ -626,22 +626,35 @@ class Connection(object):
         self._update_stream_map(collection, parser)
         streamlock = coldata['streamlock']
         streams = coldata['streams']
-        streamlock.acquire()
-        if streamid not in streams:
-            print "Failed to get stream info", streamid, coldata
-            streamlock.release()
-            return {}
-
-        info = streams[streamid]['streaminfo']
-        streamlock.release()
-
         relatedcols = self._get_related_collections(coldata['module'])
-
+        streamlock.acquire()
+        
         result = {}
-        for rel in relatedcols:
-            relstreams = self._query_related(rel, info)
-            for s in relstreams:
-                result[s['title']] = s
+       
+        for i in streamids:
+            sid = int(i)
+
+            if sid not in streams:
+                print "Failed to get stream info", sid
+                continue
+            info = streams[sid]['streaminfo']
+
+            for rel in relatedcols:
+                relstreams = self._query_related(rel, info)
+                for s in relstreams:
+                    title = s['title']
+                    col = s['collection']
+                    relid = s['streamid']
+                    
+                    if title in result:
+                        result[title]['streamid'] += relid
+                    else:
+                        result[title] = {}
+                        result[title]['collection'] = col
+                        result[title]['title'] = title
+                        result[title]['streamid'] = relid
+        
+        streamlock.release()
 
         return result
 

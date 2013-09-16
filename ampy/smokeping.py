@@ -58,7 +58,7 @@ class SmokepingParser(object):
         key = (params['source'], params['host'])
         if key not in self.streams:
             return -1
-        return self.streams[key]
+        return [self.streams[key]]
 
     def request_data(self, client, colid, streams, start, end, binsize, detail):
         """ Based on the level of detail requested, forms and sends a request
