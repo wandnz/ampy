@@ -647,12 +647,12 @@ class Connection(object):
                     relid = s['streamid']
                     
                     if title in result:
-                        result[title]['streamid'] += relid
+                        result[title]['streamid'][i] = relid
                     else:
                         result[title] = {}
                         result[title]['collection'] = col
                         result[title]['title'] = title
-                        result[title]['streamid'] = relid
+                        result[title]['streamid'] = {i: relid}
         
         streamlock.release()
 
