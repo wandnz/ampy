@@ -172,6 +172,8 @@ class AmpIcmpParser(amp.AmpParser):
 
         if 'source' not in streaminfo or 'destination' not in streaminfo:
             return []
+        if 'address' not in streaminfo:
+            return []
 
         sizes = self._get_sizes(streaminfo['source'],
                 streaminfo['destination'])
@@ -180,7 +182,8 @@ class AmpIcmpParser(amp.AmpParser):
             return []
 
         params = {'source':streaminfo['source'],
-                'destination':streaminfo['destination']}
+                'destination':streaminfo['destination'],
+                'address':streaminfo['address']}
 
         # First, try to find a packet size that matches the packet size of
         # the original stream.
