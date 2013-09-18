@@ -98,6 +98,10 @@ class Connection(object):
                 self.ampdbconfig['pwd'] = ampconfig['pwd']
             else:
                 self.ampdbconfig['pwd'] = None
+        else:
+            self.ampdbconfig['host'] = None
+            self.ampdbconfig['user'] = None
+            self.ampdbconfig['pwd'] = None
 
         # These locks protect our core data structures.
         #

@@ -15,6 +15,10 @@ class AmpIcmpParser(amp.AmpParser):
         # have been used to test between those two hosts
         self.sizes = {}
 
+        # Dictionary that maps (source, dest, size) to a set of addresses
+        # that were used in tests between the two hosts
+        self.addresses = {}
+
     # XXX do we want to extract the source/destination parts of this function
     # into the parent class?
     def add_stream(self, s):
@@ -38,41 +42,66 @@ class AmpIcmpParser(amp.AmpParser):
         else:
             self.sizes[(s['source'], s['destination'])] = {s['packet_size']:1}
 
-        self.streams[(s['source'], s['destination'], s['packet_size'])] = s['stream_id']
+        if (s['source'], s['destination'], s['packet_size']) in self.addresses:
+            self.addresses[(s['source'], s['destination'], s['packet_size'])][s['address']] = s['stream_id']
+        else:
+            self.addresses[(s['source'], s['destination'], s['packet_size'])] = {s['address'] : s['stream_id']}
+
+        if (s['source'], s['destination'], s['packet_size']) in self.streams:
+            self.streams[(s['source'], s['destination'], s['packet_size'])].append(s['stream_id'])
+        else:
+            self.streams[(s['source'], s['destination'], s['packet_size'])] = [s['stream_id']]
 
     def get_stream_id(self, params):
-        """ Finds the stream ID that matches the given (source, dest, size)
-            combination.
+        """ Finds the stream IDs that matches the given parameters.
 
             If params does not contain an entry for 'source', 'destination',
-            or 'packet_size', then -1 will be returned.
+            or 'packet_size', then [] will be returned.
+
+            If params contains an entry for 'address', a list containing 
+            the unique stream id that matches all parameters will be returned.
+
+            If 'address' is not provied, a list of stream ids covering all
+            observed addresses for the source, dest, size combination will be
+            returned.
+            
 
             Parameters:
                 params -- a dictionary containing the parameters describing the
                           stream to search for
 
             Returns:
-                the id number of the matching stream, or -1 if no matching
-                stream can be found
+                a list of stream ids for the matching stream(s), or an empty
+                list if no matching streams can be found
         """
 
         if 'source' not in params:
-            return -1
+            return []
         if 'destination' not in params:
-            return -1
+            return []
         if 'packet_size' not in params:
-            return -1
+            return []
 
         key = (params['source'], params['destination'], params['packet_size'])
+
+        # If the address is explicitly provided, find the stream id that 
+        # belongs to that address specifically
+        if 'address' in params:
+            if key not in self.addresses:
+                return []
+            if params['address'] not in self.addresses[key]:
+                return []
+            return [self.addresses[key][params['address']]]
+        
+        # Otherwise, return all streams for the source, dest, size combo
         if key not in self.streams:
-            return -1
-        return [self.streams[key]]
+            return []
+        return self.streams[key]
 
     def request_data(self, client, colid, streams, start, end, binsize, detail):
         """ Based on the level of detail requested, forms and sends a request
             to NNTSC for aggregated data.
         """
-
         # the matrix view expects both the mean and stddev for the latency
         if detail == "matrix":
             aggfuncs = ["avg", "stddev", "avg"]
@@ -121,6 +150,17 @@ class AmpIcmpParser(amp.AmpParser):
                 return []
             else:
                 return self._get_sizes(params['source'], params['destination'])
+    
+        if params["_requesting"] == "addresses":
+            if 'source' not in params or 'destination' not in params:
+                return []
+            if 'packet_size' not in params:
+                sizekey = None
+            else:
+                sizekey = params['packet_size']
+            return self._get_addresses(params['source'], params['destination'],
+                    sizekey)
+
         return []
 
     def get_graphtab_stream(self, streaminfo):
@@ -175,5 +215,27 @@ class AmpIcmpParser(amp.AmpParser):
             for d in v.keys():
                 sizes[d] = 1
         return sizes.keys()
+
+    def _get_addresses(self, source, dest, size):
+        """ Get a list of all target addresses that have been observed for a
+            given ICMP test.
+        """
+        if source == None or dest == None:
+            return []
+
+        if size == 0 or size == None:
+            # No size specified, return all addresses for that source/dest
+            # pair
+            addrs = []
+            for k,v in self.addresses.items():
+                if k[0] == source and k[1] == dest:
+                    addrs += v.keys()
+            # Remove duplicates resulting from tests to the same address
+            # using different packet sizes
+            return list(set(addrs))
+        if (source, dest, size) not in self.addresses:
+            return []
+        return self.addresses[(source, dest, size)].keys()
+
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :
