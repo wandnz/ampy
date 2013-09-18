@@ -27,8 +27,10 @@ class AmpParser(object):
         # Dictionary that maps (source) to a set of destinations for that source
         self.destinations = {}
 
-        # Dictionary that maps (source, dest, size) to the corresponding
-        # stream id
+        # Dictionary that maps (source, dest) to a set of packet sizes for
+        # that test
+        self.sizes = {}
+
         self.streams = {}
 
         # The AMP database stores site/mesh metadata
@@ -43,6 +45,24 @@ class AmpParser(object):
             self.ampdb.table_names()
         except sqlalchemy.exc.OperationalError:
             self.ampdb = None
+
+    def add_stream(self, s):
+        """ Updates the internal maps based on a new stream 's'
+        """
+        # Assuming every AMP stream has a source and destination...
+        src = s['source']
+        dest = s['destination']
+        sid = s['stream_id']
+
+        if dest in self.sources:
+            self.sources[dest][src] = 1
+        else:
+            self.sources[dest] = {src:1}
+
+        if src in self.destinations:
+            self.destinations[src][dest] = 1
+        else:
+            self.destinations[src] = {dest:1}
 
     def get_selection_options(self, params):
         """ Returns the list of names to populate a dropdown list with, given

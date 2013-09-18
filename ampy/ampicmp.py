@@ -27,30 +27,33 @@ class AmpIcmpParser(amp.AmpParser):
             Parameters:
                 s -- the new stream, as returned by NNTSC
         """
-        if s['destination'] in self.sources:
-            self.sources[s['destination']][s['source']] = 1
+        super(AmpIcmpParser, self).add_stream(s);
+        src = s['source']
+        dest = s['destination']
+        sid = s['stream_id']
+        pktsize = s['packet_size']
+        
+        if 'address' not in s:
+            address = "None"
         else:
-            self.sources[s['destination']] = {s['source']:1}
+            address = s['address']
 
-        if s['source'] in self.destinations:
-            self.destinations[s['source']][s['destination']] = 1
+        if (src, dest) in self.sizes:
+            self.sizes[(src, dest)][pktsize] = 1
         else:
-            self.destinations[s['source']] = {s['destination']:1}
+            self.sizes[(src, dest)] = {pktsize:1}
 
-        if (s['source'], s['destination']) in self.sizes:
-            self.sizes[(s['source'], s['destination'])][s['packet_size']] = 1
+        # Only do this if the stream has an address field
+        key = (src, dest, pktsize)
+        if key in self.addresses:
+            self.addresses[key][address] = sid
         else:
-            self.sizes[(s['source'], s['destination'])] = {s['packet_size']:1}
+            self.addresses[key] = {address:sid}
 
-        if (s['source'], s['destination'], s['packet_size']) in self.addresses:
-            self.addresses[(s['source'], s['destination'], s['packet_size'])][s['address']] = s['stream_id']
+        if key in self.streams:
+            self.streams[key].append(sid)
         else:
-            self.addresses[(s['source'], s['destination'], s['packet_size'])] = {s['address'] : s['stream_id']}
-
-        if (s['source'], s['destination'], s['packet_size']) in self.streams:
-            self.streams[(s['source'], s['destination'], s['packet_size'])].append(s['stream_id'])
-        else:
-            self.streams[(s['source'], s['destination'], s['packet_size'])] = [s['stream_id']]
+            self.streams[key] = [sid]
 
     def get_stream_id(self, params):
         """ Finds the stream IDs that matches the given parameters.
@@ -163,7 +166,7 @@ class AmpIcmpParser(amp.AmpParser):
 
         return []
 
-    def get_graphtab_stream(self, streaminfo):
+    def get_graphtab_stream(self, streaminfo, defaultsize=84):
         """ Given the description of a stream from a similar collection,
             return the stream id of the stream from this collection that is
             suitable for display on a graphtab alongside the main graph for
@@ -193,8 +196,8 @@ class AmpIcmpParser(amp.AmpParser):
 
         if 'packet_size' in streaminfo and streaminfo['packet_size'] in sizes:
             params['packet_size'] = streaminfo['packet_size']
-        elif '84' in sizes:
-            params['packet_size'] = '84'
+        elif str(defaultsize) in sizes:
+            params['packet_size'] = str(defaultsize)
         else:
             sizes.sort(key=int)
             params['packet_size'] = sizes[0]
