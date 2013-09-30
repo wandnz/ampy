@@ -730,6 +730,7 @@ class Connection(object):
               data. If the request fails, this Result object will be empty.
         """
 
+        print "GET RECENT DATA"
         info = {}
         data = {}
         queries = []
@@ -796,7 +797,8 @@ class Connection(object):
                 data[k] = v["data"]
         return data
 
-    def get_period_data(self, collection, stream, start, end, binsize, detail):
+    def get_period_data(self, collection, stream_ids, start, end, binsize,
+            detail):
         """ Returns data measurements for a time period explicitly described
             using a start and end time. The main purpose of this function is
             for querying for time series data that can be used to plot graphs.
@@ -836,11 +838,14 @@ class Connection(object):
               an ampy Result object containing all of the requested measurement
               data. If the request fails, this Result object will be empty.
         """
-        check = self._data_request_prep(collection, stream)
-        if check == None:
-            return ampy.result.Result([])
-
-        colid, parser, streaminfo = check
+        print "GET PERIOD DATA", stream_ids
+        info = {}
+        data = {}
+        blocks = {}
+        cached = {}
+        queries = []
+        if stream_ids is None or len(stream_ids) == 0:
+            return {}
 
         # FIXME: Consider limiting maximum durations based on binsize
         # if end is not set then assume "now".
@@ -854,48 +859,109 @@ class Connection(object):
         if detail is None:
             detail = "full"
 
+        for stream_id in stream_ids:
+            if stream_id > 0:
+                info[stream_id] = self._data_request_prep(collection, stream_id)
+                queries.append(stream_id)
+            if stream_id < 0 or info[stream_id] == None:
+                print "bad info for stream_id", stream_id
+                data[stream_id] = []
+                continue
+
+        # nothing to do, we have no valid ids or no data for any that are valid
+        if len(queries) == 0:
+            return data
+
+        collection_id,parser,_ = info[queries[0]]
+
+        #if detail == "basic":
+        #    queries = ["-".join(str(x) for x in queries)]
+
         if self.memcache:
-            datafreq = 0
-            blocks = self.memcache.get_caching_blocks(stream, start, end,
-                    binsize, detail)
-            required, cached = self.memcache.search_cached_blocks(blocks)
+            required = {}
+            #datafreq = 0
+            for stream_id in queries:
+                blocks[stream_id] = self.memcache.get_caching_blocks(stream_id,
+                        start, end, binsize, detail)
+                req,cached[stream_id] = self.memcache.search_cached_blocks(
+                        blocks[stream_id])
+                print "cached:%d uncached:%d" %(len(cached[stream_id]),len(req))
+                # for each required block, add it to the combined dict of
+                # required blocks, grouped by start,end,binsize
+                for r in req:
+                    blockstart = r["start"]
+                    blockend = r["end"]
+                    binsize = r["binsize"]
+                    if blockstart not in required:
+                        required[blockstart] = {}
+                    if blockend not in required[blockstart]:
+                        required[blockstart][blockend] = {}
+                    if binsize not in required[blockstart][blockend]:
+                        required[blockstart][blockend][binsize] = []
+                    required[blockstart][blockend][binsize].append(stream_id)
 
-            queryresults = []
-            for r in required:
-                qr = self._get_data(colid, [stream], r['start'],
-                        r['end']-1, r['binsize'], detail, parser)
-                if len(qr) == 0:
-                    return {}
-                freq = qr[stream]["freq"]
-                queryresults += qr[stream]["data"]
+            # now with the combined list of required blocks we can fetch data
+            # for multiple stream ids at once
+            fetched = {}
+            frequencies = {}
+            for bstart in required:
+                for bend in required[bstart]:
+                    for binsize,streams in required[bstart][bend].iteritems():
+                        print "get_data() %s from %d to %d" % (streams, bstart, bend-1)
+                        qr = self._get_data(collection_id, streams, bstart,
+                                bend-1, binsize, detail, parser)
+                        if len(qr) == 0:
+                            continue
+                        for stream_id,item in qr.iteritems():
+                            #print "QR stream_id", stream_id
+                            if stream_id not in fetched:
+                                fetched[stream_id] = []
+                            fetched[stream_id] += item["data"]
+                            frequencies[stream_id] = item["freq"]
 
-                if datafreq == 0:
-                    datafreq = freq
+            # deal with all the streams that we have fetched data for just now
+            for stream_id,item in fetched.iteritems():
+                #tmpid = int(stream_id.split("-")[0]) # XXX 1
+                #_,_,streaminfo = info[tmpid]
+                _,_,streaminfo = info[stream_id]
+                data[stream_id] = self._process_blocks(
+                        blocks[stream_id], cached[stream_id],
+                        fetched[stream_id], stream_id, streaminfo,
+                        parser, frequencies[stream_id])
+            # deal with any streams that were entirely cached - should be
+            # every stream left that hasn't already been touched
+            for stream_id,item in cached.iteritems():
+                if stream_id not in fetched:
+                    #tmpid = int(stream_id.split("-")[0])
+                    #_,_,streaminfo = info[tmpid]
+                    _,_,streaminfo = info[stream_id]
+                    data[stream_id] = self._process_blocks(
+                            blocks[stream_id], cached[stream_id],
+                            [], stream_id, streaminfo,
+                            parser, 0)
+        else:
+            print "do something about no memcache"
+            assert(False)
+            # Fallback option for cases where memcache isn't installed
+            # XXX Should we just make memcache a requirement for ampy??
+            block, freq = self._get_data(collection_id, [stream_id], start,
+                    end, binsize, detail, parser)
 
-            return self._process_blocks(blocks, cached, queryresults,
-                    stream, streaminfo, parser, datafreq)
+            if freq != 0 and len(block) != 0:
+                block = self._fill_missing(block, freq, stream_id)
 
-        # Fallback option for cases where memcache isn't installed
-        # XXX Should we just make memcache a requirement for ampy??
-        data, freq = self._get_data(colid, [stream], start, end, binsize,
-                detail, parser)
+            # Some collections have some specific formatting they like to
+            # do to the data before displaying it, e.g. rrd-smokeping
+            # combines the ping data into a single list rather than being
+            # 20 separate dictionary entries.
+            data[stream_id] = parser.format_data(block, stream_id, streaminfo)
 
-        if freq != 0 and len(data) != 0:
-            data = self._fill_missing(data, freq, stream)
-
-        # Some collections have some specific formatting they like to do to
-        # the data before displaying it, e.g. rrd-smokeping combines the ping
-        # data into a single list rather than being 20 separate dictionary
-        # entries.
-
-        data = parser.format_data(data, stream, streaminfo)
-        return ampy.result.Result(data)
+        return data
 
     def _process_blocks(self, blocks, cached, queried, stream, streaminfo,
             parser, freq):
         data = []
         now = int(time.time())
-
         for b in blocks:
 
             # Situations where the measurement frequency is greater than our
@@ -972,7 +1038,7 @@ class Connection(object):
             # Got all the data for this uncached block -- cache it
             self.memcache.store_block(b, blockdata)
 
-        return ampy.result.Result(data)
+        return data
 
     def _fill_missing(self, data, freq, stream):
         """ Internal function that populates the data list with 'empty'
@@ -1023,6 +1089,7 @@ class Connection(object):
             print >> sys.stderr, "Cannot fetch data -- lost connection to NNTSC"
             return {}
 
+        #print "requesting data for streams, detail", detail, stream_ids
         result = parser.request_data(client, colid, stream_ids, start, end,
                 binsize, detail)
 
@@ -1030,13 +1097,20 @@ class Connection(object):
             client.disconnect()
             return {}
 
+        if result > 0:
+            expected = result
+        else:
+            expected = len(stream_ids)
+
         got_data = False
         data = {}
         freq = 0
         count = 0
 
-        while count < len(stream_ids) or not got_data:
+        while count < expected or not got_data:
+            #print "got message %d/%d and %s" % (count+1, len(stream_ids),got_data)
             msg = self._get_nntsc_message(client)
+            #print msg
             if msg == None:
                 break
 
@@ -1054,6 +1128,8 @@ class Connection(object):
                 if msg[1]['collection'] != colid:
                     continue
                 stream_id = msg[1]['streamid']
+                #print "recv msg with id", stream_id
+                #if detail != "basic":#XXX 1
                 if stream_id not in stream_ids:
                     continue
                 #if msg[1]['aggregator'] != agg_functions:
@@ -1066,6 +1142,7 @@ class Connection(object):
                 data[stream_id]["data"] += msg[1]['data']
                 if msg[1]['more'] == False:
                     got_data = True
+        #print "got all messages"
         client.disconnect()
         return data
 
