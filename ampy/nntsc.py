@@ -941,6 +941,7 @@ class Connection(object):
             blockdata = []
 
             seendata = False
+            first = False
 
             while ts < b['end']:
                 if ts > now:
@@ -954,7 +955,11 @@ class Connection(object):
                 else:
                     datum = {"binstart":ts, "timestamp":ts, "stream_id":stream}
 
-                if seendata:
+                # always add the first datum, regardless of whether it is good
+                # data or not - if it's not good then we want to add a null
+                # value to ensure we don't draw a line from the previous block
+                if seendata or first:
+                    first = False
                     blockdata.append(datum)
                 ts += incrementby
 
