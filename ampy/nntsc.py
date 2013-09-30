@@ -960,10 +960,12 @@ class Connection(object):
 
             blockdata = parser.format_data(blockdata, stream, streaminfo)
 
-            if blockdata != []:
-                data += blockdata
-                # Got all the data for this uncached block -- cache it
-                self.memcache.store_block(b, blockdata)
+            # XXX try storing all data, even if empty - we can cache negative
+            # data too!
+            #if blockdata != []:
+            data += blockdata
+            # Got all the data for this uncached block -- cache it
+            self.memcache.store_block(b, blockdata)
 
         return ampy.result.Result(data)
 
