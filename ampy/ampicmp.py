@@ -107,8 +107,8 @@ class AmpIcmpParser(amp.AmpParser):
         """
         # the matrix view expects both the mean and stddev for the latency
         if detail == "matrix":
-            aggfuncs = ["avg", "stddev", "avg"]
-            aggcols = ["rtt", "rtt", "loss"]
+            aggfuncs = ["avg", "stddev", "count", "avg", "count"]
+            aggcols = ["rtt", "rtt", "rtt", "loss", "loss"]
         else:
             aggfuncs = ["avg", "avg"]
             aggcols = ["rtt", "loss"]
@@ -118,10 +118,18 @@ class AmpIcmpParser(amp.AmpParser):
         if detail == "full":
             result = client.request_percentiles(colid, streams, start, end,
                     aggcols, binsize, ["stream_id"], aggfuncs)
+            expected_responses = len(streams)
+        #elif detail == "basic":
+        #    result = client.request_really_aggregate(colid, streams, start, end,
+        #            aggcols, binsize, [], aggfuncs)
+        #    expected_responses = 1
         else:
             result = client.request_aggregate(colid, streams, start, end,
                     aggcols, binsize, ["stream_id"], aggfuncs)
-        return result
+            expected_responses = len(streams)
+        if result < 0:
+            return result
+        return expected_responses
 
     def format_data(self, received, stream, streaminfo):
         """ Formats the measurements retrieved from NNTSC into a nice format
