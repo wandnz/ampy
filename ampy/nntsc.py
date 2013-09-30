@@ -539,8 +539,8 @@ class Connection(object):
         """ Finds the ID of the streams that match the provided parameters.
 
             To be successful, the params dictionary must contain most if not
-            all of the possible selection parameters for the collection. For 
-            example, a rrd-muninbytes stream ID will only be found if the 
+            all of the possible selection parameters for the collection. For
+            example, a rrd-muninbytes stream ID will only be found if the
             params dictionary contains 'switch', 'interface' AND 'direction'.
 
             See also get_selection_options().
@@ -553,7 +553,7 @@ class Connection(object):
                         stream.
 
             Returns:
-              a list of id numbers for the streams that match the given 
+              a list of id numbers for the streams that match the given
               parameters. An empty list is returned if a unique match was not
               possible.
         """
@@ -632,9 +632,9 @@ class Connection(object):
         streams = coldata['streams']
         relatedcols = self._get_related_collections(coldata['module'])
         streamlock.acquire()
-        
+
         result = {}
-       
+
         for i in streamids:
             sid = int(i)
 
@@ -649,7 +649,7 @@ class Connection(object):
                     title = s['title']
                     col = s['collection']
                     relid = s['streamid']
-                    
+
                     if title in result:
                         result[title]['streamid'][i] = relid
                     else:
@@ -657,7 +657,7 @@ class Connection(object):
                         result[title]['collection'] = col
                         result[title]['title'] = title
                         result[title]['streamid'] = {i: relid}
-        
+
         streamlock.release()
 
         return result

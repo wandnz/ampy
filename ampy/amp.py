@@ -37,7 +37,7 @@ class AmpParser(object):
         try:
             # TODO make this configurable somewhere?
             url = sqlalchemy.engine.url.URL("postgresql", database="amp2",
-                    username=dbconfig['user'], host=dbconfig['host'], 
+                    username=dbconfig['user'], host=dbconfig['host'],
                     password=dbconfig['pwd'])
             self.ampdb = sqlalchemy.create_engine(url)
             # test query to see if the database connection was actually made:
