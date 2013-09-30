@@ -56,7 +56,7 @@ class Connection(object):
     def __del__(self):
         self.conn.close()
 
-    def get_stream_events(self, stream_id, start=None, end=None):
+    def get_stream_events(self, stream_ids, start=None, end=None):
         """Fetches all events for a given stream between a start and end
            time. Events are returned as a Result object."""
         # Honestly, start and end should really be set by the caller 
@@ -67,11 +67,22 @@ class Connection(object):
             start = end - (12 * 60 * 60)
 
         evtable = self.metadata.tables['event_view']
-        
-        wherecl = "(%s >= %u AND %s <= %u AND %s = %u)" % ( \
+
+        # iterate over all stream_ids and fetch all events
+        stream_str = "("
+        index = 0
+        for stream_id in stream_ids:
+            stream_str += "%s = %s" % (evtable.c.stream_id, stream_id)
+            index += 1
+            # Don't put OR after the last stream!
+            if index != len(stream_ids):
+                stream_str += " OR "
+        stream_str += ")"
+
+        wherecl = "(%s >= %u AND %s <= %u AND %s)" % ( \
                 evtable.c.timestamp, start, evtable.c.timestamp, \
-                end, evtable.c.stream_id, stream_id) 
-        
+                end, stream_str)
+
         query = evtable.select().where(wherecl).order_by(evtable.c.timestamp)
         return self.__execute_query(query)
 
