@@ -116,8 +116,12 @@ class AmpIcmpParser(amp.AmpParser):
         # 'full' implies a smokeping-style graph, so we'll need to grab
         # the percentile data
         if detail == "full":
+            ntiles = ["rtt"]
+            others = ["loss"]
+            ntileagg = ["avg"]
+            otheragg = ["avg"]
             result = client.request_percentiles(colid, streams, start, end,
-                    aggcols, binsize, ["stream_id"], aggfuncs)
+                    binsize, ntiles, others, ntileagg, otheragg)
         else:
             result = client.request_aggregate(colid, streams, start, end,
                     aggcols, binsize, ["stream_id"], aggfuncs)
