@@ -11,7 +11,7 @@ import ampy.result
 
 import socket, os
 from libnntsc.export import *
-from libnntsc.client.nntscclient import NNTSCClient
+from libnntscclient.nntscclient import NNTSCClient
 
 from ampy.muninbytes import MuninbytesParser
 from ampy.lpibytes import LPIBytesParser
@@ -423,7 +423,8 @@ class Connection(object):
                 else:
                     # TODO Delete the stream from the parser too
                     # e.g. parser.remove_stream(streams[s]['streaminfo'])
-                    del streams[s]
+                    if s in streams:
+                        del streams[s]
 
         streamlock.release()
 
