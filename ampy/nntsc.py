@@ -886,7 +886,8 @@ class Connection(object):
                         start, end, binsize, detail)
                 req,cached[stream_id] = self.memcache.search_cached_blocks(
                         blocks[stream_id])
-                print "cached:%d uncached:%d" %(len(cached[stream_id]),len(req))
+                #print "cached:%d uncached:%d id:%d start:%d end:%d" % (
+                #        len(cached[stream_id]), len(req), stream_id, start,end)
                 # for each required block, add it to the combined dict of
                 # required blocks, grouped by start,end,binsize
                 for r in req:
@@ -908,7 +909,7 @@ class Connection(object):
             for bstart in required:
                 for bend in required[bstart]:
                     for binsize,streams in required[bstart][bend].iteritems():
-                        print "get_data() %s from %d to %d" % (streams, bstart, bend-1)
+                        #print "get_data() %s from %d to %d" % (streams, bstart, bend-1)
                         qr = self._get_data(collection_id, streams, bstart,
                                 bend-1, binsize, detail, parser)
                         if len(qr) == 0:
