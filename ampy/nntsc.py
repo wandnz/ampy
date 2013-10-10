@@ -10,8 +10,8 @@ import sqlalchemy
 import ampy.result
 
 import socket, os
-from libnntsc.export import *
-from libnntsc.client.nntscclient import NNTSCClient
+from libnntscclient.protocol import *
+from libnntscclient.nntscclient import NNTSCClient
 
 from ampy.muninbytes import MuninbytesParser
 from ampy.lpibytes import LPIBytesParser
