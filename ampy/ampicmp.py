@@ -116,20 +116,19 @@ class AmpIcmpParser(amp.AmpParser):
         # 'full' implies a smokeping-style graph, so we'll need to grab
         # the percentile data
         if detail == "full":
+            ntiles = ["rtt"]
+            others = ["loss"]
+            ntileagg = ["avg"]
+            otheragg = ["avg"]
             result = client.request_percentiles(colid, streams, start, end,
-                    aggcols, binsize, ["stream_id"], aggfuncs)
-            expected_responses = len(streams)
+                    binsize, ntiles, others, ntileagg, otheragg)
         #elif detail == "basic":
         #    result = client.request_really_aggregate(colid, streams, start, end,
         #            aggcols, binsize, [], aggfuncs)
-        #    expected_responses = 1
         else:
             result = client.request_aggregate(colid, streams, start, end,
                     aggcols, binsize, ["stream_id"], aggfuncs)
-            expected_responses = len(streams)
-        if result < 0:
-            return result
-        return expected_responses
+        return result
 
     def format_data(self, received, stream, streaminfo):
         """ Formats the measurements retrieved from NNTSC into a nice format

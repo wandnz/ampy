@@ -423,7 +423,8 @@ class Connection(object):
                 else:
                     # TODO Delete the stream from the parser too
                     # e.g. parser.remove_stream(streams[s]['streaminfo'])
-                    del streams[s]
+                    if s in streams:
+                        del streams[s]
 
         streamlock.release()
 
@@ -1083,7 +1084,6 @@ class Connection(object):
             print >> sys.stderr, "Cannot fetch data -- no valid parser for stream %s" % (stream_ids)
             return {}
 
-
         client = self._connect_nntsc()
         if client == None:
             print >> sys.stderr, "Cannot fetch data -- lost connection to NNTSC"
@@ -1097,18 +1097,12 @@ class Connection(object):
             client.disconnect()
             return {}
 
-        if result > 0:
-            expected = result
-        else:
-            expected = len(stream_ids)
-
-        got_data = False
         data = {}
         freq = 0
         count = 0
 
-        while count < expected or not got_data:
-            #print "got message %d/%d and %s" % (count+1, len(stream_ids),got_data)
+        while count < len(stream_ids):
+            #print "got message %d/%d" % (count+1, len(stream_ids))
             msg = self._get_nntsc_message(client)
             #print msg
             if msg == None:
@@ -1129,19 +1123,18 @@ class Connection(object):
                     continue
                 stream_id = msg[1]['streamid']
                 #print "recv msg with id", stream_id
-                #if detail != "basic":#XXX 1
                 if stream_id not in stream_ids:
                     continue
                 #if msg[1]['aggregator'] != agg_functions:
                 #   continue
                 if stream_id not in data:
-                    count += 1
                     data[stream_id] = {}
                     data[stream_id]["data"] = []
                     data[stream_id]["freq"] = msg[1]['binsize']
                 data[stream_id]["data"] += msg[1]['data']
                 if msg[1]['more'] == False:
-                    got_data = True
+                    # increment the count of completed stream_ids
+                    count += 1
         #print "got all messages"
         client.disconnect()
         return data
