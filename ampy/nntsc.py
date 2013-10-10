@@ -730,7 +730,7 @@ class Connection(object):
               data. If the request fails, this Result object will be empty.
         """
 
-        print "GET RECENT DATA"
+        #print "GET RECENT DATA"
         info = {}
         data = {}
         queries = []
@@ -838,7 +838,7 @@ class Connection(object):
               an ampy Result object containing all of the requested measurement
               data. If the request fails, this Result object will be empty.
         """
-        print "GET PERIOD DATA", stream_ids
+        #print "GET PERIOD DATA", stream_ids
         info = {}
         data = {}
         blocks = {}
