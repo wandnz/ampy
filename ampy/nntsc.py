@@ -423,7 +423,8 @@ class Connection(object):
                 else:
                     # TODO Delete the stream from the parser too
                     # e.g. parser.remove_stream(streams[s]['streaminfo'])
-                    del streams[s]
+                    if s in streams:
+                        del streams[s]
 
         streamlock.release()
 
