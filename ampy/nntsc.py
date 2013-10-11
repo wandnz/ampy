@@ -875,12 +875,8 @@ class Connection(object):
 
         collection_id,parser,_ = info[queries[0]]
 
-        #if detail == "basic":
-        #    queries = ["-".join(str(x) for x in queries)]
-
         if self.memcache:
             required = {}
-            #datafreq = 0
             for stream_id in queries:
                 blocks[stream_id] = self.memcache.get_caching_blocks(stream_id,
                         start, end, binsize, detail)
@@ -923,8 +919,6 @@ class Connection(object):
 
             # deal with all the streams that we have fetched data for just now
             for stream_id,item in fetched.iteritems():
-                #tmpid = int(stream_id.split("-")[0]) # XXX 1
-                #_,_,streaminfo = info[tmpid]
                 _,_,streaminfo = info[stream_id]
                 data[stream_id] = self._process_blocks(
                         blocks[stream_id], cached[stream_id],
@@ -934,8 +928,6 @@ class Connection(object):
             # every stream left that hasn't already been touched
             for stream_id,item in cached.iteritems():
                 if stream_id not in fetched:
-                    #tmpid = int(stream_id.split("-")[0])
-                    #_,_,streaminfo = info[tmpid]
                     _,_,streaminfo = info[stream_id]
                     data[stream_id] = self._process_blocks(
                             blocks[stream_id], cached[stream_id],
