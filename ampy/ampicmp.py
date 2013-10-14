@@ -122,9 +122,6 @@ class AmpIcmpParser(amp.AmpParser):
             otheragg = ["avg"]
             result = client.request_percentiles(colid, streams, start, end,
                     binsize, ntiles, others, ntileagg, otheragg)
-        #elif detail == "basic":
-        #    result = client.request_really_aggregate(colid, streams, start, end,
-        #            aggcols, binsize, [], aggfuncs)
         else:
             result = client.request_aggregate(colid, streams, start, end,
                     aggcols, binsize, ["stream_id"], aggfuncs)
