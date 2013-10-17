@@ -4,7 +4,7 @@ except ImportError:
     from distutils.core import setup
 
 requires = [
-    'sqlalchemy'
+    'psycopg2'
     ]
 
 setup(
