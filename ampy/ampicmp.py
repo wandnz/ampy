@@ -32,7 +32,7 @@ class AmpIcmpParser(amp.AmpParser):
         dest = s['destination']
         sid = s['stream_id']
         pktsize = s['packet_size']
-        
+
         if 'address' not in s:
             address = "None"
         else:
@@ -61,13 +61,13 @@ class AmpIcmpParser(amp.AmpParser):
             If params does not contain an entry for 'source', 'destination',
             or 'packet_size', then [] will be returned.
 
-            If params contains an entry for 'address', a list containing 
+            If params contains an entry for 'address', a list containing
             the unique stream id that matches all parameters will be returned.
 
             If 'address' is not provied, a list of stream ids covering all
             observed addresses for the source, dest, size combination will be
             returned.
-            
+
 
             Parameters:
                 params -- a dictionary containing the parameters describing the
@@ -87,7 +87,7 @@ class AmpIcmpParser(amp.AmpParser):
 
         key = (params['source'], params['destination'], params['packet_size'])
 
-        # If the address is explicitly provided, find the stream id that 
+        # If the address is explicitly provided, find the stream id that
         # belongs to that address specifically
         if 'address' in params:
             if key not in self.addresses:
@@ -95,7 +95,7 @@ class AmpIcmpParser(amp.AmpParser):
             if params['address'] not in self.addresses[key]:
                 return []
             return [self.addresses[key][params['address']]]
-        
+
         # Otherwise, return all streams for the source, dest, size combo
         if key not in self.streams:
             return []
@@ -107,8 +107,8 @@ class AmpIcmpParser(amp.AmpParser):
         """
         # the matrix view expects both the mean and stddev for the latency
         if detail == "matrix":
-            aggfuncs = ["avg", "stddev", "avg"]
-            aggcols = ["rtt", "rtt", "loss"]
+            aggfuncs = ["avg", "stddev", "count", "avg", "count"]
+            aggcols = ["rtt", "rtt", "rtt", "loss", "loss"]
         else:
             aggfuncs = ["avg", "avg"]
             aggcols = ["rtt", "loss"]
@@ -157,7 +157,7 @@ class AmpIcmpParser(amp.AmpParser):
                 return []
             else:
                 return self._get_sizes(params['source'], params['destination'])
-    
+
         if params["_requesting"] == "addresses":
             if 'source' not in params or 'destination' not in params:
                 return []

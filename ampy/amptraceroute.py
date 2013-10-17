@@ -17,8 +17,8 @@ class AmpTracerouteParser(ampicmp.AmpIcmpParser):
         """
 
         # Detail is irrelevant at this point
-        aggcols = ["length"]
-        aggfuncs = ["avg"]
+        aggcols = ["length", "length"]
+        aggfuncs = ["avg", "count"]
         group = ["stream_id"]
 
         return client.request_aggregate(colid, streams, start, end, aggcols,

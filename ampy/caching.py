@@ -11,10 +11,10 @@ class AmpyCache(object):
                     "no_block": True,
                 })
         self.mcpool = pylibmc.ThreadMappedPool(self.memcache)
-   
+
     def __del__(self):
         self.mcpool.relinquish()
-    
+
     def get_caching_blocks(self, stream, start, end, binsize, detail):
         blocks = []
         blocksize = binsize * self.blocksize
@@ -41,7 +41,7 @@ class AmpyCache(object):
             blockts += blocksize
 
         return blocks
- 
+
     def search_cached_blocks(self, blocks):
         missing = []
         cached = {}
@@ -67,7 +67,7 @@ class AmpyCache(object):
                 continue
 
             if b['start'] == current['end']:
-                # This block is contiguous with the last missing block, 
+                # This block is contiguous with the last missing block,
                 # combine them so we can deal with them in one query
                 current['end'] = b['end']
                 continue
@@ -77,7 +77,7 @@ class AmpyCache(object):
             # on the current block.
             missing.append({'start':current['start'], 'end':current['end'],
                     'binsize':current['binsize']})
-            
+
             current['start'] = b['start']
             current['end'] = b['end']
             current['binsize'] = b['binsize']
@@ -90,7 +90,7 @@ class AmpyCache(object):
 
 
     def check_recent(self, query):
-        key = str("_".join([str(query['stream']), str(query['duration']), 
+        key = str("_".join([str(query['stream']), str(query['duration']),
                 str(query['detail']), "recent"]))
 
         with self.mcpool.reserve() as mc:
@@ -117,7 +117,7 @@ class AmpyCache(object):
 
     def check_streaminfo(self, streamid):
         key = str("_".join(["streaminfo", str(streamid)]))
-        
+
         with self.mcpool.reserve() as mc:
             try:
                 if key in mc:
@@ -146,8 +146,8 @@ class AmpyCache(object):
             try:
                 # Expire this reasonably frequently, so we can learn about
                 # new or deleted streams. Our main goal is to avoid making
-                # multiple near-simultaneous requests for the same data 
-                # because our ajax requests get spread across multiple 
+                # multiple near-simultaneous requests for the same data
+                # because our ajax requests get spread across multiple
                 # processes.
                 mc.set(idkey, streams, 60 * 30)
             except pylibmc.WriteError:
@@ -174,15 +174,15 @@ class AmpyCache(object):
             cachetime = 60 * 60 * 3
         else:
             cachetime = 60 * 60 * 6
-        
-        key = str("_".join([str(query['stream']), str(query['duration']), 
+
+        key = str("_".join([str(query['stream']), str(query['duration']),
                 str(query['detail']), "recent"]))
-        
+
         with self.mcpool.reserve() as mc:
             try:
                 mc.set(key, result, cachetime)
             except pylibmc.WriteError:
                 pass
 
-    
+
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :
