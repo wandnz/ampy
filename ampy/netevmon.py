@@ -109,7 +109,7 @@ class Connection(object):
             streamclause += ")"
         whereclause += streamclause
 
-        orderclause = " ORDER BY stream_id, timestamp "
+        orderclause = " ORDER BY timestamp, stream_id "
         sql = selclause + whereclause + orderclause
 
         params = tuple([start] + [end] + stream_ids)
