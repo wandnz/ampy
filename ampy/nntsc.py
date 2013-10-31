@@ -759,7 +759,7 @@ class Connection(object):
                 }
                 cached = self.memcache.check_recent(key)
 
-                if cached != []:
+                if cached != None:
                     data[stream_id] = cached
                     continue
             # Otherwise, we don't have it already so add to the list to query

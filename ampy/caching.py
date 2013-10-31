@@ -100,7 +100,7 @@ class AmpyCache(object):
             except pylibmc.SomeErrors:
                 pass
 
-        return []
+        return None
 
     def check_collection_streams(self, colid):
         key = str("_".join(["colstreams", str(colid)]))
