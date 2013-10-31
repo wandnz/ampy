@@ -693,7 +693,6 @@ class Connection(object):
 
         return colid, parser, streaminfo
 
-
     def get_recent_data(self, collection, stream_ids, duration, detail):
         """ Returns aggregated data measurements for a time period starting
             at 'now' and going back a specified number of seconds. This
@@ -797,6 +796,208 @@ class Connection(object):
             for k,v in result.iteritems():
                 data[k] = v["data"]
         return data
+
+    def get_recent_view_data(self, collection, view_id, duration, detail):
+        """ Returns aggregated data measurements for a time period starting
+            at 'now' and going back a specified number of seconds. This
+            function is mainly useful for getting summary statistics for the
+            last hour, day, week etc.
+
+            See also get_period_view_data().
+
+            The detail parameter allows the user to limit the amount of data
+            returned to them. For example, smokeping results store the
+            latency measurements for each individual ping. Requesting "full"
+            detail would get these individual results along with the median,
+            uptime and loss measurements. "minimal" will only return median
+            and loss: enough to produce a simple latency time series graph
+            and much smaller to send.
+
+            Note that for some collections, only "full" detail may be available.
+            In those cases, specifying any other level of detail will simply
+            result in the "full" data being returned regardless.
+
+            Valid values for the detail parameter are:
+                "full" -- return all available measurements
+                "minimal" -- return a minimal set of measurements
+
+            Parameters:
+              view_id -- the id number of the view to fetch data for
+              duration -- the length of the time period to fetch data for, in
+                          seconds
+              detail -- a string that describes the level of measurement detail
+                        that should be returned for each datapoint. If None,
+                        assumed to be "full".
+
+            Returns:
+              a dictionary containing all of the requested measurement data,
+              indexed by view_id. If the request fails, this will be empty.
+        """
+
+        info = {}
+        data = {}
+        queries = {}
+        if detail is None:
+            detail = "full"
+        end = int(time.time())
+        start = end - duration
+
+        # figure out what lines should be displayed in this view
+        labels = self.get_view_groups(view_id)
+
+        # TODO pick a stream id? these should all be the same collection etc
+        # maybe we do need to call this on every stream_id to be sure?
+        collection_id,parser,streaminfo = self._data_request_prep(collection, 35119)
+
+        # check each stream_id to see if we need to query for it - some will
+        # be invalid, some will be cached already, so don't fetch those ones
+        for label in labels:
+        #for label,stream_ids in labels.iteritems():
+            # an invalid or unknown stream_id has empty data, don't query it
+            #if stream_id > 0:
+            #    info[stream_id] = self._data_request_prep(collection, stream_id)
+            #if stream_id < 0 or info[stream_id] == None:
+            #    data[stream_id] = []
+            #    continue
+
+            # If we have memcache check if this data is available already.
+            if self.memcache:
+                key = {
+                    'label': label,
+                    'duration': duration,
+                    'detail': detail
+                }
+                cached = self.memcache.check_recent(key)
+
+                if cached != None:
+                    data[label] = cached
+                    continue
+            # Otherwise, we don't have it already so add to the list to query
+            queries[label] = labels[label]
+
+        # if there are any labels that we don't already have data for, now
+        # is the time to fetch them and cache them for later
+        if len(queries) > 0:
+            # Fetch all the data that we don't already have. All these streams
+            # are in the same collection and therefore use the same parser, so
+            # we can just grab the collection_id and parser from the last
+            # stream_id we touched.
+            #collection_id,parser,_ = info[queries[0]]
+            result = self._get_data(collection_id, queries, start, end,
+                    duration, detail, parser)
+
+            # do any special formatting that the parser requires
+            for label in result.keys():
+                #_,_,streaminfo = info[stream_id]
+                result[label] = parser.format_data(result[label],
+                        label, streaminfo)
+
+            # Make sure we cache any results we just fetched
+            if self.memcache:
+                for label in result.keys():
+                    key = {
+                        'label': label,
+                        'duration': duration,
+                        'detail': detail
+                    }
+                    self.memcache.store_recent(key, result[label]["data"])
+
+            # we only store the data portion of the result (not freq etc),
+            # so merge that with cached data
+            for k,v in result.iteritems():
+                data[k] = v["data"]
+        return data
+
+    def get_view_groups(self, view_id):
+        # TODO work out which stream ids need to be looked at
+        # Each group of stream ids here is a single set of data and represents
+        # one line on the graph. They should all be combined together by the
+        # database to give a response aggregated across all the members.
+        return {
+        #    "nzherald.co.nz_ipv4": [35205, 25733],
+        #    "nzherald.co.nz_ipv6": [35212],
+        #    "nzherald.co.nz_ipv8": [35119]
+            "www.nzherald.co.nz_ipv4": [35205, 25733, 35212, 35119],
+        }
+
+    def get_period_view_data(self, collection, view_id, start, end, binsize, detail):
+        blocks = {}
+        cached = {}
+        data = {}
+        # FIXME: Consider limiting maximum durations based on binsize
+        # if end is not set then assume "now".
+        if end is None:
+            end = int(time.time())
+        # If start is not set then assume 2 hours before the end.
+        if start is None:
+            start = end - (60 * 60 * 2)
+        if detail is None:
+            detail = "full"
+
+        # figure out what lines should be displayed in this view
+        labels = self.get_view_groups(view_id)
+
+        # TODO pick a stream id? these should all be the same collection etc
+        # maybe we do need to call this on every stream_id to be sure?
+        collection_id,parser,streaminfo = self._data_request_prep(collection, 35119)
+
+        if self.memcache:
+            # see if any of them have been cached
+            required = {}
+            for label,stream_ids in labels.iteritems():
+                # treat a label as an entity that we cache - it might be made
+                # up of data from lots of streams, but it's only one set of data
+                blocks[label] = self.memcache.get_caching_blocks(label,
+                        start, end, binsize, detail)
+                req,cached[label] = self.memcache.search_cached_blocks(
+                        blocks[label])
+                #print "cached:%d uncached:%d id:%s start:%d end:%d" % (
+                #        len(cached[label]), len(req), label, start, end)
+                for r in req:
+                    # group up all the labels that need the same time blocks
+                    blockstart = r["start"]
+                    blockend = r["end"]
+                    binsize = r["binsize"]
+                    if blockstart not in required:
+                        required[blockstart] = {}
+                    if blockend not in required[blockstart]:
+                        required[blockstart][blockend] = {}
+                    if binsize not in required[blockstart][blockend]:
+                        required[blockstart][blockend][binsize] = []
+                    required[blockstart][blockend][binsize].append(label)
+
+            # fetch those that aren't cached
+            fetched = {}
+            frequencies = {}
+            for bstart in required:
+                for bend in required[bstart]:
+                    for binsize,streams in required[bstart][bend].iteritems():
+                        qr = self._get_data(collection_id, labels, bstart,
+                                bend-1, binsize, detail, parser)
+                        #print qr
+                        if len(qr) == 0:
+                            return None
+                        for label,item in qr.iteritems():
+                            if label not in fetched:
+                                fetched[label] = []
+                            fetched[label] += item["data"]
+                            frequencies[label] = item["freq"]
+
+            # deal with all the labels that we have fetched data for just now
+            for label,item in fetched.iteritems():
+                data[label] = self._process_blocks(
+                        blocks[label], cached[label],
+                        fetched[label], label, streaminfo,
+                        parser, frequencies[label])
+            # deal with any streams that were entirely cached - should be
+            # every stream left that hasn't already been touched
+            for label,item in cached.iteritems():
+                if label not in fetched:
+                    data[label] = self._process_blocks(
+                            blocks[label], cached[label],
+                            [], label, streaminfo, parser, 0)
+            return data
+
 
     def get_period_data(self, collection, stream_ids, start, end, binsize,
             detail):
