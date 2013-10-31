@@ -1058,7 +1058,7 @@ class Connection(object):
         return nogap_data
 
 
-    def _get_data(self, colid, stream_ids, start, end, binsize, detail, parser):
+    def _get_data(self, colid, labels, start, end, binsize, detail, parser):
         """ Internal function that actually performs the NNTSC query to get
             measurement data, parses the responses and formats the results
             appropriately.
@@ -1074,7 +1074,7 @@ class Connection(object):
                 an ampy Result object.
         """
         if parser == None:
-            print >> sys.stderr, "Cannot fetch data -- no valid parser for stream %s" % (stream_ids)
+            print >> sys.stderr, "Cannot fetch data -- no valid parser for stream %s" % (labels)
             return {}
 
         client = self._connect_nntsc()
@@ -1083,7 +1083,7 @@ class Connection(object):
             return {}
 
         #print "requesting data for streams, detail", detail, stream_ids
-        result = parser.request_data(client, colid, stream_ids, start, end,
+        result = parser.request_data(client, colid, labels, start, end,
                 binsize, detail)
 
         if result == -1:
@@ -1094,7 +1094,7 @@ class Connection(object):
         freq = 0
         count = 0
 
-        while count < len(stream_ids):
+        while count < len(labels):
             #print "got message %d/%d" % (count+1, len(stream_ids))
             msg = self._get_nntsc_message(client)
             #print msg
@@ -1114,19 +1114,19 @@ class Connection(object):
                 # Sanity checks
                 if msg[1]['collection'] != colid:
                     continue
-                stream_id = msg[1]['streamid']
+                label = msg[1]['streamid']
                 #print "recv msg with id", stream_id
-                if stream_id not in stream_ids:
+                if label not in labels:
                     continue
                 #if msg[1]['aggregator'] != agg_functions:
                 #   continue
-                if stream_id not in data:
-                    data[stream_id] = {}
-                    data[stream_id]["data"] = []
-                    data[stream_id]["freq"] = msg[1]['binsize']
-                data[stream_id]["data"] += msg[1]['data']
+                if label not in data:
+                    data[label] = {}
+                    data[label]["data"] = []
+                    data[label]["freq"] = msg[1]['binsize']
+                data[label]["data"] += msg[1]['data']
                 if msg[1]['more'] == False:
-                    # increment the count of completed stream_ids
+                    # increment the count of completed labels
                     count += 1
         #print "got all messages"
         client.disconnect()

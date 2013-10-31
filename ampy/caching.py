@@ -90,7 +90,7 @@ class AmpyCache(object):
 
 
     def check_recent(self, query):
-        key = str("_".join([str(query['stream']), str(query['duration']),
+        key = str("_".join([str(query['label']), str(query['duration']),
                 str(query['detail']), "recent"]))
 
         with self.mcpool.reserve() as mc:
@@ -175,7 +175,7 @@ class AmpyCache(object):
         else:
             cachetime = 60 * 60 * 6
 
-        key = str("_".join([str(query['stream']), str(query['duration']),
+        key = str("_".join([str(query['label']), str(query['duration']),
                 str(query['detail']), "recent"]))
 
         with self.mcpool.reserve() as mc:
