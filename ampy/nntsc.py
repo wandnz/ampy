@@ -1118,17 +1118,25 @@ class Connection(object):
                             fetched[stream_id] += item["data"]
                             frequencies[stream_id] = item["freq"]
 
+            # XXX in some cases stream id is cast to integers or strings to
+            # try to deal with the format that new view style data comes back
+            # in vs what it is before it is queried. Ideally this whole
+            # function will go away and everything will be in the view style
+
             # deal with all the streams that we have fetched data for just now
             for stream_id,item in fetched.iteritems():
+                stream_id = int(stream_id) # XXX
                 _,_,streaminfo = info[stream_id]
                 data[stream_id] = self._process_blocks(
                         blocks[stream_id], cached[stream_id],
-                        fetched[stream_id], stream_id, streaminfo,
-                        parser, frequencies[stream_id])
+                        fetched[str(stream_id)], stream_id, streaminfo, # XXX
+                        parser, frequencies[str(stream_id)]) # XXX
+
             # deal with any streams that were entirely cached - should be
             # every stream left that hasn't already been touched
             for stream_id,item in cached.iteritems():
-                if stream_id not in fetched:
+                stream_id = int(stream_id) # XXX
+                if str(stream_id) not in fetched: # XXX
                     _,_,streaminfo = info[stream_id]
                     data[stream_id] = self._process_blocks(
                             blocks[stream_id], cached[stream_id],
@@ -1296,7 +1304,7 @@ class Connection(object):
         count = 0
 
         while count < len(labels):
-            #print "got message %d/%d" % (count+1, len(stream_ids))
+            #print "got message %d/%d" % (count+1, len(labels))
             msg = self._get_nntsc_message(client)
             #print msg
             if msg == None:
@@ -1316,8 +1324,8 @@ class Connection(object):
                 if msg[1]['collection'] != colid:
                     continue
                 label = msg[1]['streamid']
-                #print "recv msg with id", stream_id
-                if label not in labels:
+                # XXX extra checks for old streamid data
+                if label not in labels and int(label) not in labels:
                     continue
                 #if msg[1]['aggregator'] != agg_functions:
                 #   continue
