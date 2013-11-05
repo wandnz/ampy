@@ -21,6 +21,7 @@ from ampy.lpiflows import LPIFlowsParser
 from ampy.lpiusers import LPIUsersParser
 from ampy.ampicmp import AmpIcmpParser
 from ampy.amptraceroute import AmpTracerouteParser
+from ampy.views import View
 
 
 from threading import Lock
@@ -116,6 +117,10 @@ class Connection(object):
             self.memcache = AmpyCache(12)
         else:
             self.memcache = False
+
+        # Set up access to the views that will convert view_ids to stream_ids
+        # TODO use it's own config, not the ampdbconfig
+        self.view = View(self, self.ampdbconfig)
 
     def _connect_nntsc(self):
         """ Connects to NNTSC and returns a NNTSCClient that can be used to
@@ -843,7 +848,7 @@ class Connection(object):
         start = end - duration
 
         # figure out what lines should be displayed in this view
-        labels = self.get_view_groups(view_id)
+        labels = self.view.get_view_groups(view_id)
 
         # TODO pick a stream id? these should all be the same collection etc
         # maybe we do need to call this on every stream_id to be sure?
@@ -908,18 +913,6 @@ class Connection(object):
                 data[k] = v["data"]
         return data
 
-    def get_view_groups(self, view_id):
-        # TODO work out which stream ids need to be looked at
-        # Each group of stream ids here is a single set of data and represents
-        # one line on the graph. They should all be combined together by the
-        # database to give a response aggregated across all the members.
-        return {
-        #    "nzherald.co.nz_ipv4": [35205, 25733],
-        #    "nzherald.co.nz_ipv6": [35212],
-        #    "nzherald.co.nz_ipv8": [35119]
-            "www.nzherald.co.nz_ipv4": [35205, 25733, 35212, 35119],
-        }
-
     def get_period_view_data(self, collection, view_id, start, end, binsize, detail):
         blocks = {}
         cached = {}
@@ -935,7 +928,7 @@ class Connection(object):
             detail = "full"
 
         # figure out what lines should be displayed in this view
-        labels = self.get_view_groups(view_id)
+        labels = self.view.get_view_groups(view_id)
 
         # TODO pick a stream id? these should all be the same collection etc
         # maybe we do need to call this on every stream_id to be sure?
