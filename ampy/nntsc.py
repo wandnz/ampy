@@ -1210,7 +1210,7 @@ class Connection(object):
             blockdata = []
 
             seendata = False
-            first = False
+            first = True
 
             while ts < b['end']:
                 if ts > now:
