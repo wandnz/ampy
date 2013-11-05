@@ -1,15 +1,11 @@
 #!/usr/bin/env python
 
 import time
-import urllib2
-import json
-import httplib
 import sys
 
-import sqlalchemy
 import ampy.result
 
-import socket, os
+import socket
 from libnntscclient.protocol import *
 from libnntscclient.nntscclient import NNTSCClient
 
@@ -852,7 +848,8 @@ class Connection(object):
 
         # TODO pick a stream id? these should all be the same collection etc
         # maybe we do need to call this on every stream_id to be sure?
-        collection_id,parser,streaminfo = self._data_request_prep(collection, 35119)
+        collection_id, parser, streaminfo = self._data_request_prep(
+                collection, 35119)
 
         # check each stream_id to see if we need to query for it - some will
         # be invalid, some will be cached already, so don't fetch those ones
@@ -909,7 +906,7 @@ class Connection(object):
 
             # we only store the data portion of the result (not freq etc),
             # so merge that with cached data
-            for k,v in result.iteritems():
+            for k, v in result.iteritems():
                 data[k] = v["data"]
         return data
 
@@ -932,17 +929,18 @@ class Connection(object):
 
         # TODO pick a stream id? these should all be the same collection etc
         # maybe we do need to call this on every stream_id to be sure?
-        collection_id,parser,streaminfo = self._data_request_prep(collection, 35119)
+        collection_id, parser, streaminfo = self._data_request_prep(
+                collection, 35119)
 
         if self.memcache:
             # see if any of them have been cached
             required = {}
-            for label,stream_ids in labels.iteritems():
+            for label in labels:
                 # treat a label as an entity that we cache - it might be made
                 # up of data from lots of streams, but it's only one set of data
                 blocks[label] = self.memcache.get_caching_blocks(label,
                         start, end, binsize, detail)
-                req,cached[label] = self.memcache.search_cached_blocks(
+                req, cached[label] = self.memcache.search_cached_blocks(
                         blocks[label])
                 #print "cached:%d uncached:%d id:%s start:%d end:%d" % (
                 #        len(cached[label]), len(req), label, start, end)
@@ -964,27 +962,27 @@ class Connection(object):
             frequencies = {}
             for bstart in required:
                 for bend in required[bstart]:
-                    for binsize,streams in required[bstart][bend].iteritems():
+                    for binsize, streams in required[bstart][bend].iteritems():
                         qr = self._get_data(collection_id, labels, bstart,
                                 bend-1, binsize, detail, parser)
                         #print qr
                         if len(qr) == 0:
                             return None
-                        for label,item in qr.iteritems():
+                        for label, item in qr.iteritems():
                             if label not in fetched:
                                 fetched[label] = []
                             fetched[label] += item["data"]
                             frequencies[label] = item["freq"]
 
             # deal with all the labels that we have fetched data for just now
-            for label,item in fetched.iteritems():
+            for label, item in fetched.iteritems():
                 data[label] = self._process_blocks(
                         blocks[label], cached[label],
                         fetched[label], label, streaminfo,
                         parser, frequencies[label])
             # deal with any streams that were entirely cached - should be
             # every stream left that hasn't already been touched
-            for label,item in cached.iteritems():
+            for label, item in cached.iteritems():
                 if label not in fetched:
                     data[label] = self._process_blocks(
                             blocks[label], cached[label],

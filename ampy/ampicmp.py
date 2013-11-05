@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import sys, string
 import amp
 
 class AmpIcmpParser(amp.AmpParser):
@@ -27,7 +26,7 @@ class AmpIcmpParser(amp.AmpParser):
             Parameters:
                 s -- the new stream, as returned by NNTSC
         """
-        super(AmpIcmpParser, self).add_stream(s);
+        super(AmpIcmpParser, self).add_stream(s)
         src = s['source']
         dest = s['destination']
         sid = s['stream_id']
@@ -237,7 +236,7 @@ class AmpIcmpParser(amp.AmpParser):
             # No size specified, return all addresses for that source/dest
             # pair
             addrs = []
-            for k,v in self.addresses.items():
+            for k, v in self.addresses.items():
                 if k[0] == source and k[1] == dest:
                     addrs += v.keys()
             # Remove duplicates resulting from tests to the same address

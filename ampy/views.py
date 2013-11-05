@@ -7,11 +7,10 @@ import re
 # XXX move all this into nntsc.py? or can we get enough info into here that
 # it can actually do all the hard work?
 class View(object):
-    """
-    """
+    """ Map between a view id and lists of stream ids describing lines """
 
     def __init__(self, nntsc, dbconfig):
-        """  """
+        """ Create connection to views database """
         self.nntsc = nntsc
         self.splits = ["COMBINED", "ALL", "NETWORK", "FAMILY"]
         # The view group database stores view group rules
@@ -29,7 +28,7 @@ class View(object):
 
 
     def get_view_groups(self, view_id):
-        """  """
+        """ Get the view groups associated with a view id """
         # Each group of stream ids here is a single set of data and represents
         # one line on the graph. They should all be combined together by the
         # database to give a response aggregated across all the members.
