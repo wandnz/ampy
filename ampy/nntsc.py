@@ -844,7 +844,10 @@ class Connection(object):
         start = end - duration
 
         # figure out what lines should be displayed in this view
-        labels = self.view.get_view_groups(view_id)
+        labels = self.view.get_view_groups(collection, view_id)
+
+        if len(labels) == 0:
+            return {}
 
         # TODO pick a stream id? these should all be the same collection etc
         # maybe we do need to call this on every stream_id to be sure?
@@ -925,7 +928,10 @@ class Connection(object):
             detail = "full"
 
         # figure out what lines should be displayed in this view
-        labels = self.view.get_view_groups(view_id)
+        labels = self.view.get_view_groups(collection, view_id)
+
+        if len(labels) == 0:
+            return {}
 
         # TODO pick a stream id? these should all be the same collection etc
         # maybe we do need to call this on every stream_id to be sure?
