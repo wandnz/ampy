@@ -852,7 +852,7 @@ class Connection(object):
         # TODO pick a stream id? these should all be the same collection etc
         # maybe we do need to call this on every stream_id to be sure?
         collection_id, parser, streaminfo = self._data_request_prep(
-                collection, 35119)
+                collection, labels.values()[0][0])
 
         # check each stream_id to see if we need to query for it - some will
         # be invalid, some will be cached already, so don't fetch those ones
@@ -936,7 +936,7 @@ class Connection(object):
         # TODO pick a stream id? these should all be the same collection etc
         # maybe we do need to call this on every stream_id to be sure?
         collection_id, parser, streaminfo = self._data_request_prep(
-                collection, 35119)
+                collection, labels.values()[0][0])
 
         if self.memcache:
             # see if any of them have been cached
