@@ -941,7 +941,7 @@ class Connection(object):
         if self.memcache:
             # see if any of them have been cached
             required = {}
-            for label in labels:
+            for label, stream_ids in labels.iteritems():
                 # treat a label as an entity that we cache - it might be made
                 # up of data from lots of streams, but it's only one set of data
                 blocks[label] = self.memcache.get_caching_blocks(label,
@@ -960,16 +960,16 @@ class Connection(object):
                     if blockend not in required[blockstart]:
                         required[blockstart][blockend] = {}
                     if binsize not in required[blockstart][blockend]:
-                        required[blockstart][blockend][binsize] = []
-                    required[blockstart][blockend][binsize].append(label)
+                        required[blockstart][blockend][binsize] = {}
+                    required[blockstart][blockend][binsize][label] = stream_ids
 
             # fetch those that aren't cached
             fetched = {}
             frequencies = {}
             for bstart in required:
                 for bend in required[bstart]:
-                    for binsize, streams in required[bstart][bend].iteritems():
-                        qr = self._get_data(collection_id, labels, bstart,
+                    for binsize, rqlabels in required[bstart][bend].iteritems():
+                        qr = self._get_data(collection_id, rqlabels, bstart,
                                 bend-1, binsize, detail, parser)
                         #print qr
                         if len(qr) == 0:
