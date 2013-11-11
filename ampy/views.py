@@ -12,7 +12,7 @@ class View(object):
     def __init__(self, nntsc, dbconfig):
         """ Create connection to views database """
         self.nntsc = nntsc
-        self.splits = ["COMBINED", "ALL", "NETWORK", "FAMILY"]
+        self.splits = ["FULL", "NONE", "NETWORK", "FAMILY"]
         # The view group database stores view group rules
         try:
             # TODO make this configurable somewhere?
@@ -27,6 +27,104 @@ class View(object):
             self.viewdb = None
 
 
+    def create_view(self, collection, oldview, options):
+        """ Return a view_id describing the desired view """
+        # determine the groups that exist in the current view
+        groups = self._get_groups_in_view(oldview)
+        if groups is None:
+            return None
+
+        # create the description string for the group based on the options
+        group = self._parse_group_string(collection, options)
+        if group is None:
+            return None
+
+        # get the group id, creating it if it doesn't already exist
+        group_id = self._get_group_id(group)
+        if group_id is None:
+            return None
+
+        # combine the existing groups with the new group id
+        if group_id not in groups:
+            groups.append(group_id)
+            groups.sort()
+
+        # get the view id containing the current view groups plus the new
+        # group, creating it if it doesn't already exist
+        view_id = self._get_view_id(groups)
+        return view_id
+
+
+    def _parse_group_string(self, collection, options):
+        """ Convert the URL arguments into a group description string """
+        if options[3].upper() not in self.splits:
+            return None
+
+        if collection == "amp-icmp":
+            return "%s FROM %s TO %s OPTION %s %s" % (
+                    collection, options[0], options[1], options[2],
+                    options[3].upper())
+        return None
+
+
+    def _get_groups_in_view(self, view_id):
+        """ Get a list of the groups in a given view """
+        select = self.viewdb.execute(sqlalchemy.text(
+                    "SELECT view_groups FROM views WHERE view_id = :view_id"),
+                {"view_id": view_id})
+        groups = select.first()
+        if groups is None:
+            return []
+        return groups[0]
+
+
+    def _get_view_id(self, groups):
+        """ Get the view id describing given groups, creating if necessary """
+        select = self.viewdb.execute(sqlalchemy.text(
+                    "SELECT view_id FROM views WHERE view_groups = :groups"),
+                {"groups": groups})
+        view_id = select.first()
+        if view_id is None:
+            return self._create_view_entry(groups)
+        return view_id[0]
+
+
+    def _get_group_id(self, group):
+        """ Get the group id describing given group, creating if necessary """
+        select = self.viewdb.execute(sqlalchemy.text(
+                    "SELECT group_id FROM groups WHERE "
+                    "group_description = :group"),
+                {"group": group})
+        group_id = select.first()
+        if group_id is None:
+            return self._create_group_entry(group)
+        return group_id[0]
+
+
+    def _create_group_entry(self, group):
+        """ Insert a group entry into the database """
+        insert = self.viewdb.execute(sqlalchemy.text(
+                    "INSERT INTO groups (group_description) VALUES (:group) "
+                    "RETURNING group_id"),
+            {"group": group})
+        group_id = insert.first()
+        if group_id is None:
+            return None
+        return group_id[0]
+
+
+    def _create_view_entry(self, groups):
+        """ Insert a view entry into the database """
+        insert = self.viewdb.execute(sqlalchemy.text(
+                    "INSERT INTO views (view_label, view_groups) VALUES "
+                    "(:label, :groups) RETURNING view_id"),
+                {"label": "no description", "groups": groups})
+        view_id = insert.first()
+        if view_id is None:
+            return None
+        return view_id[0]
+
+
     def get_view_groups(self, collection, view_id):
         """ Get the view groups associated with a view id """
         # Each group of stream ids here is a single set of data and represents
@@ -34,41 +132,42 @@ class View(object):
         # database to give a response aggregated across all the members.
         groups = {}
 
-        # cheat and just add all the sites we know should be in the matrix
-        # TODO look things up in the database rather than parsing the view
+        # XXX do we need collection to be passed in?
+        # XXX do matrix properly
         if view_id.startswith("matrix_"):
             return self._get_matrix_view_groups(view_id)
 
         if self.viewdb is None:
             return []
+
         rules = [x[0] for x in self.viewdb.execute(sqlalchemy.text(
-                    "SELECT view_group FROM views WHERE view_label = :label"),
-                {"label": view_id})]
+                    "SELECT group_description FROM groups WHERE group_id IN "
+                    "(SELECT unnest(view_groups) FROM views WHERE "
+                    "view_id = :view_id)"),
+                {"view_id": view_id})]
 
         for rule in rules:
-            # get current streams that match the rule
-            # TODO this language needs expanding to work properly with more
-            # collection types other than amp-icmp and amp-traceroute
-            parts = re.match("FROM (?P<source>[.a-zA-Z0-9-]+) TO (?P<destination>[.a-zA-Z0-9-]+) (?P<split>[A-Z]+)",
-                    rule)
+            parts = re.match("(?P<collection>[a-z-]+) "
+                    "FROM (?P<source>[.a-zA-Z0-9-]+) "
+                    "TO (?P<destination>[.a-zA-Z0-9-]+) "
+                    "OPTION (?P<option>[a-zA-Z0-9]+) "
+                    "(?P<split>[A-Z]+)", rule)
+            if parts is None:
+                continue
             assert(parts.group("split") in self.splits)
-            if collection == "amp-icmp":
-                packet_size = "84"
-            else:
-                packet_size = "60"
             # fetch all streams for this group
-            # XXX is this list sometimes coming back with lots of duplicates?
             # XXX this is only for amp data with packet size
             streams = self.nntsc.get_stream_id(collection, {
                         "source": parts.group("source"),
                         "destination": parts.group("destination"),
-                        "packet_size": packet_size })
+                        "packet_size": parts.group("option") })
+
             # split the streams into the desired groupings
             if type(streams) == list and len(streams) > 0:
-                if parts.group("split") == "COMBINED":
+                if parts.group("split") == "FULL":
                     groups.update(self._get_combined_view_groups(collection,
                                 parts, streams))
-                elif parts.group("split") == "ALL":
+                elif parts.group("split") == "NONE":
                     groups.update(self._get_all_view_groups(collection,
                                 parts, streams))
                 elif parts.group("split") == "NETWORK":
@@ -77,6 +176,7 @@ class View(object):
                     groups.update(self._get_family_view_groups(collection,
                                 parts, streams))
         return groups
+
 
 
     def _get_combined_view_groups(self, collection, parts, streams):
