@@ -27,7 +27,7 @@ class View(object):
             self.viewdb = None
 
 
-    def create_view(self, collection, oldview, options):
+    def create_view(self, collection, oldview, action, options):
         """ Return a view_id describing the desired view """
         # determine the groups that exist in the current view
         groups = self._get_groups_in_view(oldview)
@@ -46,13 +46,20 @@ class View(object):
             # something went wrong trying to create the group, don't do anything
             return oldview
 
+        if action == "add":
+            # combine the existing groups with the new group id
+            if group_id not in groups:
+                groups.append(group_id)
+                groups.sort()
+        elif action == "del":
+            # remove the group from the existing list to get a new view
+            if group_id in groups:
+                groups.remove(group_id)
+        else:
+            # don't do anything, return the current view
+            return oldview
 
-        # combine the existing groups with the new group id
-        if group_id not in groups:
-            groups.append(group_id)
-            groups.sort()
-
-        # get the view id containing the current view groups plus the new
+        # get the view id containing the current view groups plus/minus the new
         # group, creating it if it doesn't already exist
         view_id = self._get_view_id(groups)
         if view_id is None:
