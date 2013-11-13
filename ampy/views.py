@@ -37,12 +37,15 @@ class View(object):
         # create the description string for the group based on the options
         group = self._parse_group_string(collection, options)
         if group is None:
-            return None
+            # something is wrong with the options string, don't do anything
+            return oldview
 
         # get the group id, creating it if it doesn't already exist
         group_id = self._get_group_id(group)
         if group_id is None:
-            return None
+            # something went wrong trying to create the group, don't do anything
+            return oldview
+
 
         # combine the existing groups with the new group id
         if group_id not in groups:
@@ -52,6 +55,8 @@ class View(object):
         # get the view id containing the current view groups plus the new
         # group, creating it if it doesn't already exist
         view_id = self._get_view_id(groups)
+        if view_id is None:
+            return oldview
         return view_id
 
 
