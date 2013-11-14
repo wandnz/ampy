@@ -1,15 +1,11 @@
 #!/usr/bin/env python
 
 import time
-import urllib2
-import json
-import httplib
 import sys
 
-import sqlalchemy
 import ampy.result
 
-import socket, os
+import socket
 from libnntscclient.protocol import *
 from libnntscclient.nntscclient import NNTSCClient
 
@@ -22,6 +18,7 @@ from ampy.lpiusers import LPIUsersParser
 from ampy.ampicmp import AmpIcmpParser
 from ampy.amptraceroute import AmpTracerouteParser
 from ampy.ampdns import AmpDnsParser
+from ampy.views import View
 
 
 from threading import Lock
@@ -117,6 +114,10 @@ class Connection(object):
             self.memcache = AmpyCache(12)
         else:
             self.memcache = False
+
+        # Set up access to the views that will convert view_ids to stream_ids
+        # TODO use it's own config, not the ampdbconfig
+        self.view = View(self, self.ampdbconfig)
 
     def _connect_nntsc(self):
         """ Connects to NNTSC and returns a NNTSCClient that can be used to
@@ -697,7 +698,6 @@ class Connection(object):
 
         return colid, parser, streaminfo
 
-
     def get_recent_data(self, collection, stream_ids, duration, detail):
         """ Returns aggregated data measurements for a time period starting
             at 'now' and going back a specified number of seconds. This
@@ -763,7 +763,7 @@ class Connection(object):
                 }
                 cached = self.memcache.check_recent(key)
 
-                if cached != []:
+                if cached != None:
                     data[stream_id] = cached
                     continue
             # Otherwise, we don't have it already so add to the list to query
@@ -801,6 +801,204 @@ class Connection(object):
             for k,v in result.iteritems():
                 data[k] = v["data"]
         return data
+
+    def get_recent_view_data(self, collection, view_id, duration, detail):
+        """ Returns aggregated data measurements for a time period starting
+            at 'now' and going back a specified number of seconds. This
+            function is mainly useful for getting summary statistics for the
+            last hour, day, week etc.
+
+            See also get_period_view_data().
+
+            The detail parameter allows the user to limit the amount of data
+            returned to them. For example, smokeping results store the
+            latency measurements for each individual ping. Requesting "full"
+            detail would get these individual results along with the median,
+            uptime and loss measurements. "minimal" will only return median
+            and loss: enough to produce a simple latency time series graph
+            and much smaller to send.
+
+            Note that for some collections, only "full" detail may be available.
+            In those cases, specifying any other level of detail will simply
+            result in the "full" data being returned regardless.
+
+            Valid values for the detail parameter are:
+                "full" -- return all available measurements
+                "minimal" -- return a minimal set of measurements
+
+            Parameters:
+              view_id -- the id number of the view to fetch data for
+              duration -- the length of the time period to fetch data for, in
+                          seconds
+              detail -- a string that describes the level of measurement detail
+                        that should be returned for each datapoint. If None,
+                        assumed to be "full".
+
+            Returns:
+              a dictionary containing all of the requested measurement data,
+              indexed by view_id. If the request fails, this will be empty.
+        """
+
+        info = {}
+        data = {}
+        queries = {}
+        if detail is None:
+            detail = "full"
+        end = int(time.time())
+        start = end - duration
+
+        # figure out what lines should be displayed in this view
+        labels = self.view.get_view_groups(collection, view_id)
+
+        if len(labels) == 0:
+            return {}
+
+        # TODO pick a stream id? these should all be the same collection etc
+        # maybe we do need to call this on every stream_id to be sure?
+        collection_id, parser, streaminfo = self._data_request_prep(
+                collection, labels.values()[0][0])
+
+        # check each stream_id to see if we need to query for it - some will
+        # be invalid, some will be cached already, so don't fetch those ones
+        for label in labels:
+        #for label,stream_ids in labels.iteritems():
+            # an invalid or unknown stream_id has empty data, don't query it
+            #if stream_id > 0:
+            #    info[stream_id] = self._data_request_prep(collection, stream_id)
+            #if stream_id < 0 or info[stream_id] == None:
+            #    data[stream_id] = []
+            #    continue
+
+            # If we have memcache check if this data is available already.
+            if self.memcache:
+                key = {
+                    'label': label,
+                    'duration': duration,
+                    'detail': detail
+                }
+                cached = self.memcache.check_recent(key)
+
+                if cached != None:
+                    data[label] = cached
+                    continue
+            # Otherwise, we don't have it already so add to the list to query
+            queries[label] = labels[label]
+
+        # if there are any labels that we don't already have data for, now
+        # is the time to fetch them and cache them for later
+        if len(queries) > 0:
+            # Fetch all the data that we don't already have. All these streams
+            # are in the same collection and therefore use the same parser, so
+            # we can just grab the collection_id and parser from the last
+            # stream_id we touched.
+            #collection_id,parser,_ = info[queries[0]]
+            result = self._get_data(collection_id, queries, start, end,
+                    duration, detail, parser)
+
+            # do any special formatting that the parser requires
+            for label in result.keys():
+                #_,_,streaminfo = info[stream_id]
+                result[label] = parser.format_data(result[label],
+                        label, streaminfo)
+
+            # Make sure we cache any results we just fetched
+            if self.memcache:
+                for label in result.keys():
+                    key = {
+                        'label': label,
+                        'duration': duration,
+                        'detail': detail
+                    }
+                    self.memcache.store_recent(key, result[label]["data"])
+
+            # we only store the data portion of the result (not freq etc),
+            # so merge that with cached data
+            for k, v in result.iteritems():
+                data[k] = v["data"]
+        return data
+
+    def get_period_view_data(self, collection, view_id, start, end, binsize, detail):
+        blocks = {}
+        cached = {}
+        data = {}
+        # FIXME: Consider limiting maximum durations based on binsize
+        # if end is not set then assume "now".
+        if end is None:
+            end = int(time.time())
+        # If start is not set then assume 2 hours before the end.
+        if start is None:
+            start = end - (60 * 60 * 2)
+        if detail is None:
+            detail = "full"
+
+        # figure out what lines should be displayed in this view
+        labels = self.view.get_view_groups(collection, view_id)
+
+        if len(labels) == 0:
+            return {}
+
+        # TODO pick a stream id? these should all be the same collection etc
+        # maybe we do need to call this on every stream_id to be sure?
+        collection_id, parser, streaminfo = self._data_request_prep(
+                collection, labels.values()[0][0])
+
+        if self.memcache:
+            # see if any of them have been cached
+            required = {}
+            for label, stream_ids in labels.iteritems():
+                # treat a label as an entity that we cache - it might be made
+                # up of data from lots of streams, but it's only one set of data
+                blocks[label] = self.memcache.get_caching_blocks(label,
+                        start, end, binsize, detail)
+                req, cached[label] = self.memcache.search_cached_blocks(
+                        blocks[label])
+                #print "cached:%d uncached:%d id:%s start:%d end:%d" % (
+                #        len(cached[label]), len(req), label, start, end)
+                for r in req:
+                    # group up all the labels that need the same time blocks
+                    blockstart = r["start"]
+                    blockend = r["end"]
+                    binsize = r["binsize"]
+                    if blockstart not in required:
+                        required[blockstart] = {}
+                    if blockend not in required[blockstart]:
+                        required[blockstart][blockend] = {}
+                    if binsize not in required[blockstart][blockend]:
+                        required[blockstart][blockend][binsize] = {}
+                    required[blockstart][blockend][binsize][label] = stream_ids
+
+            # fetch those that aren't cached
+            fetched = {}
+            frequencies = {}
+            for bstart in required:
+                for bend in required[bstart]:
+                    for binsize, rqlabels in required[bstart][bend].iteritems():
+                        qr = self._get_data(collection_id, rqlabels, bstart,
+                                bend-1, binsize, detail, parser)
+                        #print qr
+                        if len(qr) == 0:
+                            return None
+                        for label, item in qr.iteritems():
+                            if label not in fetched:
+                                fetched[label] = []
+                            fetched[label] += item["data"]
+                            frequencies[label] = item["freq"]
+
+            # deal with all the labels that we have fetched data for just now
+            for label, item in fetched.iteritems():
+                data[label] = self._process_blocks(
+                        blocks[label], cached[label],
+                        fetched[label], label, streaminfo,
+                        parser, frequencies[label])
+            # deal with any streams that were entirely cached - should be
+            # every stream left that hasn't already been touched
+            for label, item in cached.iteritems():
+                if label not in fetched:
+                    data[label] = self._process_blocks(
+                            blocks[label], cached[label],
+                            [], label, streaminfo, parser, 0)
+            return data
+
 
     def get_period_data(self, collection, stream_ids, start, end, binsize,
             detail):
@@ -921,17 +1119,25 @@ class Connection(object):
                             fetched[stream_id] += item["data"]
                             frequencies[stream_id] = item["freq"]
 
+            # XXX in some cases stream id is cast to integers or strings to
+            # try to deal with the format that new view style data comes back
+            # in vs what it is before it is queried. Ideally this whole
+            # function will go away and everything will be in the view style
+
             # deal with all the streams that we have fetched data for just now
             for stream_id,item in fetched.iteritems():
+                stream_id = int(stream_id) # XXX
                 _,_,streaminfo = info[stream_id]
                 data[stream_id] = self._process_blocks(
                         blocks[stream_id], cached[stream_id],
-                        fetched[stream_id], stream_id, streaminfo,
-                        parser, frequencies[stream_id])
+                        fetched[str(stream_id)], stream_id, streaminfo, # XXX
+                        parser, frequencies[str(stream_id)]) # XXX
+
             # deal with any streams that were entirely cached - should be
             # every stream left that hasn't already been touched
             for stream_id,item in cached.iteritems():
-                if stream_id not in fetched:
+                stream_id = int(stream_id) # XXX
+                if str(stream_id) not in fetched: # XXX
                     _,_,streaminfo = info[stream_id]
                     data[stream_id] = self._process_blocks(
                             blocks[stream_id], cached[stream_id],
@@ -1005,7 +1211,7 @@ class Connection(object):
             blockdata = []
 
             seendata = False
-            first = False
+            first = True
 
             while ts < b['end']:
                 if ts > now:
@@ -1062,7 +1268,7 @@ class Connection(object):
         return nogap_data
 
 
-    def _get_data(self, colid, stream_ids, start, end, binsize, detail, parser):
+    def _get_data(self, colid, labels, start, end, binsize, detail, parser):
         """ Internal function that actually performs the NNTSC query to get
             measurement data, parses the responses and formats the results
             appropriately.
@@ -1078,7 +1284,7 @@ class Connection(object):
                 an ampy Result object.
         """
         if parser == None:
-            print >> sys.stderr, "Cannot fetch data -- no valid parser for stream %s" % (stream_ids)
+            print >> sys.stderr, "Cannot fetch data -- no valid parser for stream %s" % (labels)
             return {}
 
         client = self._connect_nntsc()
@@ -1087,7 +1293,7 @@ class Connection(object):
             return {}
 
         #print "requesting data for streams, detail", detail, stream_ids
-        result = parser.request_data(client, colid, stream_ids, start, end,
+        result = parser.request_data(client, colid, labels, start, end,
                 binsize, detail)
 
         if result == -1:
@@ -1098,8 +1304,8 @@ class Connection(object):
         freq = 0
         count = 0
 
-        while count < len(stream_ids):
-            #print "got message %d/%d" % (count+1, len(stream_ids))
+        while count < len(labels):
+            #print "got message %d/%d" % (count+1, len(labels))
             msg = self._get_nntsc_message(client)
             #print msg
             if msg == None:
@@ -1118,19 +1324,19 @@ class Connection(object):
                 # Sanity checks
                 if msg[1]['collection'] != colid:
                     continue
-                stream_id = msg[1]['streamid']
-                #print "recv msg with id", stream_id
-                if stream_id not in stream_ids:
+                label = msg[1]['streamid']
+                # XXX extra checks for old streamid data
+                if label not in labels and int(label) not in labels:
                     continue
                 #if msg[1]['aggregator'] != agg_functions:
                 #   continue
-                if stream_id not in data:
-                    data[stream_id] = {}
-                    data[stream_id]["data"] = []
-                    data[stream_id]["freq"] = msg[1]['binsize']
-                data[stream_id]["data"] += msg[1]['data']
+                if label not in data:
+                    data[label] = {}
+                    data[label]["data"] = []
+                    data[label]["freq"] = msg[1]['binsize']
+                data[label]["data"] += msg[1]['data']
                 if msg[1]['more'] == False:
-                    # increment the count of completed stream_ids
+                    # increment the count of completed labels
                     count += 1
         #print "got all messages"
         client.disconnect()
