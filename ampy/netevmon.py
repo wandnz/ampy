@@ -10,12 +10,10 @@ import time
 import urllib2
 import sys
 import ampy.result
+import random
 
-from sqlalchemy.sql import and_, or_, not_, text
-from sqlalchemy.sql.expression import select, outerjoin, func, label
-from sqlalchemy.engine.url import URL
-from sqlalchemy import create_engine, MetaData, Table
-from sqlalchemy.engine import reflection
+import psycopg2
+import psycopg2.extras
 
 try:
     import pylibmc
@@ -44,17 +42,45 @@ class Connection(object):
 
 
     def __init__(self, host=None, name="events", pwd=None, user=None):
-        cstring = URL('postgresql', password=pwd, \
-                host=host, database=name, username=user)
+        cstring = "dbname=%s" % (name)
+        if host != "" and host != None:
+            cstring += " host=%s" % (host)
+        if user != "" and user != None:
+            cstring += " user=%s" % (user)
+        if pwd != "" and pwd != None:
+            cstring += " password=%s" % (pwd)
+        
+        self.datacursor = None
 
-        self.engine = create_engine(cstring, echo=False)
-        self.inspector = reflection.Inspector.from_engine(self.engine)
-        self.__reflect_db()
+        try:
+            self.conn = psycopg2.connect(cstring)
+        except psycopg2.DatabaseError as e:
+            print >> sys.stderr, "Error connecting to event database:", e
+            self.conn = None
+            return
+        
+        self.cursorname = 'ampy_%030x' % random.randrange(16**30)
 
-        self.conn = self.engine.connect()
+    def _reset_cursor(self):
+        if self.conn == None:
+            return
+
+        if self.datacursor:
+            self.datacursor.close()
+
+        try:
+            self.datacursor = self.conn.cursor(self.cursorname,
+                    cursor_factory = psycopg2.extras.DictCursor)
+        except psycopg2.DatabaseError as e:
+            print >> sys.stderr, "Failed to create event data cursor:", e
+            self.datacursor = None
+            
 
     def __del__(self):
-        self.conn.close()
+        if self.datacursor:
+            self.datacursor.close()
+        if self.conn:
+            self.conn.close()
 
     def get_stream_events(self, stream_ids, start=None, end=None):
         """Fetches all events for a given stream between a start and end
@@ -66,50 +92,58 @@ class Connection(object):
         if start is None:
             start = end - (12 * 60 * 60)
 
-        evtable = self.metadata.tables['event_view']
+        self._reset_cursor()
+        if self.datacursor == None:
+            return ampy.result.Result([])
 
+        selclause = "SELECT * FROM event_view "
+
+        whereclause = "WHERE timestamp >= %s AND timestamp <= %s "
         # iterate over all stream_ids and fetch all events
-        stream_str = "("
-        index = 0
-        for stream_id in stream_ids:
-            stream_str += "%s = %s" % (evtable.c.stream_id, stream_id)
-            index += 1
-            # Don't put OR after the last stream!
-            if index != len(stream_ids):
-                stream_str += " OR "
-        stream_str += ")"
+        if len(stream_ids) != 0:
+            streamclause = "AND ("
+            for i in range(0, len(stream_ids)):
+                streamclause += "stream_id = %s"
+                if i != len(stream_ids) - 1:
+                    streamclause += " OR "
+            streamclause += ")"
+        whereclause += streamclause
 
-        wherecl = "(%s >= %u AND %s <= %u AND %s)" % ( \
-                evtable.c.timestamp, start, evtable.c.timestamp, \
-                end, stream_str)
+        orderclause = " ORDER BY timestamp, stream_id "
+        sql = selclause + whereclause + orderclause
 
-        query = evtable.select().where(wherecl).order_by(evtable.c.timestamp)
-        return self.__execute_query(query)
+        params = tuple([start] + [end] + stream_ids)
 
-    def __execute_query(self, query):
+        self.datacursor.execute(sql, params)
 
-        res = query.execute()
+        eventlist = []
+        while True:
+            fetched = self.datacursor.fetchmany(200)
+            if fetched == []:
+                break
+            eventlist += fetched
 
-        event_list = []
+        return ampy.result.Result(eventlist)
 
-        for row in res:
-            foo = {}
-            for k,v in row.items():
-                foo[k] = v
-            event_list.append(foo)
-        res.close()
-
-        return ampy.result.Result(event_list)
 
     def get_events_in_group(self, group_id):
         """Fetches all of the events belonging to a specific event group.
            The events are returned as a Result object."""
-        evtable = self.metadata.tables['full_event_group_view']
+        self._reset_cursor()
+        if self.datacursor == None:
+            return ampy.result.Result([])
 
-        wherecl = "(%s = %u)" % (evtable.c.group_id, group_id)
+        sql = "SELECT * FROM full_event_group_view WHERE group_id=%s ORDER BY timestamp"
+        self.datacursor.execute(sql, (str(group_id),))
+        
+        eventlist = []
+        while True:
+            fetched = self.datacursor.fetchmany(200)
+            if fetched == []:
+                break
+            eventlist += fetched
 
-        query = evtable.select().where(wherecl).order_by(evtable.c.timestamp)
-        return self.__execute_query(query)
+        return ampy.result.Result(eventlist)
 
     def get_event_groups(self, start=None, end=None):
         """Fetches all of the event groups between a start and end time.
@@ -122,14 +156,22 @@ class Connection(object):
 
         start_dt = datetime.datetime.fromtimestamp(start)
         end_dt = datetime.datetime.fromtimestamp(end)
+        
+        self._reset_cursor()
+        if self.datacursor == None:
+            return ampy.result.Result([])
 
-        grptable = self.metadata.tables['event_group']
+        sql = "SELECT * FROM event_group WHERE group_start_time >= %s AND group_end_time <= %s ORDER BY group_start_time"
+        self.datacursor.execute(sql, (start_dt, end_dt))
 
-        wherecl = and_(grptable.c.group_start_time >= start_dt, \
-                grptable.c.group_end_time <= end_dt)
+        eventlist = []
+        while True:
+            fetched = self.datacursor.fetchmany(200)
+            if fetched == []:
+                break
+            eventlist += fetched
 
-        query = grptable.select().where(wherecl).order_by(grptable.c.group_start_time)
-        return self.__execute_query(query)
+        return ampy.result.Result(eventlist)
 
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :

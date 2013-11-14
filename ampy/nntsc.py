@@ -17,6 +17,7 @@ from ampy.lpiflows import LPIFlowsParser
 from ampy.lpiusers import LPIUsersParser
 from ampy.ampicmp import AmpIcmpParser
 from ampy.amptraceroute import AmpTracerouteParser
+from ampy.ampdns import AmpDnsParser
 from ampy.views import View
 
 
@@ -327,6 +328,9 @@ class Connection(object):
 
         if name == "amp-icmp":
             parser = AmpIcmpParser(self.ampdbconfig)
+        
+        if name == "amp-dns":
+            parser = AmpDnsParser(self.ampdbconfig)
 
         if name == "amp-traceroute":
             parser = AmpTracerouteParser(self.ampdbconfig)
