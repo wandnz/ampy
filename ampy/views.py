@@ -193,8 +193,8 @@ class View(object):
 
     def _get_combined_view_groups(self, collection, parts, streams):
         """ Combined all streams together into a single result line """
-        key = "%s_%s_%s" % (collection, parts.group("source"),
-                parts.group("destination"))
+        key = "%s_%s_%s_%s" % (collection, parts.group("source"),
+                parts.group("destination"), parts.group("option"))
         return { key: streams }
 
 
@@ -203,8 +203,9 @@ class View(object):
         groups = {}
         for stream in streams:
             info = self.nntsc.get_stream_info(collection, stream)
-            key = "%s_%s_%s_%s" % (collection, parts.group("source"),
-                    parts.group("destination"), info["address"])
+            key = "%s_%s_%s_%s_%s" % (collection, parts.group("source"),
+                    parts.group("destination"), parts.group("option"),
+                    info["address"])
             groups[key] = [stream]
         return groups
 
@@ -218,8 +219,8 @@ class View(object):
                 family = "ipv4"
             else:
                 family = "ipv6"
-            key = "%s_%s_%s_%s" % (collection, parts.group("source"),
-                    parts.group("destination"), family)
+            key = "%s_%s_%s_%s_%s" % (collection, parts.group("source"),
+                    parts.group("destination"), parts.group("option"), family)
             if key not in groups:
                 groups[key] = []
             groups[key].append(stream)
