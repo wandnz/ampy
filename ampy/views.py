@@ -72,7 +72,7 @@ class View(object):
         if options[3].upper() not in self.splits:
             return None
 
-        if collection == "amp-icmp":
+        if collection == "amp-icmp" or collection == "amp-traceroute":
             return "%s FROM %s TO %s OPTION %s %s" % (
                     collection, options[0], options[1], options[2],
                     options[3].upper())
