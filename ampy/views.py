@@ -146,7 +146,7 @@ class View(object):
 
         # XXX do we need collection to be passed in?
         # XXX do matrix properly
-        if view_id.startswith("matrix_"):
+        if str(view_id).startswith("matrix_"):
             return self._get_matrix_view_groups(view_id)
 
         if self.viewdb is None:
