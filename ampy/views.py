@@ -12,7 +12,7 @@ class View(object):
     def __init__(self, nntsc, dbconfig):
         """ Create connection to views database """
         self.nntsc = nntsc
-        self.splits = ["FULL", "NONE", "NETWORK", "FAMILY"]
+        self.splits = ["FULL", "NONE", "NETWORK", "FAMILY", "STREAM"]
         # The view group database stores view group rules
         try:
             # TODO make this configurable somewhere?
@@ -64,6 +64,17 @@ class View(object):
         view_id = self._get_view_id(groups)
         if view_id is None:
             return oldview
+        return view_id
+
+
+    def create_view_from_stream(self, collection, stream):
+        info = self.nntsc.get_stream_info(collection, stream)
+        # XXX currently only amp-icmp and amp-traceroute
+        group = "%s FROM %s TO %s OPTION %s STREAM %s" % (
+            collection, info["source"], info["destination"],
+            info["packet_size"], stream)
+        group_id = self._get_group_id(group)
+        view_id = self._get_view_id([group_id])
         return view_id
 
 
@@ -163,7 +174,7 @@ class View(object):
                     "FROM (?P<source>[.a-zA-Z0-9-]+) "
                     "TO (?P<destination>[.a-zA-Z0-9-]+) "
                     "OPTION (?P<option>[a-zA-Z0-9]+) "
-                    "(?P<split>[A-Z]+)", rule)
+                    "(?P<split>[A-Z]+)[ ]*(?P<stream>[0-9]*)", rule)
             if parts is None:
                 continue
             assert(parts.group("split") in self.splits)
@@ -186,6 +197,9 @@ class View(object):
                     pass
                 elif parts.group("split") == "FAMILY":
                     groups.update(self._get_family_view_groups(collection,
+                                parts, streams))
+                elif parts.group("split") == "STREAM":
+                    groups.update(self._get_stream_view_groups(collection,
                                 parts, streams))
         return groups
 
@@ -225,6 +239,16 @@ class View(object):
                 groups[key] = []
             groups[key].append(stream)
         return groups
+
+
+    def _get_stream_view_groups(self, collection, parts, streams):
+        """ Create a view containing a single stream """
+        if int(parts.group("stream")) not in streams:
+            return {}
+        key = "%s_%s_%s_%s_%s" % (collection, parts.group("source"),
+                parts.group("destination"), parts.group("option"),
+                parts.group("stream"))
+        return { key: [int(parts.group("stream"))] }
 
 
     def _get_matrix_view_groups(self, view_id):
