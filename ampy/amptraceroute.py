@@ -16,13 +16,23 @@ class AmpTracerouteParser(ampicmp.AmpIcmpParser):
             to NNTSC for aggregated data.
         """
 
-        # Detail is irrelevant at this point
-        aggcols = ["length", "length"]
-        aggfuncs = ["avg", "count"]
-        group = ["stream_id"]
+        if detail == "matrix":
+            aggcols = ["length", "length"]
+            aggfuncs = ["avg", "count"]
+            group = ["stream_id"]
 
-        return client.request_aggregate(colid, streams, start, end, aggcols,
-                binsize, group, aggfuncs)
+            # XXX this returns average path lengths, but will this add each
+            # length n times and take the average of that? there are more rows
+            # the longer the path...
+            return client.request_aggregate(colid, streams, start, end, aggcols,
+                    binsize, group, aggfuncs)
+        else:
+            # TODO half of these probably won't work? also missing hop latency
+            commoncols = ["hop_address"]
+            othercols = ["length", "error_type", "error_code"]
+            otheragg = ["most"]
+            return client.request_common(colid, streams, start, end, binsize,
+                    commoncols, othercols, otheragg)
 
     def format_data(self, received, stream, streaminfo):
         """ Formats the measurements retrieved from NNTSC into a nice format
