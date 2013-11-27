@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import sys, string
 import ampicmp
 
 class AmpTracerouteParser(ampicmp.AmpIcmpParser):
@@ -16,13 +15,18 @@ class AmpTracerouteParser(ampicmp.AmpIcmpParser):
             to NNTSC for aggregated data.
         """
 
-        # Detail is irrelevant at this point
-        aggcols = ["length", "length"]
-        aggfuncs = ["avg", "count"]
-        group = ["stream_id"]
+        if detail == "matrix":
+            # matrix display is only interested in path lengths
+            aggfuncs = ["avg"]
+            aggcols = ["length"]
+        else:
+            # other displays are interested in the actual path
+            aggfuncs = ["most_array"]
+            aggcols = ["path"] # TODO get hop_rtt as well
 
-        return client.request_aggregate(colid, streams, start, end, aggcols,
-                binsize, group, aggfuncs)
+        # XXX what is stream id for here?
+        return client.request_aggregate(colid, streams, start, end,
+                aggcols, binsize, ["stream_id"], aggfuncs)
 
     def format_data(self, received, stream, streaminfo):
         """ Formats the measurements retrieved from NNTSC into a nice format
@@ -38,7 +42,8 @@ class AmpTracerouteParser(ampicmp.AmpIcmpParser):
             suitable for display on a graphtab alongside the main graph for
             the provided stream.
         """
-        result = super(AmpTracerouteParser, self).get_graphtab_stream(streaminfo, "60")
+        result = super(AmpTracerouteParser, self).get_graphtab_stream(
+                streaminfo, "60")
 
         # Our parent class is going set these to be amp-icmp, so replace them
         # with something more suitable for traceroute

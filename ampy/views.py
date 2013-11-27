@@ -161,7 +161,7 @@ class View(object):
             return self._get_matrix_view_groups(view_id)
 
         if self.viewdb is None:
-            return []
+            return {}
 
         rules = [x[0] for x in self.viewdb.execute(sqlalchemy.text(
                     "SELECT group_description FROM groups WHERE group_id IN "
