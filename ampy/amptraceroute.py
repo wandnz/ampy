@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import sys, string
 import ampicmp
 
 class AmpTracerouteParser(ampicmp.AmpIcmpParser):
@@ -43,7 +42,8 @@ class AmpTracerouteParser(ampicmp.AmpIcmpParser):
             suitable for display on a graphtab alongside the main graph for
             the provided stream.
         """
-        result = super(AmpTracerouteParser, self).get_graphtab_stream(streaminfo, "60")
+        result = super(AmpTracerouteParser, self).get_graphtab_stream(
+                streaminfo, "60")
 
         # Our parent class is going set these to be amp-icmp, so replace them
         # with something more suitable for traceroute
