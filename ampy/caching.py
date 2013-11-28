@@ -3,6 +3,7 @@ import pylibmc
 
 class AmpyCache(object):
     def __init__(self, blocksize):
+        """ Connect to memcache on initialisation """
         self.blocksize = blocksize
         self.memcache = pylibmc.Client(
                 ["127.0.0.1"],
@@ -13,9 +14,11 @@ class AmpyCache(object):
         self.mcpool = pylibmc.ThreadMappedPool(self.memcache)
 
     def __del__(self):
+        """ Close connection to memcache on deletion """
         self.mcpool.relinquish()
 
     def get_caching_blocks(self, stream, start, end, binsize, detail):
+        """ Break a period into fixed sized blocks to help with caching """
         blocks = []
         blocksize = binsize * self.blocksize
 
@@ -43,6 +46,7 @@ class AmpyCache(object):
         return blocks
 
     def search_cached_blocks(self, blocks):
+        """ Determine which data blocks are present in the cache """
         missing = []
         cached = {}
 
@@ -90,6 +94,7 @@ class AmpyCache(object):
 
 
     def check_recent(self, query):
+        """ Fetch recent data for the matrix from the cache, if present """
         key = str("_".join([str(query['label']), str(query['duration']),
                 str(query['detail']), "recent"]))
 
@@ -103,6 +108,7 @@ class AmpyCache(object):
         return None
 
     def check_collection_streams(self, colid):
+        """ Fetch the streams in a collection from the cache, if present """
         key = str("_".join(["colstreams", str(colid)]))
 
         with self.mcpool.reserve() as mc:
@@ -116,6 +122,7 @@ class AmpyCache(object):
         return []
 
     def check_streaminfo(self, streamid):
+        """ Fetch stream information from the cache, if present """
         key = str("_".join(["streaminfo", str(streamid)]))
 
         with self.mcpool.reserve() as mc:
@@ -129,6 +136,7 @@ class AmpyCache(object):
         return {}
 
     def store_streaminfo(self, stream, streamid):
+        """ Cache the information for a particular stream """
         infokey = str("_".join(["streaminfo", str(streamid)]))
 
         with self.mcpool.reserve() as mc:
@@ -140,8 +148,9 @@ class AmpyCache(object):
                 pass
 
     def store_collection_streams(self, colid, streams):
-
+        """ Cache the streams in a collection """
         idkey = str("_".join(["colstreams", str(colid)]))
+
         with self.mcpool.reserve() as mc:
             try:
                 # Expire this reasonably frequently, so we can learn about
@@ -154,7 +163,7 @@ class AmpyCache(object):
                 pass
 
     def store_block(self, block, blockdata):
-
+        """ Cache a block of fetched data """
         with self.mcpool.reserve() as mc:
             try:
                 mc.set(block['cachekey'], blockdata, block['cachetime'])
@@ -162,7 +171,7 @@ class AmpyCache(object):
                 pass
 
     def store_recent(self, query, result):
-
+        """ Cache recent (non-block) data that the matrix displays """
         # Brendon's hideous cache timeout calculation algorithm
         if query['duration'] <= (60 * 10):
             cachetime = 60
