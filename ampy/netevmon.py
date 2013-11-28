@@ -7,7 +7,6 @@ events.
 
 import datetime
 import time
-import urllib2
 import sys
 import ampy.result
 import random
@@ -49,7 +48,7 @@ class Connection(object):
             cstring += " user=%s" % (user)
         if pwd != "" and pwd != None:
             cstring += " password=%s" % (pwd)
-        
+
         self.datacursor = None
 
         try:
@@ -58,7 +57,7 @@ class Connection(object):
             print >> sys.stderr, "Error connecting to event database:", e
             self.conn = None
             return
-        
+
         self.cursorname = 'ampy_%030x' % random.randrange(16**30)
 
     def _reset_cursor(self):
@@ -74,7 +73,7 @@ class Connection(object):
         except psycopg2.DatabaseError as e:
             print >> sys.stderr, "Failed to create event data cursor:", e
             self.datacursor = None
-            
+
 
     def __del__(self):
         if self.datacursor:
@@ -135,7 +134,7 @@ class Connection(object):
 
         sql = "SELECT * FROM full_event_group_view WHERE group_id=%s ORDER BY timestamp"
         self.datacursor.execute(sql, (str(group_id),))
-        
+
         eventlist = []
         while True:
             fetched = self.datacursor.fetchmany(200)
@@ -156,7 +155,7 @@ class Connection(object):
 
         start_dt = datetime.datetime.fromtimestamp(start)
         end_dt = datetime.datetime.fromtimestamp(end)
-        
+
         self._reset_cursor()
         if self.datacursor == None:
             return ampy.result.Result([])
