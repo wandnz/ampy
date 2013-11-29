@@ -24,22 +24,22 @@ class AmpIcmpParser(amp.AmpParser):
 
     # XXX do we want to extract the source/destination parts of this function
     # into the parent class?
-    def add_stream(self, s):
+    def add_stream(self, stream):
         """ Updates the internal maps based on a new stream
 
             Parameters:
-                s -- the new stream, as returned by NNTSC
+                stream -- the new stream, as returned by NNTSC
         """
-        super(AmpIcmpParser, self).add_stream(s)
-        src = s['source']
-        dest = s['destination']
-        sid = s['stream_id']
-        pktsize = s['packet_size']
+        super(AmpIcmpParser, self).add_stream(stream)
+        src = stream['source']
+        dest = stream['destination']
+        sid = stream['stream_id']
+        pktsize = stream['packet_size']
 
-        if 'address' not in s:
+        if 'address' not in stream:
             address = "None"
         else:
-            address = s['address']
+            address = stream['address']
 
         if (src, dest) in self.sizes:
             self.sizes[(src, dest)][pktsize] = 1

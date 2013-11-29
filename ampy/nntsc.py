@@ -133,7 +133,8 @@ class Connection(object):
         try:
             s.connect((self.host, self.port))
         except socket.error, msg:
-            print >> sys.stderr, "Failed to connect to %s:%d -- %s" % (self.host, self.port, msg[1])
+            print >> sys.stderr, "Failed to connect to %s:%d -- %s" % (
+                    self.host, self.port, msg[1])
             return None
 
         client = NNTSCClient(s)
@@ -296,7 +297,7 @@ class Connection(object):
             print >> sys.stderr, "Error receiving collections from NNTSC"
         self.collection_lock.release()
 
-        return self.collections;
+        return self.collections
 
     def create_parser(self, name):
         """ Creates a 'parser' for the named collection.
