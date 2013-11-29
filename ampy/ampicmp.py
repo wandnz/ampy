@@ -215,11 +215,11 @@ class AmpIcmpParser(amp.AmpParser):
 
     def stream_to_group(self, streaminfo):
         group = "%s FROM %s TO %s OPTION %s STREAM %s" % (
-            self.collection,_name, streaminfo["source"], 
+            self.collection,_name, streaminfo["source"],
             streaminfo["destination"],
             streaminfo["packet_size"], streaminfo['stream_id'])
-        return group 
-        
+        return group
+
 
     def parse_group_options(self, options):
         if options[3].upper() not in self.splits:
@@ -243,7 +243,7 @@ class AmpIcmpParser(amp.AmpParser):
         keydict = {
             "source": parts.group("source"),
             "destination": parts.group("destination"),
-            "packet_size": parts.group("option") 
+            "packet_size": parts.group("option")
         }
 
 
@@ -275,22 +275,22 @@ class AmpIcmpParser(amp.AmpParser):
         key = "%s_%s_%s_%s" % (collection, parts.group("source"),
                 parts.group("destination"), parts.group("option"))
         return { key: streams.keys() }
-        
-        
+
+
     def _get_all_view_groups(self, collection, parts, streams):
         """ Display all streams as individual result lines """
-        groups = {} 
+        groups = {}
         for stream, info in streams.items():
             key = "%s_%s_%s_%s_%s" % (collection, parts.group("source"),
                     parts.group("destination"), parts.group("option"),
                     info["address"])
             groups[key] = [stream]
-        return groups 
-            
-                
+        return groups
+
+
     def _get_family_view_groups(self, collection, parts, streams):
         """ Group streams by address family, displaying a line for ipv4/6 """
-        groups = {} 
+        groups = {}
         for stream, info in streams.items():
             if "." in info["address"]:
                 family = "ipv4"
@@ -312,7 +312,7 @@ class AmpIcmpParser(amp.AmpParser):
                 parts.group("destination"), parts.group("option"),
                 parts.group("stream"))
         return { key: [int(parts.group("stream"))] }
- 
+
 
     def _get_sizes(self, source, dest):
         """ Get a list of all packet sizes used to test between a given

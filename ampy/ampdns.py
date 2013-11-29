@@ -13,10 +13,10 @@ class AmpDnsParser(amp.AmpParser):
 
         self.queries = {}
         self.addresses = {}
-        
+
 
     def add_stream(self, s):
-        
+
         super(AmpDnsParser, self).add_stream(s)
 
         src = s['source']
@@ -62,7 +62,7 @@ class AmpDnsParser(amp.AmpParser):
         # Remove these to reduce the iteration workload later on
         del params['source']
         del params['destination']
-        del params['query'] 
+        del params['query']
 
         # If address isn't specified, return streams for all valid
         # addresses
@@ -79,10 +79,10 @@ class AmpDnsParser(amp.AmpParser):
         # For example, if params has a key 'query_type' with a value 'A' we
         # don't want to return streams that don't have a query_type of 'A'.
 
-        # XXX This must be hideously slow, but hopefully we'll soon have a 
+        # XXX This must be hideously slow, but hopefully we'll soon have a
         # views system that renders this sort of thing unnecessary (or at
         # least does it better)
-        
+
         result = []
         for a in addresses:
             k = (src, dest, query, a)
@@ -107,9 +107,9 @@ class AmpDnsParser(amp.AmpParser):
 
         return result
 
-    def request_data(self, client, colid, streams, start, end, binsize, 
+    def request_data(self, client, colid, streams, start, end, binsize,
             detail):
-        
+
         if detail == "matrix":
             aggfuncs = ["avg", "stddev", "count"]
             aggcols = ["rtt"]
@@ -166,7 +166,7 @@ class AmpDnsParser(amp.AmpParser):
         if query == None:
             return []
         if address == None:
-            iteraddrs = self._get_addresses(params['source'], 
+            iteraddrs = self._get_addresses(params['source'],
                     params['destination'], query)
         else:
             iteraddrs = [address]
@@ -182,7 +182,7 @@ class AmpDnsParser(amp.AmpParser):
             matchstreams = self.streams[k]
 
             for s in matchstreams:
-                if req in s:            
+                if req in s:
                     possibles.append(s[req])
 
         return list(set(possibles))
@@ -190,13 +190,13 @@ class AmpDnsParser(amp.AmpParser):
     def get_graphtab_stream(self, streaminfo, defaultquery="www.google.com"):
         # This is probably only useful if we are running other AMP tests to
         # the DNS server
-        
+
         if 'source' not in streaminfo or 'destination' not in streaminfo:
             return []
         if 'address' not in streaminfo:
             return []
 
-        queries = self._get_queries(streaminfo['source'], 
+        queries = self._get_queries(streaminfo['source'],
                 streaminfo['destination'])
 
         if queries == []:
@@ -234,4 +234,4 @@ class AmpDnsParser(amp.AmpParser):
             return []
         return self.addresses[(source, dest, query)].keys()
 
-# vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :                
+# vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :
