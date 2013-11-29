@@ -10,6 +10,8 @@ class AmpTracerouteParser(ampicmp.AmpIcmpParser):
         # we need all the same initialisation everything AMP related does
         super(AmpTracerouteParser, self).__init__(dbconfig)
 
+        self.collection_name = "amp-traceroute"
+
     def request_data(self, client, colid, streams, start, end, binsize, detail):
         """ Based on the level of detail requested, forms and sends a request
             to NNTSC for aggregated data.
