@@ -35,7 +35,7 @@ class View(object):
             return None
 
         # create the description string for the group based on the options
-        group = self._parse_group_string(collection, options)
+        group = self.nntsc.parse_group_options(collection, options)
         if group is None:
             # something is wrong with the options string, don't do anything
             return oldview
@@ -68,27 +68,14 @@ class View(object):
 
 
     def create_view_from_stream(self, collection, stream):
-        info = self.nntsc.get_stream_info(collection, stream)
-        # XXX currently only amp-icmp and amp-traceroute
-        group = "%s FROM %s TO %s OPTION %s STREAM %s" % (
-            collection, info["source"], info["destination"],
-            info["packet_size"], stream)
+        group = self.nntsc.stream_to_group(collection, stream)
+        if group == "":
+            print >> sys.stderr, "Failed to find group for stream %d" % (stream)
+            return -1
+
         group_id = self._get_group_id(group)
         view_id = self._get_view_id([group_id])
         return view_id
-
-
-    def _parse_group_string(self, collection, options):
-        """ Convert the URL arguments into a group description string """
-        if options[3].upper() not in self.splits:
-            return None
-
-        if collection == "amp-icmp" or collection == "amp-traceroute":
-            return "%s FROM %s TO %s OPTION %s %s" % (
-                    collection, options[0], options[1], options[2],
-                    options[3].upper())
-        return None
-
 
     def _get_groups_in_view(self, view_id):
         """ Get a list of the groups in a given view """
@@ -170,86 +157,8 @@ class View(object):
                 {"view_id": view_id})]
 
         for rule in rules:
-            parts = re.match("(?P<collection>[a-z-]+) "
-                    "FROM (?P<source>[.a-zA-Z0-9-]+) "
-                    "TO (?P<destination>[.a-zA-Z0-9-]+) "
-                    "OPTION (?P<option>[a-zA-Z0-9]+) "
-                    "(?P<split>[A-Z]+)[ ]*(?P<stream>[0-9]*)", rule)
-            if parts is None:
-                continue
-            assert(parts.group("split") in self.splits)
-            # fetch all streams for this group
-            # XXX this is only for amp data with packet size
-            streams = self.nntsc.get_stream_id(collection, {
-                        "source": parts.group("source"),
-                        "destination": parts.group("destination"),
-                        "packet_size": parts.group("option") })
-
-            # split the streams into the desired groupings
-            if type(streams) == list and len(streams) > 0:
-                if parts.group("split") == "FULL":
-                    groups.update(self._get_combined_view_groups(collection,
-                                parts, streams))
-                elif parts.group("split") == "NONE":
-                    groups.update(self._get_all_view_groups(collection,
-                                parts, streams))
-                elif parts.group("split") == "NETWORK":
-                    pass
-                elif parts.group("split") == "FAMILY":
-                    groups.update(self._get_family_view_groups(collection,
-                                parts, streams))
-                elif parts.group("split") == "STREAM":
-                    groups.update(self._get_stream_view_groups(collection,
-                                parts, streams))
+            groups.update(self.nntsc.find_groups(collection, rule))
         return groups
-
-
-
-    def _get_combined_view_groups(self, collection, parts, streams):
-        """ Combined all streams together into a single result line """
-        key = "%s_%s_%s_%s" % (collection, parts.group("source"),
-                parts.group("destination"), parts.group("option"))
-        return { key: streams }
-
-
-    def _get_all_view_groups(self, collection, parts, streams):
-        """ Display all streams as individual result lines """
-        groups = {}
-        for stream in streams:
-            info = self.nntsc.get_stream_info(collection, stream)
-            key = "%s_%s_%s_%s_%s" % (collection, parts.group("source"),
-                    parts.group("destination"), parts.group("option"),
-                    info["address"])
-            groups[key] = [stream]
-        return groups
-
-
-    def _get_family_view_groups(self, collection, parts, streams):
-        """ Group streams by address family, displaying a line for ipv4/6 """
-        groups = {}
-        for stream in streams:
-            info = self.nntsc.get_stream_info(collection, stream)
-            if "." in info["address"]:
-                family = "ipv4"
-            else:
-                family = "ipv6"
-            key = "%s_%s_%s_%s_%s" % (collection, parts.group("source"),
-                    parts.group("destination"), parts.group("option"), family)
-            if key not in groups:
-                groups[key] = []
-            groups[key].append(stream)
-        return groups
-
-
-    def _get_stream_view_groups(self, collection, parts, streams):
-        """ Create a view containing a single stream """
-        if int(parts.group("stream")) not in streams:
-            return {}
-        key = "%s_%s_%s_%s_%s" % (collection, parts.group("source"),
-                parts.group("destination"), parts.group("option"),
-                parts.group("stream"))
-        return { key: [int(parts.group("stream"))] }
-
 
     def _get_matrix_view_groups(self, view_id):
         """ Quick way to get all the matrix data without using the database """
