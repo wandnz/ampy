@@ -19,14 +19,22 @@ class AmpTracerouteParser(ampicmp.AmpIcmpParser):
             # matrix display is only interested in path lengths
             aggfuncs = ["avg"]
             aggcols = ["length"]
-        else:
+        elif detail == "hops":
             # other displays are interested in the actual path
             aggfuncs = ["most_array"]
             aggcols = ["path"] # TODO get hop_rtt as well
 
-        # XXX what is stream id for here?
-        return client.request_aggregate(colid, streams, start, end,
-                aggcols, binsize, ["stream_id"], aggfuncs)
+        if detail == "matrix" or detail == "hops":
+            # XXX what is stream id for here?
+            return client.request_aggregate(colid, streams, start, end,
+                    aggcols, binsize, ["stream_id"], aggfuncs)
+        else:
+            # most timeseries percentile graphs ask for "full" detail
+            ntiles = ["length"]
+            ntileagg = ["avg"]
+            result = client.request_percentiles(colid, streams, start, end,
+                    binsize, ntiles, [], ntileagg, [])
+
 
     def format_data(self, received, stream, streaminfo):
         """ Formats the measurements retrieved from NNTSC into a nice format
