@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import amp
+import re
 
 class AmpIcmpParser(amp.AmpParser):
     """ Parser for the amp-icmp collection. """
@@ -17,6 +18,9 @@ class AmpIcmpParser(amp.AmpParser):
         # Dictionary that maps (source, dest, size) to a set of addresses
         # that were used in tests between the two hosts
         self.addresses = {}
+
+        self.splits = ["FULL", "NONE", "NETWORK", "FAMILY", "STREAM"]
+        self.collection_name = "amp-icmp"
 
     # XXX do we want to extract the source/destination parts of this function
     # into the parent class?
@@ -208,6 +212,107 @@ class AmpIcmpParser(amp.AmpParser):
         return [{'streamid':self.get_stream_id(params), 'title':"Latency", \
                 'collection':'amp-icmp'}]
 
+
+    def stream_to_group(self, streaminfo):
+        group = "%s FROM %s TO %s OPTION %s STREAM %s" % (
+            self.collection,_name, streaminfo["source"], 
+            streaminfo["destination"],
+            streaminfo["packet_size"], streaminfo['stream_id'])
+        return group 
+        
+
+    def parse_group_options(self, options):
+        if options[3].upper() not in self.splits:
+            return None
+
+        return "%s FROM %s TO %s OPTION %s %s" % (
+                    self.collection_name, options[0], options[1], options[2],
+                    options[3].upper())
+
+    def split_group_rule(self, rule):
+        parts = re.match("(?P<collection>[a-z-]+) "
+                "FROM (?P<source>[.a-zA-Z0-9-]+) "
+                "TO (?P<destination>[.a-zA-Z0-9-]+) "
+                "OPTION (?P<option>[a-zA-Z0-9]+) "
+                "(?P<split>[A-Z]+)[ ]*(?P<stream>[0-9]*)", rule)
+        if parts is None:
+            return None
+        if parts.group("split") not in self.splits:
+            return None
+
+        keydict = {
+            "source": parts.group("source"),
+            "destination": parts.group("destination"),
+            "packet_size": parts.group("option") 
+        }
+
+
+        return parts, keydict
+
+    def find_groups(self, parts, streams):
+        collection = self.collection_name
+
+        if parts.group("split") == "FULL":
+            groups = self._get_combined_view_groups(collection,
+                        parts, streams)
+        elif parts.group("split") == "NONE":
+            groups = self._get_all_view_groups(collection,
+                        parts, streams)
+        elif parts.group("split") == "NETWORK":
+            groups = {}       # TODO
+        elif parts.group("split") == "FAMILY":
+            groups = self._get_family_view_groups(collection,
+                        parts, streams)
+        elif parts.group("split") == "STREAM":
+            groups = self._get_stream_view_groups(collection,
+                        parts, streams)
+
+        return groups
+
+
+    def _get_combined_view_groups(self, collection, parts, streams):
+        """ Combined all streams together into a single result line """
+        key = "%s_%s_%s_%s" % (collection, parts.group("source"),
+                parts.group("destination"), parts.group("option"))
+        return { key: streams.keys() }
+        
+        
+    def _get_all_view_groups(self, collection, parts, streams):
+        """ Display all streams as individual result lines """
+        groups = {} 
+        for stream, info in streams.items():
+            key = "%s_%s_%s_%s_%s" % (collection, parts.group("source"),
+                    parts.group("destination"), parts.group("option"),
+                    info["address"])
+            groups[key] = [stream]
+        return groups 
+            
+                
+    def _get_family_view_groups(self, collection, parts, streams):
+        """ Group streams by address family, displaying a line for ipv4/6 """
+        groups = {} 
+        for stream, info in streams.items():
+            if "." in info["address"]:
+                family = "ipv4"
+            else:
+                family = "ipv6"
+            key = "%s_%s_%s_%s_%s" % (collection, parts.group("source"),
+                    parts.group("destination"), parts.group("option"), family)
+            if key not in groups:
+                groups[key] = []
+            groups[key].append(stream)
+        return groups
+
+
+    def _get_stream_view_groups(self, collection, parts, streams):
+        """ Create a view containing a single stream """
+        if int(parts.group("stream")) not in streams.keys():
+            return {}
+        key = "%s_%s_%s_%s_%s" % (collection, parts.group("source"),
+                parts.group("destination"), parts.group("option"),
+                parts.group("stream"))
+        return { key: [int(parts.group("stream"))] }
+ 
 
     def _get_sizes(self, source, dest):
         """ Get a list of all packet sizes used to test between a given
