@@ -2,7 +2,7 @@
 # -*- coding: ascii -*-
 
 import sqlalchemy
-import re
+import re, sys
 
 # XXX move all this into nntsc.py? or can we get enough info into here that
 # it can actually do all the hard work?
