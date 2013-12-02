@@ -215,7 +215,7 @@ class AmpIcmpParser(amp.AmpParser):
 
     def stream_to_group(self, streaminfo):
         group = "%s FROM %s TO %s OPTION %s STREAM %s" % (
-            self.collection,_name, streaminfo["source"],
+            self.collection_name, streaminfo["source"],
             streaminfo["destination"],
             streaminfo["packet_size"], streaminfo['stream_id'])
         return group
