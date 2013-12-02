@@ -157,11 +157,6 @@ class AmpDnsParser(amp.AmpParser):
         else:
             address = params['address']
 
-        if 'query_type' not in params:
-            query_type = None
-        else:
-            query_type = params['query_type']
-
         if params["_requesting"] == "queries":
             return self._get_queries(params['source'], params['destination'])
 
