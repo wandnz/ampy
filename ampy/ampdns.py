@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-import sys, string
 import amp
+import re
 
 innercols = ['instance', 'query_type', 'query_class', 'udp_payload_size',
         'dnssec', 'recurse', 'nsid']
@@ -13,6 +13,9 @@ class AmpDnsParser(amp.AmpParser):
 
         self.queries = {}
         self.addresses = {}
+
+        self.splits = ["STREAM", "NONE"]
+        self.collection_name = "amp-dns"
 
 
     def add_stream(self, s):
@@ -47,6 +50,7 @@ class AmpDnsParser(amp.AmpParser):
             self.streams[k].append(inner)
         else:
             self.streams[k] = [inner]
+
 
     def get_stream_id(self, params):
         if 'source' not in params:
@@ -130,6 +134,7 @@ class AmpDnsParser(amp.AmpParser):
 
         return result
 
+
     def format_data(self, received, stream, streaminfo):
         return received
 
@@ -152,6 +157,10 @@ class AmpDnsParser(amp.AmpParser):
         else:
             address = params['address']
 
+        if 'query_type' not in params:
+            query_type = None
+        else:
+            query_type = params['query_type']
 
         if params["_requesting"] == "queries":
             return self._get_queries(params['source'], params['destination'])
@@ -187,6 +196,7 @@ class AmpDnsParser(amp.AmpParser):
 
         return list(set(possibles))
 
+
     def get_graphtab_stream(self, streaminfo, defaultquery="www.google.com"):
         # This is probably only useful if we are running other AMP tests to
         # the DNS server
@@ -217,10 +227,12 @@ class AmpDnsParser(amp.AmpParser):
         return [{'streamid':self.get_stream_id(params), 'title':'DNS Latency', \
                 'collection':'amp-dns'}]
 
+
     def _get_queries(self, source, dest):
         if (source, dest) not in self.queries:
             return []
         return self.queries[(source, dest)].keys()
+
 
     def _get_addresses(self, source, dest, query):
         if query == None:
@@ -233,5 +245,84 @@ class AmpDnsParser(amp.AmpParser):
         if (source, dest, query) not in self.addresses:
             return []
         return self.addresses[(source, dest, query)].keys()
+
+
+    def stream_to_group(self, streaminfo):
+        group = "%s FROM %s TO %s OPTION %s %s %s %s STREAM %s" % (
+            self.collection_name, streaminfo["source"],
+            streaminfo["destination"], streaminfo["query"],
+            streaminfo["query_class"], streaminfo["query_type"],
+            streaminfo["udp_payload_size"], streaminfo['stream_id'])
+        return group
+
+
+    def parse_group_options(self, options):
+        # XXX some places we use NONE, others we use an explicit STREAM, which
+        # basically gives us the same data because we don't aggregate dns data.
+        return "%s FROM %s TO %s OPTION %s %s %s %s NONE" % (
+                    self.collection_name, options[0], options[1], options[2],
+                    options[3], options[4], options[5])
+
+
+    def split_group_rule(self, rule):
+        parts = re.match("(?P<collection>[a-z-]+) "
+                "FROM (?P<source>[.a-zA-Z0-9-]+) "
+                "TO (?P<destination>[.a-zA-Z0-9-]+) "
+                "OPTION (?P<query>[a-zA-Z0-9.]+) IN (?P<type>[A]+) "
+                "(?P<size>[0-9]+) "
+                "(?P<split>[A-Z]+)[ ]*(?P<stream>[0-9]*)", rule)
+        if parts is None:
+            return None
+        if parts.group("split") not in self.splits:
+            return None
+
+        keydict = {
+            "source": parts.group("source"),
+            "destination": parts.group("destination"),
+            "query": parts.group("query"),
+            "query_class": "IN",
+            "query_type": parts.group("type"),
+            "udp_payload_size": int(parts.group("size")),
+        }
+
+        return parts, keydict
+
+
+    def find_groups(self, parts, streams):
+        collection = self.collection_name
+
+        if parts.group("split") == "NONE":
+            groups = self._get_all_view_groups(collection,
+                        parts, streams)
+        elif parts.group("split") == "STREAM":
+            groups = self._get_stream_view_groups(collection,
+                        parts, streams)
+        return groups
+
+
+    def _get_all_view_groups(self, collection, parts, streams):
+        """ Display all streams as individual result lines """
+        groups = {}
+        for stream, info in streams.items():
+            key = "_".join([collection, parts.group("source"),
+                    parts.group("destination"), parts.group("query"),
+                    "IN", parts.group("type"), parts.group("size"),
+                    info["instance"]])
+            groups[key] = [stream]
+        return groups
+
+
+    def _get_stream_view_groups(self, collection, parts, streams):
+        """ Create a view containing a single stream """
+        if int(parts.group("stream")) not in streams.keys():
+            return {}
+        key = "_".join([collection, parts.group("source"),
+                parts.group("destination"), parts.group("query"),
+                "IN", parts.group("type"), parts.group("size"),
+                parts.group("stream")])
+        #key = "%s_%s_%s_%s_%s" % (collection, parts.group("source"),
+        #        parts.group("destination"), parts.group("option"),
+        #        parts.group("stream"))
+        return { key: [int(parts.group("stream"))] }
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :
