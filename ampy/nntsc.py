@@ -330,7 +330,7 @@ class Connection(object):
 
         if name == "amp-icmp":
             parser = AmpIcmpParser(self.ampdbconfig)
-        
+
         if name == "amp-dns":
             parser = AmpDnsParser(self.ampdbconfig)
 
@@ -502,7 +502,7 @@ class Connection(object):
         # be used as selection options will differ from collection to
         # collection.
         return parser.get_selection_options(params)
-    
+
     def stream_to_group(self, name, streamid):
         info = self.get_stream_info(name, streamid)
         if info == {}:
@@ -511,28 +511,27 @@ class Connection(object):
         parser = self._lookup_parser(name)
         if parser == None:
             return {}
-        
+
         return parser.stream_to_group(info)
-       
+
     def parse_group_options(self, name, options):
         parser = self._lookup_parser(name)
         if parser == None:
             return ""
-        
+
         return parser.parse_group_options(options)
 
     def find_groups(self, name, rule):
         parser = self._lookup_parser(name)
         if parser == None:
             return {}
-       
-        
+
         parts, keydict = parser.split_group_rule(rule)
         groupstreams = self.get_stream_id(name, keydict)
 
         if type(groupstreams) != list or len(groupstreams) == 0:
             return {}
-        
+
         # Not every group will require stream info, but it is easier
         # to get it now than have to try and get it once we're inside
         # the parser
@@ -542,7 +541,6 @@ class Connection(object):
 
         return parser.find_groups(parts, groupinfo)
 
-         
 
     def get_stream_info(self, name, streamid):
         """ Returns the stream information dictionary for a given stream.
