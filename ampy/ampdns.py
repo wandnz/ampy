@@ -18,41 +18,43 @@ class AmpDnsParser(amp.AmpParser):
         self.collection_name = "amp-dns"
 
 
-    def add_stream(self, s):
+    def add_stream(self, stream):
 
-        super(AmpDnsParser, self).add_stream(s)
+        super(AmpDnsParser, self).add_stream(stream)
 
-        src = s['source']
-        dest = s['destination']
-        query = s['query']
-        sid = s['stream_id']
-        address = s['address']
+        src = stream['source']
+        dest = stream['destination']
+        query = stream['query']
+        sid = stream['stream_id']
+        address = stream['address']
 
         if (src, dest) in self.queries:
             self.queries[(src, dest)][query] = 1
         else:
             self.queries[(src, dest)] = {query:1}
 
-        k = (src, dest, query)
-        if k in self.addresses:
-            self.addresses[k][address] = 1
+        key = (src, dest, query)
+        if key in self.addresses:
+            self.addresses[key][address] = 1
         else:
-            self.addresses[k] = {address:1}
+            self.addresses[key] = {address:1}
 
-        k = (src, dest, query, address)
+        key = (src, dest, query, address)
         inner = {}
 
         for col in innercols:
-            inner[col] = s[col]
+            inner[col] = stream[col]
         inner['stream_id'] = sid
 
-        if k in self.streams:
-            self.streams[k].append(inner)
+        if key in self.streams:
+            self.streams[key].append(inner)
         else:
-            self.streams[k] = [inner]
+            self.streams[key] = [inner]
 
 
     def get_stream_id(self, params):
+        """ Get stream IDs that match the given test parameters """
+
         if 'source' not in params:
             return []
         if 'destination' not in params:
@@ -111,8 +113,8 @@ class AmpDnsParser(amp.AmpParser):
 
         return result
 
-    def request_data(self, client, colid, streams, start, end, binsize,
-            detail):
+    def request_data(self, client, colid, streams, start, end, binsize, detail):
+        """ Query NNTSC for data, aggregated appropriately based on detail """
 
         if detail == "matrix":
             aggfuncs = ["avg", "stddev", "count"]
@@ -136,10 +138,12 @@ class AmpDnsParser(amp.AmpParser):
 
 
     def format_data(self, received, stream, streaminfo):
+        """ Format the data if any other changes required, not in this case """
         return received
 
 
     def get_selection_options(self, params):
+        """ Get possible values for a selection item """
         result = super(AmpDnsParser, self).get_selection_options(params)
         if len(result) > 0:
             return result
@@ -179,15 +183,15 @@ class AmpDnsParser(amp.AmpParser):
         req = params['_requesting']
 
         for a in iteraddrs:
-            k = (params['source'], params['destination'], query, a)
-            if k not in self.streams:
+            key = (params['source'], params['destination'], query, a)
+            if key not in self.streams:
                 continue
 
-            matchstreams = self.streams[k]
+            matchstreams = self.streams[key]
 
-            for s in matchstreams:
-                if req in s:
-                    possibles.append(s[req])
+            for stream in matchstreams:
+                if req in stream:
+                    possibles.append(stream[req])
 
         return list(set(possibles))
 
@@ -232,7 +236,7 @@ class AmpDnsParser(amp.AmpParser):
     def _get_addresses(self, source, dest, query):
         if query == None:
             addrs = []
-            for k,v in self.addresses.items():
+            for k, v in self.addresses.items():
                 if k[0] == source and k[1] == dest:
                     addrs += v.keys()
             return list(set(addrs))
@@ -243,6 +247,7 @@ class AmpDnsParser(amp.AmpParser):
 
 
     def stream_to_group(self, streaminfo):
+        """ Convert a stream to a group description string """
         group = "%s FROM %s TO %s OPTION %s %s %s %s STREAM %s" % (
             self.collection_name, streaminfo["source"],
             streaminfo["destination"], streaminfo["query"],
@@ -252,6 +257,7 @@ class AmpDnsParser(amp.AmpParser):
 
 
     def parse_group_options(self, options):
+        """ Convert group options array into a group description string """
         # XXX some places we use NONE, others we use an explicit STREAM, which
         # basically gives us the same data because we don't aggregate dns data.
         return "%s FROM %s TO %s OPTION %s %s %s %s NONE" % (
@@ -260,6 +266,8 @@ class AmpDnsParser(amp.AmpParser):
 
 
     def split_group_rule(self, rule):
+        """ Split a group description string into test option parts """
+
         parts = re.match("(?P<collection>[a-z-]+) "
                 "FROM (?P<source>[.a-zA-Z0-9-]+) "
                 "TO (?P<destination>[.a-zA-Z0-9-]+) "
@@ -284,6 +292,7 @@ class AmpDnsParser(amp.AmpParser):
 
 
     def find_groups(self, parts, streams):
+        """ Split a list of streams into groups based on the value in parts """
         collection = self.collection_name
 
         if parts.group("split") == "NONE":
@@ -315,9 +324,6 @@ class AmpDnsParser(amp.AmpParser):
                 parts.group("destination"), parts.group("query"),
                 "IN", parts.group("type"), parts.group("size"),
                 parts.group("stream")])
-        #key = "%s_%s_%s_%s_%s" % (collection, parts.group("source"),
-        #        parts.group("destination"), parts.group("option"),
-        #        parts.group("stream"))
         return { key: [int(parts.group("stream"))] }
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :
