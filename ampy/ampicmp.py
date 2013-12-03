@@ -262,46 +262,71 @@ class AmpIcmpParser(amp.AmpParser):
 
         return parts, keydict
 
-    def find_groups(self, parts, streams):
+    def legend_label(self, rule):
+        parts, keydict = self.split_group_rule(rule)
+
+        label = "%s to %s, %s bytes %s" % (parts.group('source'), 
+                parts.group('destination'), parts.group('option'),
+                parts.group('split'))
+        if parts.group('split') == "STREAM":
+            label += " %s" % (parts.group('stream'))
+
+        return label
+
+    def line_label(self, line):
+        if 'shortlabel' in line:
+            return line['shortlabel']
+        return 'Unknown'
+
+    def find_groups(self, parts, streams, groupid):
         collection = self.collection_name
 
         if parts.group("split") == "FULL":
             groups = self._get_combined_view_groups(collection,
-                        parts, streams)
+                        parts, streams, groupid)
         elif parts.group("split") == "NONE":
             groups = self._get_all_view_groups(collection,
-                        parts, streams)
+                        parts, streams, groupid)
         elif parts.group("split") == "NETWORK":
             groups = {}       # TODO
         elif parts.group("split") in ["FAMILY", "IPV4", "IPV6"]:
             groups = self._get_family_view_groups(collection,
-                        parts, streams)
+                        parts, streams, groupid)
         elif parts.group("split") == "STREAM":
             groups = self._get_stream_view_groups(collection,
-                        parts, streams)
-
+                        parts, streams, groupid)
         return groups
 
 
-    def _get_combined_view_groups(self, collection, parts, streams):
+    def _get_combined_view_groups(self, collection, parts, streams, groupid):
         """ Combined all streams together into a single result line """
-        key = "%s_%s_%s_%s" % (collection, parts.group("source"),
-                parts.group("destination"), parts.group("option"))
-        return { key: streams.keys() }
+        key = "group_%s" % (groupid)
+        return { key: {
+                'streams':streams.keys(), 
+                'source':parts.group('source'),
+                'destination':parts.group('destination'),
+                'packet_size':parts.group('option'),
+                'shortlabel':'All addresses'
+            }
+        }
         
         
-    def _get_all_view_groups(self, collection, parts, streams):
+    def _get_all_view_groups(self, collection, parts, streams, groupid):
         """ Display all streams as individual result lines """
         groups = {} 
         for stream, info in streams.items():
-            key = "%s_%s_%s_%s_%s" % (collection, parts.group("source"),
-                    parts.group("destination"), parts.group("option"),
-                    info["address"])
-            groups[key] = [stream]
+            key = "group_%s_%s" % (groupid, info["address"])
+            groups[key] = {
+                    'streams':[stream],
+                    'source':parts.group('source'),
+                    'destination':parts.group('destination'),
+                    'packet_size':parts.group('option'),
+                    'shortlabel':info['address']
+            }
         return groups 
             
                 
-    def _get_family_view_groups(self, collection, parts, streams):
+    def _get_family_view_groups(self, collection, parts, streams, groupid):
         """ Group streams by address family, displaying a line for ipv4/6 """
         groups = {} 
         for stream, info in streams.items():
@@ -317,22 +342,32 @@ class AmpIcmpParser(amp.AmpParser):
             if family == "ipv4" and parts.group("split") == "IPV6":
                 continue
 
-            key = "%s_%s_%s_%s_%s" % (collection, parts.group("source"),
-                    parts.group("destination"), parts.group("option"), family)
+            key = "group_%s_%s" % (groupid, family)
             if key not in groups:
-                groups[key] = []
-            groups[key].append(stream)
+                groups[key] = {'streams':[],
+                    'streams':[stream],
+                    'source':parts.group('source'),
+                    'destination':parts.group('destination'),
+                    'packet_size':parts.group('option'),
+                    'shortlabel':family
+                }
+            groups[key]['streams'].append(stream)
         return groups
 
 
-    def _get_stream_view_groups(self, collection, parts, streams):
+    def _get_stream_view_groups(self, collection, parts, streams, groupid):
         """ Create a view containing a single stream """
         if int(parts.group("stream")) not in streams.keys():
             return {}
-        key = "%s_%s_%s_%s_%s" % (collection, parts.group("source"),
-                parts.group("destination"), parts.group("option"),
-                parts.group("stream"))
-        return { key: [int(parts.group("stream"))] }
+        key = "group_stream_%s" % (groupid, parts.group("stream"))
+        return { key: {
+                    'streams': [int(parts.group("stream"))],
+                    'source':parts.group('source'),
+                    'destination':parts.group('destination'),
+                    'packet_size':parts.group('option'),
+                    'shortlabel':info['address']
+                }
+             }
  
 
     def _get_sizes(self, source, dest):

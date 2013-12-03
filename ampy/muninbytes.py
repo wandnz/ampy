@@ -20,6 +20,8 @@ class MuninbytesParser(object):
         # Map containing the set of valid switches
         self.switches = {}
 
+        self.groupsplits = ["SENT", "RECEIVED", "BOTH"]
+
     def add_stream(self, s):
         """ Updates the internal maps based on a new stream
 
@@ -29,17 +31,24 @@ class MuninbytesParser(object):
 
         self.switches[s['switch']] = 1
 
+        key = (s['switch'], s['interfacelabel'])
+
         if s['switch'] in self.interfaces:
             self.interfaces[s['switch']][s['interfacelabel']] = 1
         else:
             self.interfaces[s['switch']] = {s['interfacelabel']:1}
 
-        if (s['switch'], s['interfacelabel']) in self.directions:
-            self.directions[(s['switch'], s['interfacelabel'])][s['direction']] = 1
+        if key in self.directions:
+            self.directions[key][s['direction']] = s['stream_id']
+             
         else:
-            self.directions[(s['switch'], s['interfacelabel'])] = {s['direction']:1}
+            self.directions[key] = {s['direction']:s['stream_id']}
 
-        self.streams[(s['switch'], s['interfacelabel'], s["direction"])] = s['stream_id']
+        if key in self.streams:
+            self.streams[key].append(s['stream_id'])
+        else:
+            self.streams[key] = [s['stream_id']]
+
 
 
     def get_stream_id(self, params):
@@ -61,14 +70,20 @@ class MuninbytesParser(object):
             return -1
         if 'interface' not in params:
             return -1
-        if 'direction' not in params:
-            return -1
 
-        key = (params['switch'], params['interface'], params['direction'])
+        key = (params['switch'], params['interface'])
+        if 'direction' in params:
+            if key not in self.directions:
+                return []
+            if params['direction'] not in self.directions[key]:
+                return []
+            return [self.directions[key][params['direction']]]
+
+        key = (params['switch'], params['interface'])
         if key not in self.streams:
-            return -1
+            return []
 
-        return [self.streams[key]]
+        return self.streams[key]
 
     def request_data(self, client, colid, streams, start, end, binsize, detail):
         """ Based on the level of detail requested, forms and sends a request
@@ -161,6 +176,95 @@ class MuninbytesParser(object):
         return [{'streamid':stream, 'title':'Bytes',
                 'collection':'rrd-muninbytes'}]
 
+
+    def event_to_group(self, streaminfo):
+        group = "%s SWITCH-%s INTERFACE-%s BOTH" % (
+                "rrd-muninbytes", streaminfo['switch'], 
+                streaminfo['interfacelabel'])
+        return group
+
+    def stream_to_group(self, streaminfo):
+        if streaminfo['direction'] == 'sent':
+            direction = "SENT"
+        elif streaminfo['direction'] == 'received':
+            direction = "RECEIVED"
+        else:
+            direction = "BOTH"
+
+        group = "%s SWITCH-%s INTERFACE-%s %s" % (
+                "rrd-muninbytes", streaminfo['switch'], 
+                streaminfo['interfacelabel'], direction)
+        return group
+
+    def parse_group_options(self, options):
+        if options[2].upper() not in self.groupsplits:
+            return None
+        
+        return "%s SWITCH-%s INTERFACE-%s %s" % ("rrd-muninbytes",
+                options[0], options[1], options[2].upper())
+        
+    def split_group_rule(self, rule):
+        # Can't easily use regex here because SWITCH can be multiple
+        # words :(
+        parts = {}
+
+        switchind = rule.find(" SWITCH-")
+        interind = rule.rfind(" INTERFACE-")
+        dirind = rule.rfind(" ")
+
+        assert(interind >= switchind + len(" SWITCH-"))
+
+        parts['switch'] = rule[switchind + len(" SWITCH-"):interind]
+        parts['collection'] = rule[0:switchind]
+        parts['interface'] = rule[interind + len(" INTERFACE-"):dirind]
+        parts['direction'] = rule[dirind + 1:]
+        
+        if parts["direction"] not in self.groupsplits:
+            return None, {}
+        
+        keydict = {
+            'switch':parts['switch'],
+            'interface':parts['interface']
+        }
+                    
+        return parts, keydict
+
+    def find_groups(self, parts, streams, groupid):
+        groups = {}
+        partdir = parts['direction']
+
+        for stream, info in streams.items():
+            if info['direction'] == "sent" and partdir == "RECEIVED":
+                continue
+            if info['direction'] == "received" and partdir == "SENT":
+                continue
+            
+            key = "group_%s_%s" % (groupid, info['direction'])
+
+            if key not in groups:
+                groups[key] = {'streams':[]}
+            groups[key]['streams'].append(stream)
+            groups[key]['switch'] = parts['switch']
+            groups[key]['interface'] = parts['interface']
+            groups[key]['direction'] = info['direction']
+
+        return groups
+
+    def legend_label(self, rule):
+        parts, keydict = self.split_group_rule(rule)
+
+        label = "%s: %s %s" % (parts['switch'], parts['interface'],
+                parts['direction'])
+        return label
+
+    def line_label(self, line):
+        # Keep these short
+
+        if line['direction'] == "received":
+            return "Received"
+        if line['direction'] == "sent":
+            return "Sent"
+        return "Unknown"
 
     def _get_switches(self):
         """ Get the names of all switches that have munin data """

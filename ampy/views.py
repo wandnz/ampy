@@ -155,23 +155,46 @@ class View(object):
         # database to give a response aggregated across all the members.
         groups = {}
 
-        # XXX do we need collection to be passed in?
-        # XXX do matrix properly
-        if str(view_id).startswith("matrix_"):
-            return self._get_matrix_view_groups(view_id)
-
         if self.viewdb is None:
             return {}
 
-        rules = [x[0] for x in self.viewdb.execute(sqlalchemy.text(
-                    "SELECT group_description FROM groups WHERE group_id IN "
-                    "(SELECT unnest(view_groups) FROM views WHERE "
-                    "view_id = :view_id)"),
-                {"view_id": view_id})]
-    
-        for rule in rules:
-            groups.update(self.nntsc.find_groups(collection, rule))
-        return groups
+        result = self.viewdb.execute(sqlalchemy.text(
+                "SELECT group_description, group_id FROM groups WHERE "
+                "group_id IN "
+                "(SELECT unnest(view_groups) FROM views WHERE "
+                "view_id = :view_id)"),
+                {"view_id": view_id})
+
+        rules = {}
+
+        for row in result:
+            rules[row[1]] = row[0]
+        result.close()
+
+        return rules
+            
+    def get_group_streams(self, collection, groupid, rule):       
+        found = self.nntsc.find_group_streams(collection, rule, groupid)
+
+        streams = {}
+        for k, v in found.iteritems():
+            streams[k] = v['streams']
+        return streams
+
+    def get_view_streams(self, collection, viewid):
+        result = {}
+        
+        # XXX do we need collection to be passed in?
+        # XXX do matrix properly
+        if str(viewid).startswith("matrix_"):
+            return self._get_matrix_view_groups(viewid)
+
+        groups = self.get_view_groups(collection, viewid)
+
+        for gid, rule in groups.iteritems():
+            result.update(self.get_group_streams(collection, gid, rule))
+
+        return result
 
     def _get_matrix_view_groups(self, view_id):
         """ Quick way to get all the matrix data without using the database """
