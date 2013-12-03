@@ -14,7 +14,7 @@ class AmpDnsParser(amp.AmpParser):
         self.queries = {}
         self.addresses = {}
 
-        self.splits = ["STREAM", "NONE"]
+        self.splits = ["STREAM", "NONE", "FULL"]
         self.collection_name = "amp-dns"
 
 
@@ -233,6 +233,16 @@ class AmpDnsParser(amp.AmpParser):
         return self.queries[(source, dest)].keys()
 
 
+    def event_to_group(self, streaminfo):
+        # the event graph should merge all the instances together into one
+        group = "%s FROM %s TO %s OPTION %s %s %s %s FULL" % (
+            self.collection_name, streaminfo["source"],
+            streaminfo["destination"], streaminfo["query"],
+            streaminfo["query_class"], streaminfo["query_type"],
+            streaminfo["udp_payload_size"])
+        return group
+
+
     def _get_addresses(self, source, dest, query):
         if query == None:
             addrs = []
@@ -258,9 +268,7 @@ class AmpDnsParser(amp.AmpParser):
 
     def parse_group_options(self, options):
         """ Convert group options array into a group description string """
-        # XXX some places we use NONE, others we use an explicit STREAM, which
-        # basically gives us the same data because we don't aggregate dns data.
-        return "%s FROM %s TO %s OPTION %s %s %s %s NONE" % (
+        return "%s FROM %s TO %s OPTION %s %s %s %s FULL" % (
                     self.collection_name, options[0], options[1], options[2],
                     options[3], options[4], options[5])
 
@@ -298,6 +306,9 @@ class AmpDnsParser(amp.AmpParser):
         if parts.group("split") == "NONE":
             groups = self._get_all_view_groups(collection,
                         parts, streams)
+        elif parts.group("split") == "FULL":
+            groups = self._get_combined_view_groups(collection,
+                        parts, streams)
         elif parts.group("split") == "STREAM":
             groups = self._get_stream_view_groups(collection,
                         parts, streams)
@@ -314,6 +325,14 @@ class AmpDnsParser(amp.AmpParser):
                     info["instance"]])
             groups[key] = [stream]
         return groups
+
+
+    def _get_combined_view_groups(self, collection, parts, streams):
+        """ Combined all streams together into a single result line """
+        key = "_".join([collection, parts.group("source"),
+                parts.group("destination"), parts.group("query"),
+                "IN", parts.group("type"), parts.group("size")])
+        return { key: streams.keys() }
 
 
     def _get_stream_view_groups(self, collection, parts, streams):
