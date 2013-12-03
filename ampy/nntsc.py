@@ -503,6 +503,17 @@ class Connection(object):
         # collection.
         return parser.get_selection_options(params)
 
+    def event_to_group(self, name, streamid):
+        info = self.get_stream_info(name, streamid)
+        if info == {}:
+            return ""
+
+        parser = self._lookup_parser(name)
+        if parser == None:
+            return {}
+
+        return parser.event_to_group(info)
+
     def stream_to_group(self, name, streamid):
         info = self.get_stream_info(name, streamid)
         if info == {}:

@@ -2,7 +2,7 @@
 # -*- coding: ascii -*-
 
 import sqlalchemy
-import re
+import re, sys
 
 # XXX move all this into nntsc.py? or can we get enough info into here that
 # it can actually do all the hard work?
@@ -66,6 +66,19 @@ class View(object):
             return oldview
         return view_id
 
+    # NOTE: stream is actually a stream here -- it is the nominated stream 
+    # from the group that the event was actually detected for. We use this 
+    # stream to find the others that make up the group
+    def create_view_from_event(self, collection, stream):
+        group = self.nntsc.event_to_group(collection, stream)
+        if group == "":
+            print >> sys.stderr, "Failed to find group for stream %d" % (stream)
+            return -1
+
+        group_id = self._get_group_id(group)
+        view_id = self._get_view_id([group_id])
+        return view_id
+        
 
     def create_view_from_stream(self, collection, stream):
         group = self.nntsc.stream_to_group(collection, stream)
@@ -155,7 +168,7 @@ class View(object):
                     "(SELECT unnest(view_groups) FROM views WHERE "
                     "view_id = :view_id)"),
                 {"view_id": view_id})]
-
+    
         for rule in rules:
             groups.update(self.nntsc.find_groups(collection, rule))
         return groups

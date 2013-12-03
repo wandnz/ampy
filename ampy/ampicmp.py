@@ -19,7 +19,8 @@ class AmpIcmpParser(amp.AmpParser):
         # that were used in tests between the two hosts
         self.addresses = {}
 
-        self.splits = ["FULL", "NONE", "NETWORK", "FAMILY", "STREAM"]
+        self.splits = ["FULL", "NONE", "NETWORK", "FAMILY", "STREAM", "IPV4",
+                "IPV6"]
         self.collection_name = "amp-icmp"
 
     # XXX do we want to extract the source/destination parts of this function
@@ -212,7 +213,19 @@ class AmpIcmpParser(amp.AmpParser):
         return [{'streamid':self.get_stream_id(params), 'title':"Latency", \
                 'collection':'amp-icmp'}]
 
+    def event_to_group(self, streaminfo):
+        if '.' in streaminfo['address']:
+            family = 'IPV4'
+        else:
+            family = 'IPV6'
 
+        group = "%s FROM %s TO %s OPTION %s %s" % (
+            self.collection_name, streaminfo["source"], 
+            streaminfo["destination"],
+            streaminfo["packet_size"], family)
+        return group 
+        
+    
     def stream_to_group(self, streaminfo):
         group = "%s FROM %s TO %s OPTION %s STREAM %s" % (
             self.collection_name, streaminfo["source"],
@@ -234,11 +247,11 @@ class AmpIcmpParser(amp.AmpParser):
                 "FROM (?P<source>[.a-zA-Z0-9-]+) "
                 "TO (?P<destination>[.a-zA-Z0-9-]+) "
                 "OPTION (?P<option>[a-zA-Z0-9]+) "
-                "(?P<split>[A-Z]+)[ ]*(?P<stream>[0-9]*)", rule)
+                "(?P<split>[A-Z0-9]+)[ ]*(?P<stream>[0-9]*)", rule)
         if parts is None:
-            return None
+            return None, {}
         if parts.group("split") not in self.splits:
-            return None
+            return None, {}
 
         keydict = {
             "source": parts.group("source"),
@@ -260,7 +273,7 @@ class AmpIcmpParser(amp.AmpParser):
                         parts, streams)
         elif parts.group("split") == "NETWORK":
             groups = {}       # TODO
-        elif parts.group("split") == "FAMILY":
+        elif parts.group("split") in ["FAMILY", "IPV4", "IPV6"]:
             groups = self._get_family_view_groups(collection,
                         parts, streams)
         elif parts.group("split") == "STREAM":
@@ -296,6 +309,14 @@ class AmpIcmpParser(amp.AmpParser):
                 family = "ipv4"
             else:
                 family = "ipv6"
+
+            # If a specific family is requested, ignore all streams for the
+            # other family
+            if family == "ipv6" and parts.group("split") == "IPV4":
+                continue
+            if family == "ipv4" and parts.group("split") == "IPV6":
+                continue
+
             key = "%s_%s_%s_%s_%s" % (collection, parts.group("source"),
                     parts.group("destination"), parts.group("option"), family)
             if key not in groups:
