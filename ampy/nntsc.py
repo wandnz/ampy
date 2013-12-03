@@ -578,7 +578,8 @@ class Connection(object):
 
             legend[gid]['keys'] = []
             for k in morekeys:
-                legend[gid]['keys'].append((k, seriesid))
+                linelabel = parser.line_label(groupstreams[k])
+                legend[gid]['keys'].append((k, linelabel, seriesid))
                 seriesid += 1
 
 

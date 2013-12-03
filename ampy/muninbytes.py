@@ -257,6 +257,15 @@ class MuninbytesParser(object):
                 parts['direction'])
         return label
 
+    def line_label(self, line):
+        # Keep these short
+
+        if line['direction'] == "received":
+            return "Received"
+        if line['direction'] == "sent":
+            return "Sent"
+        return "Unknown"
+
     def _get_switches(self):
         """ Get the names of all switches that have munin data """
         return self.switches.keys()

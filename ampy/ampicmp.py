@@ -273,6 +273,11 @@ class AmpIcmpParser(amp.AmpParser):
 
         return label
 
+    def line_label(self, line):
+        if 'shortlabel' in line:
+            return line['shortlabel']
+        return 'Unknown'
+
     def find_groups(self, parts, streams, groupid):
         collection = self.collection_name
 
@@ -300,7 +305,8 @@ class AmpIcmpParser(amp.AmpParser):
                 'streams':streams.keys(), 
                 'source':parts.group('source'),
                 'destination':parts.group('destination'),
-                'packet_size':parts.group('option')
+                'packet_size':parts.group('option'),
+                'shortlabel':'All addresses'
             }
         }
         
@@ -314,7 +320,8 @@ class AmpIcmpParser(amp.AmpParser):
                     'streams':[stream],
                     'source':parts.group('source'),
                     'destination':parts.group('destination'),
-                    'packet_size':parts.group('option')
+                    'packet_size':parts.group('option'),
+                    'shortlabel':info['address']
             }
         return groups 
             
@@ -341,7 +348,8 @@ class AmpIcmpParser(amp.AmpParser):
                     'streams':[stream],
                     'source':parts.group('source'),
                     'destination':parts.group('destination'),
-                    'packet_size':parts.group('option')
+                    'packet_size':parts.group('option'),
+                    'shortlabel':family
                 }
             groups[key]['streams'].append(stream)
         return groups
@@ -356,7 +364,8 @@ class AmpIcmpParser(amp.AmpParser):
                     'streams': [int(parts.group("stream"))],
                     'source':parts.group('source'),
                     'destination':parts.group('destination'),
-                    'packet_size':parts.group('option')
+                    'packet_size':parts.group('option'),
+                    'shortlabel':info['address']
                 }
              }
  
