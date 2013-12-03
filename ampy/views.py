@@ -72,7 +72,7 @@ class View(object):
     def create_view_from_event(self, collection, stream):
         group = self.nntsc.event_to_group(collection, stream)
         if group == "":
-            print >> sys.stderr, "Failed to find group for stream %d" % (stream)
+            print >> sys.stderr, "Failed to find group for stream %s" % (stream)
             return -1
 
         group_id = self._get_group_id(group)
