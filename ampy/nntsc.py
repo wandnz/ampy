@@ -532,7 +532,7 @@ class Connection(object):
 
         return parser.parse_group_options(options)
 
-    def find_groups(self, name, rule):
+    def find_group_streams(self, name, rule, groupid):
         parser = self._lookup_parser(name)
         if parser == None:
             return {}
@@ -550,7 +550,38 @@ class Connection(object):
         for s in groupstreams:
             groupinfo[s] = self.get_stream_info(name, s)
 
-        return parser.find_groups(parts, groupinfo)
+        return parser.find_groups(parts, groupinfo, groupid)
+
+
+    def get_view_legend(self, name, viewid):
+        parser = self._lookup_parser(name)
+        if parser == None:
+            return {}
+
+        viewgroups = self.view.get_view_groups(name, viewid)
+
+        legend = {}
+
+        sortedgids = viewgroups.keys()
+        sortedgids.sort()
+
+        seriesid = 0
+        for gid in sortedgids:
+            rule = viewgroups[gid]
+            legend[gid] = {}
+            legend[gid]['label'] = parser.legend_label(rule)
+            groupstreams = self.find_group_streams(name, rule, gid);
+
+            morekeys = groupstreams.keys()
+            morekeys.sort()
+
+            legend[gid]['keys'] = []
+            for k in morekeys:
+                linelabel = parser.line_label(groupstreams[k])
+                legend[gid]['keys'].append((k, linelabel, seriesid))
+                seriesid += 1
+
+        return legend
 
 
     def get_stream_info(self, name, streamid):
@@ -899,9 +930,9 @@ class Connection(object):
         start = end - duration
 
         # figure out what lines should be displayed in this view
-        labels = self.view.get_view_groups(collection, view_id)
-
-        if len(labels) == 0:
+        labels = self.view.get_view_streams(collection, view_id)
+        
+        if len(labels.keys()) == 0:
             return {}
 
         # TODO pick a stream id? these should all be the same collection etc
@@ -911,8 +942,7 @@ class Connection(object):
 
         # check each stream_id to see if we need to query for it - some will
         # be invalid, some will be cached already, so don't fetch those ones
-        for label in labels:
-        #for label,stream_ids in labels.iteritems():
+        for label, streams in labels.iteritems():
             # an invalid or unknown stream_id has empty data, don't query it
             #if stream_id > 0:
             #    info[stream_id] = self._data_request_prep(collection, stream_id)
@@ -983,9 +1013,9 @@ class Connection(object):
             detail = "full"
 
         # figure out what lines should be displayed in this view
-        labels = self.view.get_view_groups(collection, view_id)
+        labels = self.view.get_view_streams(collection, view_id)
 
-        if len(labels) == 0:
+        if len(labels.keys()) == 0:
             return {}
 
         # TODO pick a stream id? these should all be the same collection etc
@@ -996,7 +1026,7 @@ class Connection(object):
         if self.memcache:
             # see if any of them have been cached
             required = {}
-            for label, stream_ids in labels.iteritems():
+            for label, streams in labels.iteritems():
                 # treat a label as an entity that we cache - it might be made
                 # up of data from lots of streams, but it's only one set of data
                 blocks[label] = self.memcache.get_caching_blocks(label,
@@ -1016,7 +1046,7 @@ class Connection(object):
                         required[blockstart][blockend] = {}
                     if binsize not in required[blockstart][blockend]:
                         required[blockstart][blockend][binsize] = {}
-                    required[blockstart][blockend][binsize][label] = stream_ids
+                    required[blockstart][blockend][binsize][label] = streams
 
             # fetch those that aren't cached
             fetched = {}
