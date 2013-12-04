@@ -34,27 +34,35 @@ class View(object):
         if groups is None:
             return None
 
-        # create the description string for the group based on the options
-        group = self.nntsc.parse_group_options(collection, options)
-        if group is None:
-            # something is wrong with the options string, don't do anything
-            return oldview
-
-        # get the group id, creating it if it doesn't already exist
-        group_id = self._get_group_id(group)
-        if group_id is None:
-            # something went wrong trying to create the group, don't do anything
+        if len(options) == 0:
             return oldview
 
         if action == "add":
+            # create the description string for the group based on the options
+            group = self.nntsc.parse_group_options(collection, options)
+            if group is None:
+                # something is wrong with the options string, don't do anything
+                return oldview
+
+            # get the group id, creating it if it doesn't already exist
+            group_id = self._get_group_id(group)
+            if group_id is None:
+                # something went wrong trying to create the group
+                return oldview
+
             # combine the existing groups with the new group id
             if group_id not in groups:
                 groups.append(group_id)
                 groups.sort()
+
         elif action == "del":
             # remove the group from the existing list to get a new view
+            group_id = int(options[0])
             if group_id in groups:
                 groups.remove(group_id)
+            else:
+                return oldview
+
         else:
             # don't do anything, return the current view
             return oldview
