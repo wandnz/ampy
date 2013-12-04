@@ -299,50 +299,89 @@ class AmpDnsParser(amp.AmpParser):
         return parts, keydict
 
 
-    def find_groups(self, parts, streams):
+    def legend_label(self, rule):
+        parts, keydict = self.split_group_rule(rule)
+        label = "%s to %s, %s %s %s (%s)" % (keydict["source"],
+                keydict["destination"], keydict["query"],
+                keydict["query_class"], keydict["query_type"],
+                parts.group("split"))
+        if parts.group('split') == "STREAM":
+            label += " %s" % (parts.group('stream'))
+
+        return label
+
+
+    def line_label(self, line):
+        if 'shortlabel' in line:
+            return line['shortlabel']
+        return 'Unknown'
+
+
+    def find_groups(self, parts, streams, groupid):
         """ Split a list of streams into groups based on the value in parts """
         collection = self.collection_name
 
         if parts.group("split") == "NONE":
             groups = self._get_all_view_groups(collection,
-                        parts, streams)
+                        parts, streams, groupid)
         elif parts.group("split") == "FULL":
             groups = self._get_combined_view_groups(collection,
-                        parts, streams)
+                        parts, streams, groupid)
         elif parts.group("split") == "STREAM":
             groups = self._get_stream_view_groups(collection,
-                        parts, streams)
+                        parts, streams, groupid)
         return groups
 
 
-    def _get_all_view_groups(self, collection, parts, streams):
-        """ Display all streams as individual result lines """
+    def _get_all_view_groups(self, collection, parts, streams, groupid):
+        """ Display all streams/instances as individual result lines """
         groups = {}
         for stream, info in streams.items():
-            key = "_".join([collection, parts.group("source"),
-                    parts.group("destination"), parts.group("query"),
-                    "IN", parts.group("type"), parts.group("size"),
-                    info["instance"]])
-            groups[key] = [stream]
+            key = "group_%s_%s" % (groupid, info["instance"])
+            groups[key] = {
+                    "streams": [stream],
+                    "source": parts.group("source"),
+                    "destination": parts.group("destination"),
+                    "query": parts.group("query"),
+                    "query_class": "IN",
+                    "query_type": parts.group("type"),
+                    "udp_payload_size": parts.group("size"),
+                    "shortlabel": info["instance"]
+            }
         return groups
 
 
-    def _get_combined_view_groups(self, collection, parts, streams):
+    def _get_combined_view_groups(self, collection, parts, streams, groupid):
         """ Combined all streams together into a single result line """
-        key = "_".join([collection, parts.group("source"),
-                parts.group("destination"), parts.group("query"),
-                "IN", parts.group("type"), parts.group("size")])
-        return { key: streams.keys() }
+        key = "group_%s" % (groupid)
+        return { key: {
+                "streams": streams.keys(),
+                "source": parts.group("source"),
+                "destination": parts.group("destination"),
+                "query": parts.group("query"),
+                "query_class": "IN",
+                "query_type": parts.group("type"),
+                "udp_payload_size": parts.group("size"),
+                "shortlabel": "All instances"
+            }
+        }
 
 
-    def _get_stream_view_groups(self, collection, parts, streams):
+    def _get_stream_view_groups(self, collection, parts, streams, groupid):
         """ Create a view containing a single stream """
         if int(parts.group("stream")) not in streams.keys():
             return {}
-        key = "_".join([collection, parts.group("source"),
-                parts.group("destination"), parts.group("query"),
-                "IN", parts.group("type"), parts.group("size"),
-                parts.group("stream")])
-        return { key: [int(parts.group("stream"))] }
+        key = "group_stream_%s" % (groupid, parts.group("stream"))
+        return { key: {
+                    "streams": [int(parts.group("stream"))],
+                    "source": parts.group("source"),
+                    "destination": parts.group("destination"),
+                    "query": parts.group("query"),
+                    "query_class": "IN",
+                    "query_type": parts.group("type"),
+                    "udp_payload_size": parts.group("size"),
+                    "shortlabel": info["instance"]
+                }
+             }
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :
