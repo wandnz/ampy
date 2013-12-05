@@ -74,8 +74,8 @@ class View(object):
             return oldview
         return view_id
 
-    # NOTE: stream is actually a stream here -- it is the nominated stream 
-    # from the group that the event was actually detected for. We use this 
+    # NOTE: stream is actually a stream here -- it is the nominated stream
+    # from the group that the event was actually detected for. We use this
     # stream to find the others that make up the group
     def create_view_from_event(self, collection, stream):
         group = self.nntsc.event_to_group(collection, stream)
@@ -86,7 +86,7 @@ class View(object):
         group_id = self._get_group_id(group)
         view_id = self._get_view_id([group_id])
         return view_id
-        
+
 
     def create_view_from_stream(self, collection, stream):
         group = self.nntsc.stream_to_group(collection, stream)
@@ -180,8 +180,8 @@ class View(object):
         result.close()
 
         return rules
-            
-    def get_group_streams(self, collection, groupid, rule):       
+
+    def get_group_streams(self, collection, groupid, rule):
         found = self.nntsc.find_group_streams(collection, rule, groupid)
 
         streams = {}
@@ -191,7 +191,7 @@ class View(object):
 
     def get_view_streams(self, collection, viewid):
         result = {}
-        
+
         # XXX do we need collection to be passed in?
         # XXX do matrix properly
         if str(viewid).startswith("matrix_"):
