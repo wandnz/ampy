@@ -109,6 +109,8 @@ class LPIUsersParser(object):
             params must have a field called "_requesting" which describes
             which of the possible stream parameters you are interested in.
         """
+        if "_requesting" not in params:
+            return []
 
         if params['_requesting'] == 'sources':
             return self._get_sources()
