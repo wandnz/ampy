@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, string
+import sys, string, re
 
 class SmokepingParser(object):
     """ Parser for the rrd-smokeping collection. """
@@ -158,6 +158,58 @@ class SmokepingParser(object):
 
         return [{'streamid':stream, 'title':'Latency',
                 'collection':'rrd-smokeping'}]
+
+    def event_to_group(self, streaminfo):
+        return self.stream_to_group(streaminfo)
+    
+    def stream_to_group(self, streaminfo):
+        # For now, we only allow one stream per group
+        # TODO Do we want to allow some sort of v4 / v6 split? -- would 
+        # require a change to how we store smokeping streams
+
+        group = "%s SOURCE %s TARGET %s" % ("rrd-smokeping", 
+                streaminfo['source'], streaminfo['host'])
+        return group
+
+    def parse_group_options(self, options):
+        return "%s SOURCE %s TARGET %s" % (options[0], options[1],
+                options[2])
+
+    def split_group_rule(self, rule):
+        parts = re.match("(?P<collection>[a-z-]+) "
+                "SOURCE (?P<source>[.a-zA-Z0-9-]+) "
+                "TARGET (?P<host>\S+)", rule)
+        if parts is None:
+            return None, {}
+        
+        keydict = {
+            'source':parts.group('source'),
+            'host':parts.group('host')
+        }
+        return parts, keydict
+    
+    def find_groups(self, parts, streams, groupid):
+        groups = {}
+        for stream, info in streams.items():
+            key = "group_%s" % (groupid)
+
+            if key not in groups:
+                groups[key] = {'streams':[]}
+            groups[key]['streams'].append(stream)
+            groups[key]['source'] = parts.group('source')
+            groups[key]['host'] = parts.group('host')
+
+        return groups
+
+    def legend_label(self, rule):
+        parts, keydict = self.split_group_rule(rule)
+
+        label = "%s to %s" % (parts.group('source'), parts.group('host'))
+        return label
+
+    def line_label(self, line):
+        return line['host']
+
 
     def _get_sources(self, dst):
         """ Get a list of all sources that are test to a given destination.
