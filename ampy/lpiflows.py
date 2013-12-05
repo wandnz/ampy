@@ -1,74 +1,27 @@
 #!/usr/bin/env python
 
-import sys, string
+import sys, string, re
+import lpi
 
-class LPIFlowsParser(object):
+class LPIFlowsParser(lpi.LPIParser):
     """ Parser for the lpi-flows collection. """
     def __init__(self):
-        """ Initialises the parser """
-        self.streams = {}
+        super(LPIFlowsParser, self).__init__()
+        self.collection_name = "lpi-flows"
+        self.tabtitle = "Flows"
 
-        # Map containing all the valid sources
-        self.sources = {}
-        # Maps (source, proto, dir) to a set of users measured from that source
-        self.users = {}
-        # Map containing all the valid protocols
-        self.protocols = {}
-        # Maps containing all the valid directions
-        self.directions = {}
+    def stream_to_key(self, s):
+        if 'source' not in s:
+            return None
+        if 'protocol' not in s:
+            return None
+        if 'user' not in s:
+            return None
+        if 'metric' not in s:
+            return None
 
-    def add_stream(self, s):
-        """ Updates the internal maps based on a new stream
-
-            Parameters:
-              s -- the new stream, as returned by NNTSC
-        """
-
-        s['protocol'] = string.replace(s['protocol'], "/", " - ")
-
-        self.sources[s['source']] = 1
-        self.protocols[s['protocol']] = 1
-        self.directions[s['dir']] = 1
-
-        if (s['source'], s['protocol'], s['dir']) in self.users:
-            self.users[(s['source'], s['protocol'], s['dir'])][s['user']] = 1
-        else:
-            self.users[(s['source'], s['protocol'], s['dir'])] = { s['user']:1 }
-
-
-        self.streams[(s['source'], s['user'], s['protocol'], s['dir'], s['metric'])] = s['stream_id']
-
-    def get_stream_id(self, params):
-        """ Finds the stream ID that matches the given (source, user, protocol,
-            direction, metric) combination.
-
-            If params does not contain an entry for 'source', 'user',
-            'protocol', 'direction' or 'metric', then -1 will be returned.
-
-            Parameters:
-                params -- a dictionary containing the parameters describing the
-                          stream to search for
-
-            Returns:
-                the id number of the matching stream, or -1 if no matching
-                stream can be found
-        """
-
-        if 'source' not in params:
-            return -1;
-        if 'user' not in params:
-            return -1;
-        if 'protocol' not in params:
-            return -1;
-        if 'direction' not in params:
-            return -1;
-        if 'metric' not in params:
-            return -1
-
-        key = (params['source'], params['user'], params['protocol'], params['direction'], params['metric'])
-        if key not in self.streams:
-            return -1
-        return [self.streams[key]]
+        return (s['source'], s['protocol'], s['user'], s['metric'])
+        
 
     def request_data(self, client, colid, streams, start, end, binsize, detail):
         """ Based on the level of detail requested, forms and sends a request
@@ -81,43 +34,6 @@ class LPIFlowsParser(object):
         return client.request_aggregate(colid, streams, start, end,
                 aggcols, binsize, group, aggfuncs)
 
-    def format_data(self, received, stream, streaminfo):
-        """ Formats the measurements retrieved from NNTSC into a nice format
-            for subsequent analysis / plotting / etc.
-
-            In the case of lpi-flows, no modification should be necessary.
-        """
-
-        return received
-
-
-    def get_selection_options(self, params):
-        """ Returns the list of names to populate a dropdown list with, given
-            a current set of selected parameters.
-
-            params must have a field called "_requesting" which describes
-            which of the possible stream parameters you are interested in.
-
-            If 'users' is requested, 'source' may also be set to receive only
-            the list of users that are measured by that source. Otherwise,
-            all users will be returned.
-        """
-
-        if params['_requesting'] == 'sources':
-            return self._get_sources()
-
-        if params['_requesting'] == 'protocols':
-            return self._get_protocols()
-
-        if params['_requesting'] == 'directions':
-            return self._get_directions()
-
-        if params['_requesting'] == 'users':
-            if 'source' not in params or 'protocol' not in params or 'direction' not in params :
-                return self._get_users(None)
-            return self._get_users(params)
-
-        return []
 
     def get_graphtab_stream(self, streaminfo):
         """ Given the description of a stream from a similar collection,
@@ -159,33 +75,95 @@ class LPIFlowsParser(object):
 
         return ret
 
-    def _get_sources(self):
-        """ Get the names of all of the sources that have lpi flows data """
-        return self.sources.keys()
 
-    def _get_users(self, params):
-        """ Get all users that were measured by a given source """
-        if params != None:
-            key = (params['source'], params['protocol'], params['direction'])
-            if key not in self.users:
-                return []
-            else:
-                return self.users[key].keys()
+    def event_to_group(self, streaminfo):
+        group = "%s MONITOR %s PROTOCOL %s USER %s METRIC %s %s" % \
+        (self.collection_name, streaminfo['source'], \
+                streaminfo['protocol'],
+                streaminfo['user'], streaminfo['metric'], direction)
 
-        users = {}
-        for v in self.users.values():
-            for d in v.keys():
-                users[d] = 1
-        return users.keys()
+        return group
 
+    def stream_to_group(self, streaminfo):
+        if streaminfo['dir'] == 'in':
+            direction = "IN"
+        elif streaminfo['dir'] == 'out':
+            direction = "OUT"
+        else:
+            direction = "BOTH"
 
-    def _get_protocols(self):
-        return self.protocols.keys()
+        group = "%s MONITOR %s PROTOCOL %s USER %s METRIC %s %s" % \
+                (self.collection_name, streaminfo['source'], \
+                streaminfo['protocol'],
+                streaminfo['user'], streaminfo['metric'], direction)
+        return group
+        
+    def parse_group_options(self, options):
+        if options[5].upper() not in self.groupsplits:
+            return None
+        return "%s MONITOR %s PROTOCOL %s USER %s METRIC %s %s" % \
+                (options[0], options[1], options[2], options[3], options[4],
+                options[5].upper())
 
-    def _get_directions(self):
-        return self.directions.keys()
+    def split_group_rule(self, rule):
+        parts = re.match("(?P<collection>[a-z-]+) "
+                "MONITOR (?P<source>[.a-zA-Z0-9-]+) "
+                "PROTOCOL (?P<protocol>\S+) "
+                "USER (?P<user>\S+) "
+                "METRIC (?P<metric>[a-zA-Z0-9-]+) "
+                "(?P<direction>[A-Z]+)", rule)
 
+        if parts is None:
+            return None, {}
+        if parts.group("direction") not in self.groupsplits:
+            return None, {}
 
+        keydict = {
+            'source': parts.group('source'),
+            'protocol': parts.group('protocol'),
+            'user': parts.group('user'),
+            'metric': parts.group('metric')
+        }
+
+        return parts, keydict
+
+    def find_groups(self, parts, streams, groupid):
+        groups = {}
+        partdir = parts.group('direction')
+
+        for stream, info in streams.items():
+            if info['dir'] == "in" and partdir == "OUT":
+                continue
+            if info['dir'] == "out" and partdir == "IN":
+                continue
+
+            key = "group_%s_%s" % (groupid, info['dir'])
+
+            if key not in groups:
+                groups[key] = {'streams':[]}
+            groups[key]['streams'].append(stream)
+            groups[key]['source'] = parts.group('source')
+            groups[key]['protocol'] = parts.group('protocol')
+            groups[key]['user'] = parts.group('user')
+            groups[key]['metric'] = parts.group('metric')
+            groups[key]['direction'] = info['dir']
+
+        return groups
+
+    def legend_label(self, rule):
+        parts, keydict = self.split_group_rule(rule)
+
+        if parts.group('metric') == "new":
+            metric = "new flows"
+        elif parts.group('metric') == "peak":
+            metric = "peak flows"
+            
+        label = "%s %s for %s at %s %s" % (parts.group('protocol'),
+                metric,
+                parts.group('user'), parts.group('source'),
+                parts.group('direction'))
+        return label
+  
 
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :
