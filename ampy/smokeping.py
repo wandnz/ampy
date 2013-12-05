@@ -17,6 +17,8 @@ class SmokepingParser(object):
         # Maps (host) to a set of sources that run smokeping tests to it
         self.destinations = {}
 
+        self.collection_name = "rrd-smokeping"
+
     def add_stream(self, s):
         """ Updates the internal maps based on a new stream
 
@@ -172,8 +174,8 @@ class SmokepingParser(object):
         return group
 
     def parse_group_options(self, options):
-        return "%s SOURCE %s TARGET %s" % (options[0], options[1],
-                options[2])
+        return "%s SOURCE %s TARGET %s" % (self.collection_name,
+                options[0], options[1])
 
     def split_group_rule(self, rule):
         parts = re.match("(?P<collection>[a-z-]+) "
