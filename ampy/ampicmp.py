@@ -104,7 +104,7 @@ class AmpIcmpParser(amp.AmpParser):
         if key not in self.streams:
             return []
         return self.streams[key]
-
+    
     def request_data(self, client, colid, streams, start, end, binsize, detail):
         """ Based on the level of detail requested, forms and sends a request
             to NNTSC for aggregated data.
