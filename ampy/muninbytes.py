@@ -137,14 +137,20 @@ class MuninbytesParser(object):
 
         # TODO - better handling of weird parameter combinations
         # e.g. what if they provide a interface but not a switch?
+        if "_requesting" not in params:
+            return []
 
-        if 'switch' not in params:
+        if params["_requesting"] == "switch":
             return self._get_switches()
 
-        if 'interface' not in params:
-            return self._get_interfaces(params['switch'])
+        if params["_requesting"] == "interface":
+            if "switch" not in params:
+                return []
+            return self._get_interfaces(params["switch"])
 
-        if 'direction' not in params:
+        if params["_requesting"] == "direction":
+            if "switch" not in params or "interface" not in params:
+                return []
             return self._get_directions(params['switch'], params['interface'])
 
         # If we get here, they provided all the possible parameters so the
