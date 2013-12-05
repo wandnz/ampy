@@ -79,7 +79,6 @@ class MuninbytesParser(object):
                 return []
             return [self.directions[key][params['direction']]]
 
-        key = (params['switch'], params['interface'])
         if key not in self.streams:
             return []
 
