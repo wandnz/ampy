@@ -21,7 +21,7 @@ class LPIFlowsParser(lpi.LPIParser):
             return None
 
         return (s['source'], s['protocol'], s['user'], s['metric'])
-        
+
 
     def request_data(self, client, colid, streams, start, end, binsize, detail):
         """ Based on the level of detail requested, forms and sends a request
@@ -97,13 +97,15 @@ class LPIFlowsParser(lpi.LPIParser):
                 streaminfo['protocol'],
                 streaminfo['user'], streaminfo['metric'], direction)
         return group
-        
+
     def parse_group_options(self, options):
-        if options[5].upper() not in self.groupsplits:
+        if len(options) != 5:
             return None
-        return "%s MONITOR %s PROTOCOL %s USER %s METRIC %s %s" % \
-                (options[0], options[1], options[2], options[3], options[4],
-                options[5].upper())
+        if options[4].upper() not in self.groupsplits:
+            return None
+        return "%s MONITOR %s PROTOCOL %s USER %s METRIC %s %s" % (
+                self.collection_name, options[0], options[1], options[2],
+                options[3], options[4].upper())
 
     def split_group_rule(self, rule):
         parts = re.match("(?P<collection>[a-z-]+) "
@@ -157,13 +159,13 @@ class LPIFlowsParser(lpi.LPIParser):
             metric = "new flows"
         elif parts.group('metric') == "peak":
             metric = "peak flows"
-            
+
         label = "%s %s for %s at %s %s" % (parts.group('protocol'),
                 metric,
                 parts.group('user'), parts.group('source'),
                 parts.group('direction'))
         return label
-  
+
 
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :

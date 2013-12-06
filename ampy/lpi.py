@@ -18,7 +18,7 @@ class LPIParser(object):
             for subsequent analysis / plotting / etc.
         """
         return received
- 
+
 
     def stream_to_key(self, s):
         if 'source' not in s:
@@ -86,7 +86,7 @@ class LPIParser(object):
             return []
         return self.streams[key]
 
-    
+
     def get_selection_options(self, params):
         """ Returns the list of names to populate a dropdown list with, given
             a current set of selected parameters.
@@ -98,19 +98,18 @@ class LPIParser(object):
             the list of users that are measured by that source. Otherwise,
             all users will be returned.
         """
-
-        if params['_requesting'] == 'sources':
+        if params['_requesting'] == 'source':
             return self._get_sources()
 
-        if params['_requesting'] == 'protocols':
+        if params['_requesting'] == 'protocol':
             return self._get_protocols()
 
-        if params['_requesting'] == 'users':
+        if params['_requesting'] == 'user':
             if 'source' not in params or 'protocol' not in params:
                 return self._get_users(None)
             return self._get_users(params)
 
-        if params['_requesting'] == 'directions':
+        if params['_requesting'] == 'direction':
             if 'source' not in params or 'protocol' not in params or \
                     'user' not in params:
                 return self._get_directions(None)
@@ -149,7 +148,7 @@ class LPIParser(object):
 
     def event_to_group(self, streaminfo):
         group = "%s MONITOR %s PROTOCOL %s USER %s BOTH" % \
-                (self.collection_name, streaminfo['source'], 
+                (self.collection_name, streaminfo['source'],
                 streaminfo['protocol'], streaminfo['user'])
         return group
 
@@ -219,7 +218,7 @@ class LPIParser(object):
     def legend_label(self, rule):
         parts, keydict = self.split_group_rule(rule)
 
-        label = "%s %s for %s at %s %s" % (parts.group('protocol'), 
+        label = "%s %s for %s at %s %s" % (parts.group('protocol'),
                 self.tabtitle.lower(),
                 parts.group('user'), parts.group('source'),
                 parts.group('direction'))
