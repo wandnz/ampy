@@ -36,7 +36,7 @@ class LPIUsersParser(object):
 
         self.sources[s['source']] = 1
         self.protocols[s['protocol']] = 1
-        
+
         key = self.stream_to_key(s)
         assert(key is not None)
 
@@ -112,13 +112,13 @@ class LPIUsersParser(object):
         if "_requesting" not in params:
             return []
 
-        if params['_requesting'] == 'sources':
+        if params['_requesting'] == 'source':
             return self._get_sources()
 
-        if params['_requesting'] == 'protocols':
+        if params['_requesting'] == 'protocol':
             return self._get_protocols()
 
-        if params['_requesting'] == 'metrics':
+        if params['_requesting'] == 'metric':
             if 'source' not in params or 'protocol' not in params:
                 return self._get_metrics(None)
             return self._get_metrics(params)
@@ -172,10 +172,13 @@ class LPIUsersParser(object):
 
 
     def parse_group_options(self, options):
-        if options[3].upper() not in self.groupsplits:
+        if len(options) != 3:
             return None
-        return "%s MONITOR %s PROTOCOL %s %s" % \
-                (options[0], options[1], options[2], options[3].upper())
+        if options[2].upper() not in self.groupsplits:
+            return None
+        return "%s MONITOR %s PROTOCOL %s %s" % (
+                self.collection_name, options[0], options[1],
+                options[2].upper())
 
     def split_group_rule(self, rule):
         parts = re.match("(?P<collection>[a-z-]+) "
@@ -216,9 +219,9 @@ class LPIUsersParser(object):
 
     def legend_label(self, rule):
         parts, keydict = self.split_group_rule(rule)
-        
-        label = "%s users at %s %s" % (parts.group('protocol'),
-                parts.group('source'), parts.group('metric')) 
+
+        label = "%s users at %s (%s)" % (parts.group('protocol'),
+                parts.group('source'), parts.group('metric'))
         return label
 
     def line_label(self, line):
