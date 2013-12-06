@@ -235,6 +235,8 @@ class AmpIcmpParser(amp.AmpParser):
 
 
     def parse_group_options(self, options):
+        if len(options) != 4:
+            return None
         if options[3].upper() not in self.splits:
             return None
 

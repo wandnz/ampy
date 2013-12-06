@@ -267,6 +267,8 @@ class AmpDnsParser(amp.AmpParser):
 
 
     def parse_group_options(self, options):
+        if len(options) != 6:
+            return None
         """ Convert group options array into a group description string """
         return "%s FROM %s TO %s OPTION %s %s %s %s FULL" % (
                     self.collection_name, options[0], options[1], options[2],

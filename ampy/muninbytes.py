@@ -201,6 +201,8 @@ class MuninbytesParser(object):
         return group
 
     def parse_group_options(self, options):
+        if len(options) != 3:
+            return None
         if options[2].upper() not in self.groupsplits:
             return None
 
