@@ -63,4 +63,12 @@ class AmpTracerouteParser(ampicmp.AmpIcmpParser):
             result[0]["collection"] = "amp-traceroute"
         return result
 
+    def event_to_group(self, streaminfo):
+        group = "%s FROM %s TO %s OPTION %s STREAM %s" % (
+                self.collection_name, streaminfo["source"],
+                streaminfo["destination"], streaminfo["packet_size"],
+                streaminfo["stream_id"])
+
+        return group
+
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :
