@@ -502,6 +502,14 @@ class Connection(object):
         # be used as selection options will differ from collection to
         # collection.
         return parser.get_selection_options(params)
+    
+    def get_graphtab_group(self, name, splitrule, modifier):
+        parser = self._lookup_parser(name)
+        if parser == None:
+            return {}
+       
+        return parser.get_graphtab_group(splitrule, modifier)
+        
    
     def event_to_group(self, name, streamid):
         info = self.get_stream_info(name, streamid)
@@ -531,6 +539,14 @@ class Connection(object):
             return ""
         
         return parser.parse_group_options(options)
+
+    def split_group_rule(self, name, rule):
+        parser = self._lookup_parser(name)
+        if parser == None:
+            return {}
+       
+        parts, keydict = parser.split_group_rule(rule)
+        return parts
 
     def find_group_streams(self, name, rule, groupid):
         parser = self._lookup_parser(name)
@@ -750,6 +766,8 @@ class Connection(object):
         streamlock.release()
 
         return result
+
+
 
     def _data_request_prep(self, collection, stream):
         """ Utility function that looks up the parser and collection ID

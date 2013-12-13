@@ -149,6 +149,28 @@ class LPIParser(object):
                 'title':self.tabtitle, \
                 'collection':self.collection_name}]
 
+    def get_graphtab_group(self, parts, modifier):
+
+        groupdict = parts.groupdict()
+        if 'source' not in groupdict or 'protocol' not in groupdict:
+            return []
+
+        if 'user' not in groupdict:
+            user = "all"
+        else:
+            user = groupdict['user']
+
+        if 'direction' not in groupdict:
+            direction = 'BOTH'
+        else:
+            direction = groupdict['direction']
+    
+        group = "%s MONITOR %s PROTOCOL %s USER %s %s" % \
+                (self.collection_name, groupdict['source'], 
+                groupdict['protocol'], user, direction)
+        return group
+            
+
     def event_to_group(self, streaminfo):
         streaminfo['protocol'] = string.replace(streaminfo['protocol'], "/", "-")
         group = "%s MONITOR %s PROTOCOL %s USER %s BOTH" % \

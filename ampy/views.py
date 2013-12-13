@@ -80,6 +80,26 @@ class View(object):
         return view_id
         
 
+    def create_tabview(self, basecol, view, tabcol, modifier):
+        groups = self.get_view_groups(basecol, view) 
+
+        tabgroups = []
+        for gid, rule in groups.iteritems():
+            splitrule = self.nntsc.split_group_rule(basecol, rule)
+            tabrule = self.nntsc.get_graphtab_group(tabcol, splitrule, modifier)
+
+            tabid = self._get_group_id(tabrule)
+            if tabid is None:
+                continue
+
+            tabgroups.append(tabid)
+        
+        tabgroups.sort()
+        tabview = self._get_view_id(tabgroups)
+        if tabview is None:
+            return -1
+        return tabview
+
     def create_view_from_stream(self, collection, stream):
         group = self.nntsc.stream_to_group(collection, stream)
         if group == "":

@@ -76,11 +76,35 @@ class LPIFlowsParser(lpi.LPIParser):
         return ret
 
 
-    def event_to_group(self, streaminfo):
+    def get_graphtab_group(self, parts, modifier):
+        groupdict = parts.groupdict()
+        if 'source' not in groupdict or 'protocol' not in groupdict:
+            return []
+
+        if modifier not in ['peak', 'new']:
+            return []
+
+        if 'user' not in groupdict:
+            user = "all"
+        else:
+            user = groupdict['user']
+
+        if 'direction' not in groupdict:
+            direction = 'BOTH'
+        else:
+            direction = groupdict['direction']
+
         group = "%s MONITOR %s PROTOCOL %s USER %s METRIC %s %s" % \
+                (self.collection_name, groupdict['source'], 
+                groupdict['protocol'], user, modifier, direction)
+        return group
+ 
+
+    def event_to_group(self, streaminfo):
+        group = "%s MONITOR %s PROTOCOL %s USER %s METRIC %s BOTH" % \
         (self.collection_name, streaminfo['source'], \
                 streaminfo['protocol'],
-                streaminfo['user'], streaminfo['metric'], direction)
+                streaminfo['user'], streaminfo['metric'])
 
         return group
 

@@ -150,6 +150,21 @@ class LPIUsersParser(object):
                     'collection':'lpi-users'})
         return ret
 
+    def get_graphtab_group(self, parts, modifier):
+
+        groupdict = parts.groupdict()
+        if 'source' not in groupdict or 'protocol' not in groupdict:
+            return []
+
+        if modifier.upper() not in self.groupsplits:
+            return []
+
+        group = "%s MONITOR %s PROTOCOL %s %s" % \
+                (self.collection_name, groupdict['source'], 
+                groupdict['protocol'], modifier.upper())
+        return group
+ 
+
     def event_to_group(self, streaminfo):
         group = "%s MONITOR %s PROTOCOL %s BOTH" % \
                 ("lpi-users", streaminfo['source'], streaminfo['protocol'])
