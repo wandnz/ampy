@@ -41,8 +41,10 @@ class LPIFlowsParser(lpi.LPIParser):
         if 'source' not in groupdict or 'protocol' not in groupdict:
             return None
 
-        if modifier not in ['peak', 'new']:
-            return None
+        if 'metric' not in groupdict or groupdict['metric'] not in ['peak', 'new']:
+            metric = 'peak'
+        else:
+            metric = groupdict['metric']
 
         if 'user' not in groupdict:
             user = "all"
@@ -56,7 +58,7 @@ class LPIFlowsParser(lpi.LPIParser):
 
         group = "%s MONITOR %s PROTOCOL %s USER %s METRIC %s %s" % \
                 (self.collection_name, groupdict['source'], 
-                groupdict['protocol'], user, modifier, direction)
+                groupdict['protocol'], user, metric, direction)
         return group
  
 

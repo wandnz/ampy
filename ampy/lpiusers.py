@@ -129,12 +129,15 @@ class LPIUsersParser(object):
         if 'source' not in groupdict or 'protocol' not in groupdict:
             return None
 
-        if modifier.upper() not in self.groupsplits:
-            return None
+        if 'metric' not in groupdict or \
+                groupdict['metric'] not in self.groupsplits:
+            metric = "BOTH"
+        else:
+            metric  = groupdict['metric']
 
         group = "%s MONITOR %s PROTOCOL %s %s" % \
                 (self.collection_name, groupdict['source'], 
-                groupdict['protocol'], modifier.upper())
+                groupdict['protocol'], metric)
         return group
  
 
