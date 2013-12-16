@@ -17,6 +17,8 @@ class SmokepingParser(object):
         # Maps (host) to a set of sources that run smokeping tests to it
         self.destinations = {}
 
+        self.collection_name = "rrd-smokeping"
+
     def add_stream(self, s):
         """ Updates the internal maps based on a new stream
 
@@ -136,44 +138,32 @@ class SmokepingParser(object):
 
         return [self.get_stream_id(params)]
 
-    def get_graphtab_stream(self, streaminfo):
-        """ Given the description of a streams from a similar collection,
-            return the stream id of the streams from this collection that are
-            suitable for display on a graphtab alongside the main graph (where
-            the main graph shows the stream passed into this function)
-        """
 
-        # TODO do some sort of translation between 'host', 'destination',
-        # 'target' and other parameters that mean similar things but have
-        # different names
-        if 'source' not in streaminfo or 'host' not in streaminfo:
-            return []
+    def get_graphtab_group(self, parts, modifier):
 
-        params = {'source':streaminfo['source'],
-                'host':streaminfo['host']}
+        groupdict = parts.groupdict()
+        if 'source' not in groupdict or 'host' not in groupdict:
+            return None
 
-        stream = self.get_stream_id(params)
-        if stream == -1:
-            return []
-
-        return [{'streamid':stream, 'title':'Latency',
-                'collection':'rrd-smokeping'}]
+        group = "%s SOURCE %s TARGET %s" % ("rrd-smokeping",
+                groupdict['source'], groupdict['host'])
+        return group
 
     def event_to_group(self, streaminfo):
         return self.stream_to_group(streaminfo)
-    
+
     def stream_to_group(self, streaminfo):
         # For now, we only allow one stream per group
-        # TODO Do we want to allow some sort of v4 / v6 split? -- would 
+        # TODO Do we want to allow some sort of v4 / v6 split? -- would
         # require a change to how we store smokeping streams
 
-        group = "%s SOURCE %s TARGET %s" % ("rrd-smokeping", 
+        group = "%s SOURCE %s TARGET %s" % ("rrd-smokeping",
                 streaminfo['source'], streaminfo['host'])
         return group
 
     def parse_group_options(self, options):
-        return "%s SOURCE %s TARGET %s" % (options[0], options[1],
-                options[2])
+        return "%s SOURCE %s TARGET %s" % (self.collection_name,
+                options[0], options[1])
 
     def split_group_rule(self, rule):
         parts = re.match("(?P<collection>[a-z-]+) "
@@ -181,13 +171,13 @@ class SmokepingParser(object):
                 "TARGET (?P<host>\S+)", rule)
         if parts is None:
             return None, {}
-        
+
         keydict = {
             'source':parts.group('source'),
             'host':parts.group('host')
         }
         return parts, keydict
-    
+
     def find_groups(self, parts, streams, groupid):
         groups = {}
         for stream, info in streams.items():

@@ -21,7 +21,7 @@ class LPIFlowsParser(lpi.LPIParser):
             return None
 
         return (s['source'], s['protocol'], s['user'], s['metric'])
-        
+
 
     def request_data(self, client, colid, streams, start, end, binsize, detail):
         """ Based on the level of detail requested, forms and sends a request
@@ -35,52 +35,38 @@ class LPIFlowsParser(lpi.LPIParser):
                 aggcols, binsize, group, aggfuncs)
 
 
-    def get_graphtab_stream(self, streaminfo):
-        """ Given the description of a stream from a similar collection,
-            return the stream id of streams from this collection that are
-            suitable for display on a graphtab alongside the main graph (where
-            the main graph shows the stream that was passed into this function)
-        """
-        if 'source' not in streaminfo or 'protocol' not in streaminfo:
-            return []
 
-        params = {'source':streaminfo['source'],
-                'protocol':streaminfo['protocol']}
+    def get_graphtab_group(self, parts, modifier):
+        groupdict = parts.groupdict()
+        if 'source' not in groupdict or 'protocol' not in groupdict:
+            return None
 
-        # Hopefully direction will kinda go away as a parameter eventually.
-        # Ideally, we would show 'in' and 'out' on the same graph
-        if 'dir' not in streaminfo:
-            params['direction'] = 'in'
+        if 'metric' not in groupdict or groupdict['metric'] not in ['peak', 'new']:
+            metric = 'peak'
         else:
-            params['direction'] = streaminfo['dir']
+            metric = groupdict['metric']
 
-        if 'user' not in streaminfo:
-            params['user'] = 'all'
+        if 'user' not in groupdict:
+            user = "all"
         else:
-            params['user'] = streaminfo['user']
+            user = groupdict['user']
 
-        params['metric'] = 'peak'
-        peak = self.get_stream_id(params)
+        if 'direction' not in groupdict:
+            direction = 'BOTH'
+        else:
+            direction = groupdict['direction']
 
-        params['metric'] = 'new'
-        new = self.get_stream_id(params)
-
-        ret = []
-        if peak != -1:
-            ret.append({'streamid':peak, 'title':'Flows (Peak)', \
-                    'collection':'lpi-flows'})
-        if new != -1:
-            ret.append({'streamid':new, 'title':'Flows (New)', \
-                    'collection':'lpi-flows'})
-
-        return ret
-
+        group = "%s MONITOR %s PROTOCOL %s USER %s METRIC %s %s" % \
+                (self.collection_name, groupdict['source'], 
+                groupdict['protocol'], user, metric, direction)
+        return group
+ 
 
     def event_to_group(self, streaminfo):
-        group = "%s MONITOR %s PROTOCOL %s USER %s METRIC %s %s" % \
+        group = "%s MONITOR %s PROTOCOL %s USER %s METRIC %s BOTH" % \
         (self.collection_name, streaminfo['source'], \
                 streaminfo['protocol'],
-                streaminfo['user'], streaminfo['metric'], direction)
+                streaminfo['user'], streaminfo['metric'])
 
         return group
 
@@ -97,13 +83,15 @@ class LPIFlowsParser(lpi.LPIParser):
                 streaminfo['protocol'],
                 streaminfo['user'], streaminfo['metric'], direction)
         return group
-        
+
     def parse_group_options(self, options):
-        if options[5].upper() not in self.groupsplits:
+        if len(options) != 5:
             return None
-        return "%s MONITOR %s PROTOCOL %s USER %s METRIC %s %s" % \
-                (options[0], options[1], options[2], options[3], options[4],
-                options[5].upper())
+        if options[4].upper() not in self.groupsplits:
+            return None
+        return "%s MONITOR %s PROTOCOL %s USER %s METRIC %s %s" % (
+                self.collection_name, options[0], options[1], options[2],
+                options[3], options[4].upper())
 
     def split_group_rule(self, rule):
         parts = re.match("(?P<collection>[a-z-]+) "
@@ -157,13 +145,13 @@ class LPIFlowsParser(lpi.LPIParser):
             metric = "new flows"
         elif parts.group('metric') == "peak":
             metric = "peak flows"
-            
+
         label = "%s %s for %s at %s %s" % (parts.group('protocol'),
                 metric,
                 parts.group('user'), parts.group('source'),
                 parts.group('direction'))
         return label
-  
+
 
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :
