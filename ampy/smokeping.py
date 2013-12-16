@@ -136,28 +136,16 @@ class SmokepingParser(object):
 
         return [self.get_stream_id(params)]
 
-    def get_graphtab_stream(self, streaminfo):
-        """ Given the description of a streams from a similar collection,
-            return the stream id of the streams from this collection that are
-            suitable for display on a graphtab alongside the main graph (where
-            the main graph shows the stream passed into this function)
-        """
 
-        # TODO do some sort of translation between 'host', 'destination',
-        # 'target' and other parameters that mean similar things but have
-        # different names
-        if 'source' not in streaminfo or 'host' not in streaminfo:
-            return []
+    def get_graphtab_group(self, parts, modifier):
 
-        params = {'source':streaminfo['source'],
-                'host':streaminfo['host']}
+        groupdict = parts.groupdict()
+        if 'source' not in groupdict or 'host' not in groupdict:
+            return None
 
-        stream = self.get_stream_id(params)
-        if stream == -1:
-            return []
-
-        return [{'streamid':stream, 'title':'Latency',
-                'collection':'rrd-smokeping'}]
+        group = "%s SOURCE %s TARGET %s" % ("rrd-smokeping",
+                groupdict['source'], groupdict['host'])
+        return group
 
     def event_to_group(self, streaminfo):
         return self.stream_to_group(streaminfo)

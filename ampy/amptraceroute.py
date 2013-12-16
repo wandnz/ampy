@@ -46,28 +46,15 @@ class AmpTracerouteParser(ampicmp.AmpIcmpParser):
         # Don't do anything to this data, it is probably fine as is
         return received
 
-    def get_graphtab_stream(self, streaminfo):
-        """ Given the description of a stream from a similar collection,
-            return the stream id of the stream from this collection that is
-            suitable for display on a graphtab alongside the main graph for
-            the provided stream.
-        """
-        result = super(AmpTracerouteParser, self).get_graphtab_stream(
-                streaminfo, "60")
-
-        # Our parent class is going set these to be amp-icmp, so replace them
-        # with something more suitable for traceroute
-
-        if result != []:
-            result[0]['title'] = "Traceroute"
-            result[0]["collection"] = "amp-traceroute"
-        return result
+    def get_graphtab_group(self, parts, modifier):
+        return super(AmpTracerouteParser, self).get_graphtab_group(parts,
+                modifier, "60")
 
     def event_to_group(self, streaminfo):
-        group = "%s FROM %s TO %s OPTION %s STREAM %s" % (
+        group = "%s FROM %s TO %s OPTION %s ADDRESS %s" % (
                 self.collection_name, streaminfo["source"],
                 streaminfo["destination"], streaminfo["packet_size"],
-                streaminfo["stream_id"])
+                streaminfo["address"])
 
         return group
 

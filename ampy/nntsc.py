@@ -508,6 +508,7 @@ class Connection(object):
         if parser == None:
             return {}
        
+        self._update_stream_map(name, parser)
         return parser.get_graphtab_group(splitrule, modifier)
         
    

@@ -19,7 +19,7 @@ class AmpIcmpParser(amp.AmpParser):
         # that were used in tests between the two hosts
         self.addresses = {}
 
-        self.splits = ["FULL", "NONE", "NETWORK", "FAMILY", "STREAM", "IPV4",
+        self.splits = ["FULL", "NONE", "NETWORK", "FAMILY", "ADDRESS", "IPV4",
                 "IPV6"]
         self.collection_name = "amp-icmp"
 
@@ -174,44 +174,55 @@ class AmpIcmpParser(amp.AmpParser):
 
         return []
 
-    def get_graphtab_stream(self, streaminfo, defaultsize=84):
-        """ Given the description of a stream from a similar collection,
-            return the stream id of the stream from this collection that is
-            suitable for display on a graphtab alongside the main graph for
-            the provided stream.
-        """
+    def get_graphtab_group(self, parts, modifier, defaultsize="84"):
 
-        if 'source' not in streaminfo or 'destination' not in streaminfo:
-            return []
-        if 'address' not in streaminfo:
-            return []
+        groupdict = parts.groupdict()
+        if 'source' not in groupdict or 'destination' not in groupdict:
+            return None
 
-        sizes = self._get_sizes(streaminfo['source'],
-                streaminfo['destination'])
+        if 'option' not in groupdict:
+            option = defaultsize
+        else:
+            option = groupdict['option']
+
+        # Choose a sensible size
+        # If we have a size that matches the original group, use that.
+        # If not, try to use the default size for this collection.
+        # Otherwise, pick the smallest available size
+
+        sizes = self._get_sizes(groupdict['source'], groupdict['destination'])
 
         if sizes == []:
-            return []
+            # No valid sizes, but we need to create a useful group regardless
+            option = defaultsize
+        elif option not in sizes:
+            if defaultsize in sizes:
+                option = defaultsize
+            else:
+                sizes.sort(key=int)
+                option = sizes[0]
 
-        params = {'source':streaminfo['source'],
-                'destination':streaminfo['destination'],
-                'address':streaminfo['address']}
-
-        # First, try to find a packet size that matches the packet size of
-        # the original stream.
-        # If that fails, try to use a 84 byte packet size (as this is the
-        # default for icmp tests)
-        # If that fails, pick the smallest size available
-
-        if 'packet_size' in streaminfo and streaminfo['packet_size'] in sizes:
-            params['packet_size'] = streaminfo['packet_size']
-        elif str(defaultsize) in sizes:
-            params['packet_size'] = str(defaultsize)
+        if 'split' not in groupdict:
+            # Is this the right default?
+            split = "FAMILY"
         else:
-            sizes.sort(key=int)
-            params['packet_size'] = sizes[0]
+            split = groupdict['split']
+        
+        if split == "ADDRESS":
+            address = groupdict['address']
+        else:
+            address = ""
 
-        return [{'streamid':self.get_stream_id(params), 'title':"Latency", \
-                'collection':'amp-icmp'}]
+        if address != "":
+            group = "%s FROM %s TO %s OPTION %s %s %s" % (
+                    self.collection_name, groupdict['source'],
+                    groupdict['destination'], option, split, address)
+        else:
+            group = "%s FROM %s TO %s OPTION %s %s" % (
+                    self.collection_name, groupdict['source'],
+                    groupdict['destination'], option, split)
+
+        return group
 
     def event_to_group(self, streaminfo):
         if '.' in streaminfo['address']:
@@ -227,10 +238,10 @@ class AmpIcmpParser(amp.AmpParser):
         
     
     def stream_to_group(self, streaminfo):
-        group = "%s FROM %s TO %s OPTION %s STREAM %s" % (
+        group = "%s FROM %s TO %s OPTION %s ADDRESS %s" % (
             self.collection_name, streaminfo["source"], 
             streaminfo["destination"],
-            streaminfo["packet_size"], streaminfo['stream_id'])
+            streaminfo["packet_size"], streaminfo['address'])
         return group 
         
 
@@ -247,7 +258,7 @@ class AmpIcmpParser(amp.AmpParser):
                 "FROM (?P<source>[.a-zA-Z0-9-]+) "
                 "TO (?P<destination>[.a-zA-Z0-9-]+) "
                 "OPTION (?P<option>[a-zA-Z0-9]+) "
-                "(?P<split>[A-Z0-9]+)[ ]*(?P<stream>[0-9]*)", rule)
+                "(?P<split>[A-Z0-9]+)[ ]*(?P<address>[0-9.:a-zA-Z]*)", rule)
         if parts is None:
             return None, {}
         if parts.group("split") not in self.splits:
@@ -268,8 +279,8 @@ class AmpIcmpParser(amp.AmpParser):
         label = "%s to %s, %s bytes %s" % (parts.group('source'), 
                 parts.group('destination'), parts.group('option'),
                 parts.group('split'))
-        if parts.group('split') == "STREAM":
-            label += " %s" % (parts.group('stream'))
+        if parts.group('split') == "ADDRESS":
+            label += " %s" % (parts.group('address'))
 
         return label
 
@@ -281,6 +292,7 @@ class AmpIcmpParser(amp.AmpParser):
     def find_groups(self, parts, streams, groupid):
         collection = self.collection_name
 
+        groups = {}
         if parts.group("split") == "FULL":
             groups = self._get_combined_view_groups(collection,
                         parts, streams, groupid)
@@ -292,7 +304,7 @@ class AmpIcmpParser(amp.AmpParser):
         elif parts.group("split") in ["FAMILY", "IPV4", "IPV6"]:
             groups = self._get_family_view_groups(collection,
                         parts, streams, groupid)
-        elif parts.group("split") == "STREAM":
+        elif parts.group("split") == "ADDRESS":
             groups = self._get_stream_view_groups(collection,
                         parts, streams, groupid)
         return groups
@@ -357,20 +369,23 @@ class AmpIcmpParser(amp.AmpParser):
 
     def _get_stream_view_groups(self, collection, parts, streams, groupid):
         """ Create a view containing a single stream """
-        if int(parts.group("stream")) not in streams.keys():
-            return {}
-        key = "group_stream_%s" % (parts.group("stream"))
-        
-        info = streams[int(parts.group("stream"))]
-        return { key: {
-                    'streams': [int(parts.group("stream"))],
-                    'source':parts.group('source'),
-                    'destination':parts.group('destination'),
-                    'packet_size':parts.group('option'),
-                    'shortlabel':info['address']
-                }
-             }
- 
+        groups = {}
+
+        for stream, info in streams.items():
+            if info['address'] != parts.group('address'):
+                continue
+            key = "group_stream_%s" % (stream)
+
+            groups[key] = {
+                'streams': [stream],
+                'source':parts.group('source'),
+                'destination':parts.group('destination'),
+                'packet_size':parts.group('option'),
+                'shortlabel':info['address']
+            }
+            break
+
+        return groups
 
     def _get_sizes(self, source, dest):
         """ Get a list of all packet sizes used to test between a given

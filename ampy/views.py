@@ -88,11 +88,16 @@ class View(object):
             splitrule = self.nntsc.split_group_rule(basecol, rule)
             tabrule = self.nntsc.get_graphtab_group(tabcol, splitrule, modifier)
 
+            if tabrule is None:
+                continue
             tabid = self._get_group_id(tabrule)
             if tabid is None:
                 continue
 
             tabgroups.append(tabid)
+       
+        if tabgroups == []:
+            return -1
         
         tabgroups.sort()
         tabview = self._get_view_id(tabgroups)

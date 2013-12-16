@@ -123,41 +123,14 @@ class LPIUsersParser(object):
 
         return []
 
-    def get_graphtab_stream(self, streaminfo):
-        """ Given the description of a streams from a similar collection,
-            return the stream id of the streams from this collection that are
-            suitable for display on a graphtab alongside the main graph (where
-            the main graph shows the stream passed into this function)
-        """
-
-        if 'source' not in streaminfo or 'protocol' not in streaminfo:
-            return []
-
-        params = {'source':streaminfo['source'],
-                'protocol':streaminfo['protocol'],
-                'metric':'active'}
-        active = self.get_stream_id(params)
-
-        params['metric'] = 'observed'
-        observed = self.get_stream_id(params)
-
-        ret = []
-        if active != -1:
-            ret.append({'streamid':active, 'title':'Users (Active)',
-                    'collection':'lpi-users'})
-        if observed != -1:
-            ret.append({'streamid':observed, 'title':'Users (Observed)',
-                    'collection':'lpi-users'})
-        return ret
-
     def get_graphtab_group(self, parts, modifier):
 
         groupdict = parts.groupdict()
         if 'source' not in groupdict or 'protocol' not in groupdict:
-            return []
+            return None
 
         if modifier.upper() not in self.groupsplits:
-            return []
+            return None
 
         group = "%s MONITOR %s PROTOCOL %s %s" % \
                 (self.collection_name, groupdict['source'], 
