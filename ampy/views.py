@@ -34,27 +34,35 @@ class View(object):
         if groups is None:
             return None
 
-        # create the description string for the group based on the options
-        group = self.nntsc.parse_group_options(collection, options)
-        if group is None:
-            # something is wrong with the options string, don't do anything
-            return oldview
-
-        # get the group id, creating it if it doesn't already exist
-        group_id = self._get_group_id(group)
-        if group_id is None:
-            # something went wrong trying to create the group, don't do anything
+        if len(options) == 0:
             return oldview
 
         if action == "add":
+            # create the description string for the group based on the options
+            group = self.nntsc.parse_group_options(collection, options)
+            if group is None:
+                # something is wrong with the options string, don't do anything
+                return oldview
+
+            # get the group id, creating it if it doesn't already exist
+            group_id = self._get_group_id(group)
+            if group_id is None:
+                # something went wrong trying to create the group
+                return oldview
+
             # combine the existing groups with the new group id
             if group_id not in groups:
                 groups.append(group_id)
                 groups.sort()
+
         elif action == "del":
             # remove the group from the existing list to get a new view
+            group_id = int(options[0])
             if group_id in groups:
                 groups.remove(group_id)
+            else:
+                return oldview
+
         else:
             # don't do anything, return the current view
             return oldview
@@ -66,19 +74,19 @@ class View(object):
             return oldview
         return view_id
 
-    # NOTE: stream is actually a stream here -- it is the nominated stream 
-    # from the group that the event was actually detected for. We use this 
+    # NOTE: stream is actually a stream here -- it is the nominated stream
+    # from the group that the event was actually detected for. We use this
     # stream to find the others that make up the group
     def create_view_from_event(self, collection, stream):
         group = self.nntsc.event_to_group(collection, stream)
         if group == "":
-            print >> sys.stderr, "Failed to find group for stream %d" % (stream)
+            print >> sys.stderr, "Failed to find group for stream %s" % (stream)
             return -1
 
         group_id = self._get_group_id(group)
         view_id = self._get_view_id([group_id])
         return view_id
-        
+
 
     def create_view_from_stream(self, collection, stream):
         group = self.nntsc.stream_to_group(collection, stream)
@@ -172,8 +180,8 @@ class View(object):
         result.close()
 
         return rules
-            
-    def get_group_streams(self, collection, groupid, rule):       
+
+    def get_group_streams(self, collection, groupid, rule):
         found = self.nntsc.find_group_streams(collection, rule, groupid)
 
         streams = {}
@@ -183,7 +191,7 @@ class View(object):
 
     def get_view_streams(self, collection, viewid):
         result = {}
-        
+
         # XXX do we need collection to be passed in?
         # XXX do matrix properly
         if str(viewid).startswith("matrix_"):
