@@ -40,7 +40,6 @@ class MuninbytesParser(object):
 
         if key in self.directions:
             self.directions[key][s['direction']] = s['stream_id']
-             
         else:
             self.directions[key] = {s['direction']:s['stream_id']}
 
@@ -138,14 +137,20 @@ class MuninbytesParser(object):
 
         # TODO - better handling of weird parameter combinations
         # e.g. what if they provide a interface but not a switch?
+        if "_requesting" not in params:
+            return []
 
-        if 'switch' not in params:
+        if params["_requesting"] == "switch":
             return self._get_switches()
 
-        if 'interface' not in params:
-            return self._get_interfaces(params['switch'])
+        if params["_requesting"] == "interface":
+            if "switch" not in params:
+                return []
+            return self._get_interfaces(params["switch"])
 
-        if 'direction' not in params:
+        if params["_requesting"] == "direction":
+            if "switch" not in params or "interface" not in params:
+                return []
             return self._get_directions(params['switch'], params['interface'])
 
         # If we get here, they provided all the possible parameters so the
@@ -168,7 +173,7 @@ class MuninbytesParser(object):
 
     def event_to_group(self, streaminfo):
         group = "%s SWITCH-%s INTERFACE-%s BOTH" % (
-                "rrd-muninbytes", streaminfo['switch'], 
+                "rrd-muninbytes", streaminfo['switch'],
                 streaminfo['interfacelabel'])
         return group
 
@@ -181,17 +186,19 @@ class MuninbytesParser(object):
             direction = "BOTH"
 
         group = "%s SWITCH-%s INTERFACE-%s %s" % (
-                "rrd-muninbytes", streaminfo['switch'], 
+                "rrd-muninbytes", streaminfo['switch'],
                 streaminfo['interfacelabel'], direction)
         return group
 
     def parse_group_options(self, options):
+        if len(options) != 3:
+            return None
         if options[2].upper() not in self.groupsplits:
             return None
-        
+
         return "%s SWITCH-%s INTERFACE-%s %s" % ("rrd-muninbytes",
                 options[0], options[1], options[2].upper())
-        
+
     def split_group_rule(self, rule):
         # Can't easily use regex here because SWITCH can be multiple
         # words :(
@@ -207,15 +214,15 @@ class MuninbytesParser(object):
         parts['collection'] = rule[0:switchind]
         parts['interface'] = rule[interind + len(" INTERFACE-"):dirind]
         parts['direction'] = rule[dirind + 1:]
-        
+
         if parts["direction"] not in self.groupsplits:
             return None, {}
-        
+
         keydict = {
             'switch':parts['switch'],
             'interface':parts['interface']
         }
-                    
+
         return parts, keydict
 
     def find_groups(self, parts, streams, groupid):
@@ -227,7 +234,7 @@ class MuninbytesParser(object):
                 continue
             if info['direction'] == "received" and partdir == "SENT":
                 continue
-            
+
             key = "group_%s_%s" % (groupid, info['direction'])
 
             if key not in groups:

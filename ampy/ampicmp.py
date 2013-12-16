@@ -231,12 +231,12 @@ class AmpIcmpParser(amp.AmpParser):
             family = 'IPV6'
 
         group = "%s FROM %s TO %s OPTION %s %s" % (
-            self.collection_name, streaminfo["source"], 
+            self.collection_name, streaminfo["source"],
             streaminfo["destination"],
             streaminfo["packet_size"], family)
-        return group 
-        
-    
+        return group
+
+
     def stream_to_group(self, streaminfo):
         group = "%s FROM %s TO %s OPTION %s ADDRESS %s" % (
             self.collection_name, streaminfo["source"], 
@@ -244,8 +244,9 @@ class AmpIcmpParser(amp.AmpParser):
             streaminfo["packet_size"], streaminfo['address'])
         return group 
         
-
     def parse_group_options(self, options):
+        if len(options) != 4:
+            return None
         if options[3].upper() not in self.splits:
             return None
 
@@ -267,7 +268,7 @@ class AmpIcmpParser(amp.AmpParser):
         keydict = {
             "source": parts.group("source"),
             "destination": parts.group("destination"),
-            "packet_size": parts.group("option") 
+            "packet_size": parts.group("option")
         }
 
 
@@ -276,7 +277,7 @@ class AmpIcmpParser(amp.AmpParser):
     def legend_label(self, rule):
         parts, keydict = self.split_group_rule(rule)
 
-        label = "%s to %s, %s bytes %s" % (parts.group('source'), 
+        label = "%s to %s, %s bytes %s" % (parts.group('source'),
                 parts.group('destination'), parts.group('option'),
                 parts.group('split'))
         if parts.group('split') == "ADDRESS":
@@ -314,18 +315,18 @@ class AmpIcmpParser(amp.AmpParser):
         """ Combined all streams together into a single result line """
         key = "group_%s" % (groupid)
         return { key: {
-                'streams':streams.keys(), 
+                'streams':streams.keys(),
                 'source':parts.group('source'),
                 'destination':parts.group('destination'),
                 'packet_size':parts.group('option'),
                 'shortlabel':'All addresses'
             }
         }
-        
-        
+
+
     def _get_all_view_groups(self, collection, parts, streams, groupid):
         """ Display all streams as individual result lines """
-        groups = {} 
+        groups = {}
         for stream, info in streams.items():
             key = "group_%s_%s" % (groupid, info["address"])
             groups[key] = {
@@ -335,12 +336,12 @@ class AmpIcmpParser(amp.AmpParser):
                     'packet_size':parts.group('option'),
                     'shortlabel':info['address']
             }
-        return groups 
-            
-                
+        return groups
+
+
     def _get_family_view_groups(self, collection, parts, streams, groupid):
         """ Group streams by address family, displaying a line for ipv4/6 """
-        groups = {} 
+        groups = {}
         for stream, info in streams.items():
             if "." in info["address"]:
                 family = "ipv4"
