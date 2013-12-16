@@ -70,6 +70,8 @@ class LPIParser(object):
                 stream can be found
         """
 
+        if 'protocol' in params:
+            params['protocol'] = string.replace(params['protocol'], "/", "-")
         key = self.stream_to_key(params)
         if key is None:
             return []
@@ -147,6 +149,7 @@ class LPIParser(object):
                 'collection':self.collection_name}]
 
     def event_to_group(self, streaminfo):
+        streaminfo['protocol'] = string.replace(streaminfo['protocol'], "/", "-")
         group = "%s MONITOR %s PROTOCOL %s USER %s BOTH" % \
                 (self.collection_name, streaminfo['source'],
                 streaminfo['protocol'], streaminfo['user'])
@@ -160,6 +163,7 @@ class LPIParser(object):
         else:
             direction = "BOTH"
 
+        streaminfo['protocol'] = string.replace(streaminfo['protocol'], "/", "-")
         group = "%s MONITOR %s PROTOCOL %s USER %s %s" % \
                 (self.collection_name, streaminfo['source'], \
                 streaminfo['protocol'],

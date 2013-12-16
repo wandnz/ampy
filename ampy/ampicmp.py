@@ -361,7 +361,9 @@ class AmpIcmpParser(amp.AmpParser):
         """ Create a view containing a single stream """
         if int(parts.group("stream")) not in streams.keys():
             return {}
-        key = "group_stream_%s" % (groupid, parts.group("stream"))
+        key = "group_stream_%s" % (parts.group("stream"))
+        
+        info = streams[int(parts.group("stream"))]
         return { key: {
                     'streams': [int(parts.group("stream"))],
                     'source':parts.group('source'),
