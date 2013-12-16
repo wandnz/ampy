@@ -167,11 +167,13 @@ class LPIParser(object):
         return group
 
     def parse_group_options(self, options):
-        if options[4].upper() not in self.groupsplits:
+        if len(options) != 4:
+            return None
+        if options[3].upper() not in self.groupsplits:
             return None
         return "%s MONITOR %s PROTOCOL %s USER %s %s" % \
-                (options[0], options[1], options[2], options[3],
-                options[4].upper())
+                (self.collection_name, options[0], options[1], options[2],
+                options[3].upper())
 
     def split_group_rule(self, rule):
         parts = re.match("(?P<collection>[a-z-]+) "
