@@ -77,6 +77,9 @@ class AmpDnsParser(amp.AmpParser):
             del params['address']
         else:
             k = (src, dest, query)
+
+            if k not in self.addresses:
+                return []
             addresses = self.addresses[k].keys()
 
         # Iterate through all the valid src, dest, query, address combinations,
@@ -196,42 +199,49 @@ class AmpDnsParser(amp.AmpParser):
         return list(set(possibles))
 
 
-    def get_graphtab_stream(self, streaminfo, defaultquery="www.google.com"):
-        # This is probably only useful if we are running other AMP tests to
-        # the DNS server
-
-        if 'source' not in streaminfo or 'destination' not in streaminfo:
-            return []
-        if 'address' not in streaminfo:
-            return []
-
-        queries = self._get_queries(streaminfo['source'],
-                streaminfo['destination'])
-
-        if queries == []:
-            return []
-
-        params = {'source': streaminfo['source'],
-                'destination':streaminfo['destination'],
-                'address':streaminfo['address']}
-
-        if 'query' in streaminfo and streaminfo['query'] in queries:
-            params['query'] = streaminfo['query']
-        elif defaultquery in queries:
-            params['query'] = defaultquery
-        else:
-            queries.sort()
-            params['query'] = queries[0]
-
-        return [{'streamid':self.get_stream_id(params), 'title':'DNS Latency', \
-                'collection':'amp-dns'}]
-
-
     def _get_queries(self, source, dest):
         if (source, dest) not in self.queries:
             return []
         return self.queries[(source, dest)].keys()
 
+
+    def get_graphtab_group(self, parts, modifier):
+        
+        groupdict = parts.groupdict()
+        if 'source' not in groupdict or 'destination' not in groupdict:
+            return None
+
+        queries = self._get_queries(groupdict['source'], 
+                groupdict['destination'])
+
+        if queries == []:
+            query = "www.google.com"
+        elif 'query' not in groupdict:
+            if "www.google.com" in queries:
+                query = "www.google.com"
+            else:
+                queries.sort()
+                query = queries[0]
+        
+        if 'query_class' not in groupdict:
+            queryclass = "IN"
+        else:
+            queryclass = groupdict['query_class']
+
+        if 'query_type' not in groupdict:
+            qtype = "A"
+        else:
+            qtype = groupdict['query_type']
+
+        if 'udp_payload_size' not in groupdict:
+            psize = "4096"
+        else:
+            psize = groupdict['udp_payload_size']
+
+        group = "%s FROM %s TO %s OPTION %s %s %s %s FULL" % (
+            self.collection_name, groupdict['source'],
+            groupdict['destination'], query, queryclass, qtype, psize)
+        return group
 
     def event_to_group(self, streaminfo):
         # the event graph should merge all the instances together into one
