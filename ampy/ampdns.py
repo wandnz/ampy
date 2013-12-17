@@ -214,14 +214,18 @@ class AmpDnsParser(amp.AmpParser):
         queries = self._get_queries(groupdict['source'], 
                 groupdict['destination'])
 
-        if queries == []:
+        if 'query' not in groupdict:
             query = "www.google.com"
-        elif 'query' not in groupdict:
-            if "www.google.com" in queries:
-                query = "www.google.com"
-            else:
-                queries.sort()
-                query = queries[0]
+        else:
+            query = groupdict['query']
+
+        if queries != []:
+            if query not in queries:
+                if "www.google.com" in queries:
+                    query = "www.google.com"
+                else:
+                    queries.sort()
+                    query = queries[0]
         
         if 'query_class' not in groupdict:
             queryclass = "IN"
@@ -238,18 +242,61 @@ class AmpDnsParser(amp.AmpParser):
         else:
             psize = groupdict['udp_payload_size']
 
-        group = "%s FROM %s TO %s OPTION %s %s %s %s FULL" % (
-            self.collection_name, groupdict['source'],
-            groupdict['destination'], query, queryclass, qtype, psize)
+        if 'flags' not in groupdict:
+            flags = "TFF"
+        else:
+            flags = groupdict['flags']
+
+        if 'split' not in groupdict:
+            split = "FULL"
+        else:
+            split = groupdict['split']
+
+        if split == "INSTANCE":
+            instance = groupdict['instance']
+        else:
+            instance = ""
+
+        if instance != "":
+            group = "%s FROM %s TO %s OPTION %s %s %s %s %s %s %s" % (
+                self.collection_name, groupdict['source'],
+                groupdict['destination'], query, queryclass, qtype, psize,
+                flags, split, instance)
+        else:
+            group = "%s FROM %s TO %s OPTION %s %s %s %s %s %s" % (
+                self.collection_name, groupdict['source'],
+                groupdict['destination'], query, queryclass, qtype, psize,
+                flags, split)
+
         return group
 
+    def _get_flags_string(self, streaminfo):
+        flags = ""
+        if streaminfo['recurse'] == True:
+            flags += "T"
+        else:
+            flags += "F"
+
+        if streaminfo['dnssec'] == True:
+            flags += "T"
+        else:
+            flags += "F"
+
+        if streaminfo['nsid'] == True:
+            flags += "T"
+        else:
+            flags += "F"
+        return flags
+
     def event_to_group(self, streaminfo):
+        flags = self._get_flags_string(streaminfo)
+
         # the event graph should merge all the instances together into one
-        group = "%s FROM %s TO %s OPTION %s %s %s %s FULL" % (
+        group = "%s FROM %s TO %s OPTION %s %s %s %s %s FULL" % (
             self.collection_name, streaminfo["source"],
             streaminfo["destination"], streaminfo["query"],
             streaminfo["query_class"], streaminfo["query_type"],
-            streaminfo["udp_payload_size"])
+            streaminfo["udp_payload_size"], flags)
         return group
 
 
@@ -268,21 +315,23 @@ class AmpDnsParser(amp.AmpParser):
 
     def stream_to_group(self, streaminfo):
         """ Convert a stream to a group description string """
-        group = "%s FROM %s TO %s OPTION %s %s %s %s STREAM %s" % (
+        flags = self._get_flags_string(streaminfo)
+        group = "%s FROM %s TO %s OPTION %s %s %s %s %s INSTANCE %s" % (
             self.collection_name, streaminfo["source"],
             streaminfo["destination"], streaminfo["query"],
             streaminfo["query_class"], streaminfo["query_type"],
-            streaminfo["udp_payload_size"], streaminfo['stream_id'])
+            streaminfo["udp_payload_size"], flags,
+            streaminfo['instance'])
         return group
 
 
     def parse_group_options(self, options):
-        if len(options) != 6:
+        if len(options) != 8:
             return None
         """ Convert group options array into a group description string """
-        return "%s FROM %s TO %s OPTION %s %s %s %s FULL" % (
+        return "%s FROM %s TO %s OPTION %s %s %s %s %s %s" % (
                     self.collection_name, options[0], options[1], options[2],
-                    options[3], options[4], options[5])
+                    options[3], options[4], options[5], options[6], options[7])
 
 
     def split_group_rule(self, rule):
@@ -290,13 +339,16 @@ class AmpDnsParser(amp.AmpParser):
 
         parts = re.match("(?P<collection>[a-z-]+) "
                 "FROM (?P<source>[.a-zA-Z0-9-]+) "
-                "TO (?P<destination>[.a-zA-Z0-9-]+) "
+                "TO (?P<destination>[.a-zA-Z0-9-:]+) "
                 "OPTION (?P<query>[a-zA-Z0-9.]+) IN (?P<type>[A]+) "
-                "(?P<size>[0-9]+) "
-                "(?P<split>[A-Z]+)[ ]*(?P<stream>[0-9]*)", rule)
+                "(?P<size>[0-9]+) (?P<flags>[TF]+) "
+                "(?P<split>[A-Z]+)[ ]*(?P<instance>[.a-zA-Z0-9-:]*)", rule)
         if parts is None:
             return None
         if parts.group("split") not in self.splits:
+            return None
+
+        if len(parts.group("flags")) != 3:
             return None
 
         keydict = {
@@ -306,6 +358,9 @@ class AmpDnsParser(amp.AmpParser):
             "query_class": "IN",
             "query_type": parts.group("type"),
             "udp_payload_size": int(parts.group("size")),
+            "recurse": parts.group("flags")[0] == "T",
+            "dnssec": parts.group("flags")[1] == "T",
+            "nsid": parts.group("flags")[2] == "T",
         }
 
         return parts, keydict
@@ -317,8 +372,8 @@ class AmpDnsParser(amp.AmpParser):
                 keydict["destination"], keydict["query"],
                 keydict["query_class"], keydict["query_type"],
                 parts.group("split"))
-        if parts.group('split') == "STREAM":
-            label += " %s" % (parts.group('stream'))
+        if parts.group('split') == "INSTANCE":
+            label += " %s" % (parts.group('instance'))
 
         return label
 
@@ -339,7 +394,7 @@ class AmpDnsParser(amp.AmpParser):
         elif parts.group("split") == "FULL":
             groups = self._get_combined_view_groups(collection,
                         parts, streams, groupid)
-        elif parts.group("split") == "STREAM":
+        elif parts.group("split") == "INSTANCE":
             groups = self._get_stream_view_groups(collection,
                         parts, streams, groupid)
         return groups
@@ -358,6 +413,9 @@ class AmpDnsParser(amp.AmpParser):
                     "query_class": "IN",
                     "query_type": parts.group("type"),
                     "udp_payload_size": parts.group("size"),
+                    "recurse": info['recurse'],
+                    "dnssec": info['dnssec'],
+                    "nsid": info['nsid'],
                     "shortlabel": info["instance"]
             }
         return groups
@@ -374,6 +432,9 @@ class AmpDnsParser(amp.AmpParser):
                 "query_class": "IN",
                 "query_type": parts.group("type"),
                 "udp_payload_size": parts.group("size"),
+                "recurse": parts.group("flags")[0],
+                "dnssec": parts.group("flags")[1],
+                "nsid": parts.group("flags")[2],
                 "shortlabel": "All instances"
             }
         }
@@ -381,19 +442,25 @@ class AmpDnsParser(amp.AmpParser):
 
     def _get_stream_view_groups(self, collection, parts, streams, groupid):
         """ Create a view containing a single stream """
-        if int(parts.group("stream")) not in streams.keys():
-            return {}
-        key = "group_stream_%s" % (groupid, parts.group("stream"))
-        return { key: {
-                    "streams": [int(parts.group("stream"))],
+        
+        groups = {}
+        for stream, info in streams.items():
+            if info['instance'] != parts.group('instance'):
+                continue
+            key = "group_%s_%s" % (groupid, info["instance"])
+            groups[key] = {
+                    "streams": [stream],
                     "source": parts.group("source"),
                     "destination": parts.group("destination"),
                     "query": parts.group("query"),
                     "query_class": "IN",
                     "query_type": parts.group("type"),
                     "udp_payload_size": parts.group("size"),
+                    "recurse": info['recurse'],
+                    "dnssec": info['dnssec'],
+                    "nsid": info['nsid'],
                     "shortlabel": info["instance"]
-                }
-             }
+            }
+        return groups
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :
