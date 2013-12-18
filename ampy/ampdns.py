@@ -14,7 +14,7 @@ class AmpDnsParser(amp.AmpParser):
         self.queries = {}
         self.addresses = {}
 
-        self.splits = ["STREAM", "NONE", "FULL"]
+        self.splits = ["INSTANCE", "NONE", "FULL"]
         self.collection_name = "amp-dns"
 
 
