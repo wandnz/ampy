@@ -379,10 +379,20 @@ class AmpDnsParser(amp.AmpParser):
 
     def legend_label(self, rule):
         parts, keydict = self.split_group_rule(rule)
-        label = "%s to %s, %s %s %s (%s)" % (keydict["source"],
+
+        flags = ""
+        if keydict["recurse"]:
+            flags += "+recurse "
+        if keydict["dnssec"]:
+            flags += "+dnssec "
+        if keydict["nsid"]:
+            flags += "+nsid "
+
+        flags = flags.strip()
+        label = "%s to %s, %s %s %s %s %s (%s)" % (keydict["source"],
                 keydict["destination"], keydict["query"],
                 keydict["query_class"], keydict["query_type"],
-                parts.group("split"))
+                keydict["udp_payload_size"], flags, parts.group("split"))
         if parts.group('split') == "INSTANCE":
             label += " %s" % (parts.group('instance'))
 
