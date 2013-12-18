@@ -185,6 +185,8 @@ class AmpDnsParser(amp.AmpParser):
         possibles = []
         req = params['_requesting']
 
+        # XXX A lot of loops here, although hopefully most of these are
+        # only a handful of items max (if not one)
         for a in iteraddrs:
             key = (params['source'], params['destination'], query, a)
             if key not in self.streams:
@@ -193,7 +195,16 @@ class AmpDnsParser(amp.AmpParser):
             matchstreams = self.streams[key]
 
             for stream in matchstreams:
-                if req in stream:
+                ignore = False
+
+                # Ignore any streams that don't match any additional
+                # parameters provided
+                for key, val in stream.iteritems():
+                    if key in params and params[key] != val:
+                        ignore = True
+                        break
+
+                if not ignore and req in stream:
                     possibles.append(stream[req])
 
         return list(set(possibles))
