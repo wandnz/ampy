@@ -245,14 +245,24 @@ class AmpIcmpParser(amp.AmpParser):
         return group 
         
     def parse_group_options(self, options):
-        if len(options) != 4:
+        split = options[3].upper()
+        if split not in self.splits:
             return None
-        if options[3].upper() not in self.splits:
+        
+        if split == "ADDRESS":
+            if len(options) != 5:
+                return None
+            return "%s FROM %s TO %s OPTION %s %s %s" % (
+                    self.collection_name, options[0], options[1], options[2],
+                    options[3].upper(), options[4])
+
+        if len(options) != 4:
             return None
 
         return "%s FROM %s TO %s OPTION %s %s" % (
-                    self.collection_name, options[0], options[1], options[2],
-                    options[3].upper())
+                self.collection_name, options[0], options[1], options[2],
+                options[3].upper())
+
 
     def split_group_rule(self, rule):
         parts = re.match("(?P<collection>[a-z-]+) "
