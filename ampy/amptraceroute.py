@@ -46,9 +46,8 @@ class AmpTracerouteParser(ampicmp.AmpIcmpParser):
         # Don't do anything to this data, it is probably fine as is
         return received
 
-    def get_graphtab_group(self, parts, modifier):
-        return super(AmpTracerouteParser, self).get_graphtab_group(parts,
-                modifier, "60")
+    def get_graphtab_group(self, parts):
+        return super(AmpTracerouteParser, self).get_graphtab_group(parts,"60")
 
     def event_to_group(self, streaminfo):
         group = "%s FROM %s TO %s OPTION %s ADDRESS %s" % (

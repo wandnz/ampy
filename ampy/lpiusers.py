@@ -125,7 +125,7 @@ class LPIUsersParser(object):
 
         return []
 
-    def get_graphtab_group(self, parts, modifier):
+    def get_graphtab_group(self, parts):
 
         groupdict = parts.groupdict()
         if 'source' not in groupdict or 'protocol' not in groupdict:

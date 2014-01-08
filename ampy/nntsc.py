@@ -503,15 +503,16 @@ class Connection(object):
         # collection.
         return parser.get_selection_options(params)
     
-    def get_graphtab_group(self, name, splitrule, modifier):
+    def get_graphtab_group(self, name, splitrule):
         parser = self._lookup_parser(name)
         if parser == None:
-            return {}
+            return None
        
         self._update_stream_map(name, parser)
-        return parser.get_graphtab_group(splitrule, modifier)
         
-   
+        newrule = parser.get_graphtab_group(splitrule)
+        return newrule
+
     def event_to_group(self, name, streamid):
         info = self.get_stream_info(name, streamid)
         if info == {}:

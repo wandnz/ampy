@@ -157,7 +157,7 @@ class MuninbytesParser(object):
         # only available option is to return the matching stream (?)
         return [self.get_stream_id(params)]
 
-    def get_graphtab_group(self, parts, modifier):
+    def get_graphtab_group(self, parts):
         groupdict = parts
         if 'switch' not in groupdict or 'interface' not in groupdict:
             return None

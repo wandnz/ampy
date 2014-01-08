@@ -174,7 +174,7 @@ class AmpIcmpParser(amp.AmpParser):
 
         return []
 
-    def get_graphtab_group(self, parts, modifier, defaultsize="84"):
+    def get_graphtab_group(self, parts, defaultsize="84"):
 
         groupdict = parts.groupdict()
         if 'source' not in groupdict or 'destination' not in groupdict:
@@ -367,7 +367,7 @@ class AmpIcmpParser(amp.AmpParser):
 
             key = "group_%s_%s" % (groupid, family)
             if key not in groups:
-                groups[key] = {'streams':[],
+                groups[key] = {
                     'streams':[stream],
                     'source':parts.group('source'),
                     'destination':parts.group('destination'),

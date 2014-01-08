@@ -139,7 +139,7 @@ class SmokepingParser(object):
         return [self.get_stream_id(params)]
 
 
-    def get_graphtab_group(self, parts, modifier):
+    def get_graphtab_group(self, parts):
 
         groupdict = parts.groupdict()
         if 'source' not in groupdict or 'host' not in groupdict:
