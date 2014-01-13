@@ -1073,6 +1073,7 @@ class Connection(object):
 
         # figure out what lines should be displayed in this view
         labels = self.view.get_view_streams(collection, view_id)
+        labels = self._filter_active_streams(labels, start, end)
 
         if len(labels.keys()) == 0:
             return {}
