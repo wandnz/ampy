@@ -121,6 +121,21 @@ class AmpyCache(object):
 
         return []
 
+    def check_active_streams(self, colid):
+        """ Fetch the active streams in a collection from the cache, if present
+        """
+        key = str("_".join(["activestreams", str(colid)]))
+
+        with self.mcpool.reserve() as mc:
+            try:
+                if key in mc:
+                    return mc.get(key)
+
+            except pylibmc.SomeErrors:
+                pass
+
+        return []
+
     def check_streaminfo(self, streamid):
         """ Fetch stream information from the cache, if present """
         key = str("_".join(["streaminfo", str(streamid)]))
@@ -158,6 +173,17 @@ class AmpyCache(object):
                 # multiple near-simultaneous requests for the same data
                 # because our ajax requests get spread across multiple
                 # processes.
+                mc.set(idkey, streams, 60 * 30)
+            except pylibmc.WriteError:
+                pass
+
+    def store_active_streams(self, colid, streams):
+        """ Cache the active streams in a collection """
+        idkey = str("_".join(["activestreams", str(colid)]))
+
+        with self.mcpool.reserve() as mc:
+            try:
+                # TODO is 30 minutes fine?
                 mc.set(idkey, streams, 60 * 30)
             except pylibmc.WriteError:
                 pass

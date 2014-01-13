@@ -253,6 +253,13 @@ class View(object):
                     "packet_size": packet_size})
                 if len(streams) > 0:
                     groups[source + "_" + destination] = streams
+
+        # TODO remove debug
+        count = 0
+        for k, v in groups.iteritems():
+            count += len(v)
+        print "get_view_streams, sources/destinations", len(sources), len(destinations)
+        print "get_view_streams, total groups/streams:", len(groups), count
         return groups
 
 
