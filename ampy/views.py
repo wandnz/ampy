@@ -12,7 +12,6 @@ class View(object):
     def __init__(self, nntsc, dbconfig):
         """ Create connection to views database """
         self.nntsc = nntsc
-        self.splits = ["FULL", "NONE", "NETWORK", "FAMILY", "STREAM"]
         # The view group database stores view group rules
         try:
             # TODO make this configurable somewhere?
@@ -87,17 +86,45 @@ class View(object):
         view_id = self._get_view_id([group_id])
         return view_id
 
+    def validate_tabview(self, basecol, view, tabcol):
+        """ Checks if the proposed tab would link to an empty graph, i.e.
+            there are no streams matching the group(s) that would result
+            from switching to the new collection. We can then avoid 
+            drawing tabs that won't go to a useful graph.
 
-    def create_tabview(self, basecol, view, tabcol, modifier):
+            This is essentially a dry-run of create_tabview that doesn't
+            create any new groups or views -- we want to avoid creating
+            groups etc. for tabs unless someone actually clicks on them so
+            we have to have this extra validation function instead.
+        """
+        groups = self.get_view_groups(basecol, view)
+
+        for gid, rule in groups.iteritems():
+            splitrule = self.nntsc.split_group_rule(basecol, rule)
+            tabrule = self.nntsc.get_graphtab_group(tabcol, splitrule)
+
+            if tabrule is  None:
+                continue
+
+            newgroups = self.nntsc.find_group_streams(tabcol, tabrule, "checkrule")
+            if len(newgroups.keys()) > 0:
+                # This group will have at least one stream in it, so it is
+                # valid.
+                return True
+
+        return False
+
+    def create_tabview(self, basecol, view, tabcol):
         groups = self.get_view_groups(basecol, view) 
 
         tabgroups = []
         for gid, rule in groups.iteritems():
             splitrule = self.nntsc.split_group_rule(basecol, rule)
-            tabrule = self.nntsc.get_graphtab_group(tabcol, splitrule, modifier)
+            tabrule = self.nntsc.get_graphtab_group(tabcol, splitrule)
 
             if tabrule is None:
                 continue
+
             tabid = self._get_group_id(tabrule)
             if tabid is None:
                 continue

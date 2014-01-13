@@ -95,7 +95,7 @@ class Connection(object):
         if self.datacursor == None:
             return ampy.result.Result([])
 
-        selclause = "SELECT * FROM event_view "
+        selclause = "SELECT * FROM full_event_group_view "
 
         whereclause = "WHERE timestamp >= %s AND timestamp <= %s "
         # iterate over all stream_ids and fetch all events
@@ -108,7 +108,7 @@ class Connection(object):
             streamclause += ")"
         whereclause += streamclause
 
-        orderclause = " ORDER BY timestamp, stream_id "
+        orderclause = " ORDER BY timestamp, group_id "
         sql = selclause + whereclause + orderclause
 
         params = tuple([start] + [end] + stream_ids)
