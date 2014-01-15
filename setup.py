@@ -4,7 +4,8 @@ except ImportError:
     from distutils.core import setup
 
 requires = [
-    'psycopg2'
+    'psycopg2',
+    'pylibmc'
     ]
 
 setup(
