@@ -280,6 +280,10 @@ class View(object):
                     "packet_size": packet_size})
                 if len(streams) > 0:
                     groups[source + "_" + destination] = streams
+
+        count = 0
+        for k, v in groups.iteritems():
+            count += len(v)
         return groups
 
 
