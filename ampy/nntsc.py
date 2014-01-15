@@ -520,7 +520,7 @@ class Connection(object):
                 maxts = s['lasttimestamp']
 
         # Cache the list of all streams if possible
-        if self.memcache:
+        if self.memcache and fetched:
             self.memcache.store_collection_streams(colid, set(streams.keys()))
 
         # Release the locks, other threads can now try to get data and will
