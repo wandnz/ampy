@@ -909,12 +909,10 @@ class Connection(object):
         # Fudge the cutoff slightly to exclude anything inactive since
         # twice the cache duration for activity before the start time.
         cutoff = start - (ACTIVE_STREAM_CHECK_FREQUENCY * 2)
-        print "LABELS:", len(labels)
 
         count = 0
         for label, streams in labels.iteritems():
             count += len(streams)
-        print "STREAMS IN LABELS:", count
 
         count = 0
         # use labels.items() to operate on a copy, so that we can delete empty
@@ -929,9 +927,6 @@ class Connection(object):
                 del labels[label]
             count += len(active)
 
-        # TODO remove debug
-        print "ACTIVE STREAMS IN LABELS:", count
-        print "start:", start, "end:", end, "cutoff:", cutoff
         return labels
 
 
@@ -982,11 +977,9 @@ class Connection(object):
 
         # figure out what lines should be displayed in this view
         labels = self.view.get_view_streams(collection, view_id)
-        print "INITIAL LABELS:", len(labels)
         count = 0
         for label, streams in labels.iteritems():
             count += len(streams)
-        print "INITIAL STREAMS IN LABELS:", count
 
         # determine which of these stream ids were possibly active in the
         # last given time period
