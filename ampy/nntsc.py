@@ -494,6 +494,7 @@ class Connection(object):
                         s = self.get_stream_info(colid, s)
                         if len(s) == 0:
                             continue
+                        self.memcache.store_streaminfo(s, s['stream_id'])
 
             # Save the stream info in our local store
             streams[s['stream_id']] = {
