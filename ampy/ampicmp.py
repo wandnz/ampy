@@ -23,6 +23,24 @@ class AmpIcmpParser(amp.AmpParser):
                 "IPV6"]
         self.collection_name = "amp-icmp"
 
+    def _split_to_human(self, split):
+        if split == "FULL":
+            return ""
+        if split == "NONE":
+            return "per address"
+        if split == "NETWORK":
+            return "per subnet"
+        if split == "FAMILY":
+            return "IPv4/IPv6"
+        if split == "ADDRESS":
+            return "only"
+        if split == "IPV4":
+            return "IPv4"
+        if split == "IPV6":
+            return "IPv6"
+
+        return ""
+
     # XXX do we want to extract the source/destination parts of this function
     # into the parent class?
     def add_stream(self, stream):
@@ -287,9 +305,9 @@ class AmpIcmpParser(amp.AmpParser):
     def legend_label(self, rule):
         parts, keydict = self.split_group_rule(rule)
 
-        label = "%s to %s, %s bytes %s" % (parts.group('source'),
-                parts.group('destination'), parts.group('option'),
-                parts.group('split'))
+        label = "%s to %s %s" % (parts.group('source'),
+                parts.group('destination'),
+                self._split_to_human(parts.group('split')))
         if parts.group('split') == "ADDRESS":
             label += " %s" % (parts.group('address'))
 
