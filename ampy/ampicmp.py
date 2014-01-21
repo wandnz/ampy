@@ -392,7 +392,8 @@ class AmpIcmpParser(amp.AmpParser):
                     'packet_size':parts.group('option'),
                     'shortlabel':family
                 }
-            groups[key]['streams'].append(stream)
+            else:
+                groups[key]['streams'].append(stream)
         return groups
 
 

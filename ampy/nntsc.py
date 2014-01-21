@@ -32,6 +32,7 @@ except ImportError:
     _have_memcache = False
 
 STREAM_CHECK_FREQUENCY = 60 * 5
+ACTIVE_STREAM_CHECK_FREQUENCY = 60 * 30
 
 class Connection(object):
     """ Class that is used to query NNTSC. Will store information about
@@ -120,6 +121,14 @@ class Connection(object):
         # TODO use it's own config, not the ampdbconfig
         self.view = View(self, self.ampdbconfig)
 
+        # Keep track of (roughly) when each stream id has been active so
+        # that we can cull the search space slightly. If we know an id hasn't
+        # been active for a month then there is no point in checking if it has
+        # data in the last day.
+        self.activity = {}
+        self.activity_lock = Lock()
+
+
     def _connect_nntsc(self):
         """ Connects to NNTSC and returns a NNTSCClient that can be used to
             easily make requests and receive responses
@@ -194,6 +203,48 @@ class Connection(object):
                 continue
             if msg[0] != NNTSC_STREAMS:
                 print >> sys.stderr, "Expected NNTSC_STREAMS response, not %d" % (msg[0])
+                return []
+
+            if msg[1]['collection'] != colid:
+                continue
+
+            streams += msg[1]['streams']
+            if msg[1]['more'] == False:
+                break
+
+        client.disconnect()
+        return streams
+
+    def _request_stream_activity(self, colid, lastactivity):
+        """ Query NNTSC for all of the streams for a given collection
+
+            Parameters:
+              colid -- the id number of the collection to query for
+              lastactivity -- the last time activity was checked for
+
+            Returns:
+              a list of streams
+        """
+        streams = []
+        client = self._connect_nntsc()
+
+        if client == None:
+            print >> sys.stderr, "Unable to connect to NNTSC exporter to request streams"
+            return []
+
+        client.send_request(NNTSC_REQ_ACTIVE_STREAMS, colid, lastactivity)
+        while 1:
+            msg = self._get_nntsc_message(client)
+            if msg == None:
+                client.disconnect()
+                return []
+
+            # Check if we got a complete parsed message, otherwise read some
+            # more data
+            if msg[0] == -1:
+                continue
+            if msg[0] != NNTSC_ACTIVE_STREAMS:
+                print >> sys.stderr, "Expected NNTSC_ACTIVE_STREAMS response, not %d" % (msg[0])
                 return []
 
             if msg[1]['collection'] != colid:
@@ -281,7 +332,7 @@ class Connection(object):
             label = name
             self.collections[col['id']] = {'name':name, 'label':label,
                     'laststream':0, 'lastchecked':0, 'streamlock':Lock(),
-                    'module':col['module'], 'streams':{}}
+                    'module':col['module'], 'streams':{}, 'lastactivity':0}
             self.collection_names[name] = col['id']
 
 
@@ -359,86 +410,132 @@ class Connection(object):
             self.parsers[name] = parser
         self.parser_lock.release()
 
+    def _update_stream_activity(self, colid, coldata, parser):
+        # Make sure only one thread will update the activity times at once.
+        # TODO could we get away with a non-blocking attempt to acquire the
+        # lock, and just carry on about our business if we can't get it?
+        self.activity_lock.acquire()
 
-    def _update_uncached_streams(self, colid, coldata, parser):
-
-        newstreams = []
-        streamlock = coldata['streamlock']
-        streams = coldata['streams']
-        laststream = coldata['laststream']
-
-        # Check if there are any new streams for this collection
-        streamlock.acquire()
-        newstreams = self._request_streams(colid, laststream)
-
-        for s in newstreams:
-            streams[s['stream_id']] = {'parser':parser, 'streaminfo':s,
-                    'collection':colid}
-            parser.add_stream(s)
-            if s['stream_id'] > laststream:
-                laststream = s['stream_id']
-        streamlock.release()
-
-        self.collection_lock.acquire()
+        data = []
+        fetched = False
         now = time.time()
-        self.collections[colid]['laststream'] = laststream
-        self.collections[colid]['lastchecked'] = now
-        self.collection_lock.release()
+        lastactivity = coldata["lastactivity"]
 
-    def _update_cached_streams(self, colid, coldata, parser):
+        # try to fetch memcached data first, if available
+        if self.memcache:
+            data = self.memcache.check_active_streams(colid)
 
-        newstreams = []
-        streamlist = []
+        # if we don't have memcache or it has expired, fetch new data
+        if len(data) == 0:
+            data = self._request_stream_activity(colid, lastactivity)
+            # only update last activity if we have fetched new data
+            self.collection_lock.acquire()
+            coldata["lastactivity"] = now
+            self.collection_lock.release()
+            fetched = True
 
-        cached = self.memcache.check_collection_streams(colid)
+        # update all the streams that we get in the response
+        for stream in data:
+            if stream not in self.activity:
+                # this will get updated properly once we receive the streaminfo
+                self.activity[stream] = {"first": now, "last": now}
+            else:
+                self.activity[stream]["last"] = now
 
+        # try to cache it if we got fresh data
+        if self.memcache and fetched and len(data) > 0:
+            self.memcache.store_active_streams(colid, data)
+        self.activity_lock.release()
+
+
+    def _update_streams(self, colid, coldata, parser):
+        data = []
+        fetched = False
+        maxts = 0
+        lastactivity = coldata['lastactivity']
+        laststream = coldata['laststream']
         streamlock = coldata['streamlock']
         streams = coldata['streams']
+
         streamlock.acquire()
-        if len(cached) == 0:
-            # Nothing in the cache, so we need to ask NNTSC for them
-            reqstreams = self._request_streams(colid, 0)
-            for s in reqstreams:
-                streamlist.append(s["stream_id"])
-                # Cache the individual stream info
-                self.memcache.store_streaminfo(s, s['stream_id'])
+        self.activity_lock.acquire()
 
-                # Update our local record of the stream -- note that parser
-                # can't be cached, which is why streams still exists
-                streams[s['stream_id']] = {'parser':parser,
-                        'streaminfo':s, 'collection':colid}
+        # Try to fetch this data from the cache first.
+        if self.memcache:
+            # This is just a list of stream ids, with no stream info
+            data = self.memcache.check_collection_streams(colid)
 
-                # The parser also needs to be made aware of the stream for
-                # get_selection_options()
-                parser.add_stream(s)
+        # If it isn't cached or we don't have a cache, then fetch it properly,
+        # with full stream info and everything. If laststream is zero then we
+        # will get every stream, otherwise we will only get new streams since
+        # we last got checked.
+        if len(data) == 0:
+            data = self._request_streams(colid, laststream)
+            fetched = True
 
-            # Cache a record of all the stream ids we have for this collection
-            self.memcache.store_collection_streams(colid, set(streamlist))
-        else:
-            # Sets are awesome
+        if not fetched:
+            # We might have already seen some (if not all) of it.
             existing = set(streams.keys())
 
-            # Find all streams that are in the cache that we don't already
-            # know about
-            newstreams = cached.difference(existing).union(existing.difference(cached))
-            for s in newstreams:
-                cachedinfo = self.memcache.check_streaminfo(s)
-                if cachedinfo != {}:
-                    streams[s] = {'parser':parser,
-                            'streaminfo':cachedinfo, 'collection':colid}
-                    parser.add_stream(cachedinfo)
-                else:
-                    # TODO Delete the stream from the parser too
-                    # e.g. parser.remove_stream(streams[s]['streaminfo'])
-                    if s in streams:
-                        del streams[s]
+            # Trim the data down to just the streams that are in the cache
+            # that we don't already know about.
+            data = data.difference(existing).union(existing.difference(data))
 
+        for s in data:
+            # Cache the individual stream info if we can do caching
+            if self.memcache:
+                if fetched:
+                    # Save this stream information that has just been fetched
+                    self.memcache.store_streaminfo(s, s['stream_id'])
+                else:
+                    # Lookup the stream id, the info should be cached
+                    s = self.memcache.check_streaminfo(s)
+                    if len(s) == 0:
+                        s = self.get_stream_info(colid, s)
+                        if len(s) == 0:
+                            continue
+                        self.memcache.store_streaminfo(s, s['stream_id'])
+
+            # Save the stream info in our local store
+            streams[s['stream_id']] = {
+                'parser': parser,
+                'streaminfo': s,
+                'collection': colid
+            }
+
+            # Add the stream to the parser specific to the collection
+            parser.add_stream(s)
+
+            # Fill in the initial times that this stream was active
+            self.activity[s['stream_id']] = {
+                'first': s['firsttimestamp'],
+                'last': s['lasttimestamp']
+            }
+
+            # Make sure we track the most recent stream id we have seen
+            if s['stream_id'] > laststream:
+                laststream = s['stream_id']
+            # Track the most recent time any stream was active
+            if s['lasttimestamp'] > maxts:
+                maxts = s['lasttimestamp']
+
+        # Cache the list of all streams if possible
+        if self.memcache and fetched:
+            self.memcache.store_collection_streams(colid, set(streams.keys()))
+
+        # Release the locks, other threads can now try to get data and will
+        # hopefully hit cached versions.
+        self.activity_lock.release()
         streamlock.release()
 
+        # Update the last checked timestamps and last stream
         self.collection_lock.acquire()
-        now = time.time()
-        self.collections[colid]['lastchecked'] = now
+        self.collections[colid]['laststream'] = laststream
+        self.collections[colid]['lastchecked'] = time.time()
+        if lastactivity == 0:
+            self.collections[colid]['lastactivity'] = maxts
         self.collection_lock.release()
+
 
     def _update_stream_map(self, collection, parser):
         """ Asks NNTSC for any streams that we don't know about and adds
@@ -460,15 +557,22 @@ class Connection(object):
 
         # Avoid requesting new stream information if we have done so recently
         now = time.time()
+
         if now < (lastchecked + STREAM_CHECK_FREQUENCY):
             return
+        self._update_streams(colid, coldata, parser)
 
-        # We have two different code paths, depending on whether you have
-        # memcache available or not
-        if self.memcache:
-            self._update_cached_streams(colid, coldata, parser)
-        else:
-            self._update_uncached_streams(colid, coldata, parser)
+        # Check this less frequently, we don't need to be too precise and
+        # can save time and effort by sending less data less frequently. Also,
+        # this will be skipped the first time as the initial stream activity
+        # information can be gained through the full stream info that we just
+        # fetched immediately above
+        lastactivity = coldata['lastactivity']
+        if now > (lastactivity + ACTIVE_STREAM_CHECK_FREQUENCY):
+            # update last activity time for streams for this collection
+            self._update_stream_activity(colid, coldata, parser)
+
+
 
     def get_selection_options(self, name, params):
         """ Given a known set of stream parameters, return a list of possible
@@ -800,6 +904,26 @@ class Connection(object):
 
         return colid, parser, streaminfo
 
+
+    def _filter_active_streams(self, labels, start, end):
+        # Fudge the cutoff slightly to exclude anything inactive since
+        # twice the cache duration for activity before the start time.
+        cutoff = start - (ACTIVE_STREAM_CHECK_FREQUENCY * 2)
+
+        # use labels.items() to operate on a copy, so that we can delete empty
+        # stream lists from the original
+        for label, streams in labels.items():
+            active = [s for s in streams \
+                     if self.activity[s]["last"] > cutoff and \
+                        self.activity[s]["first"] < end]
+            if len(active) > 0:
+                labels[label] = active
+            else:
+                del labels[label]
+
+        return labels
+
+
     def get_recent_view_data(self, collection, view_id, duration, detail):
         """ Returns aggregated data measurements for a time period starting
             at 'now' and going back a specified number of seconds. This
@@ -847,7 +971,11 @@ class Connection(object):
 
         # figure out what lines should be displayed in this view
         labels = self.view.get_view_streams(collection, view_id)
-        
+
+        # determine which of these stream ids were possibly active in the
+        # last given time period
+        labels = self._filter_active_streams(labels, start, end)
+
         if len(labels.keys()) == 0:
             return {}
 
@@ -930,6 +1058,7 @@ class Connection(object):
 
         # figure out what lines should be displayed in this view
         labels = self.view.get_view_streams(collection, view_id)
+        labels = self._filter_active_streams(labels, start, end)
 
         if len(labels.keys()) == 0:
             return {}
