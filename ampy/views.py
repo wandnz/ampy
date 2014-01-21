@@ -278,8 +278,20 @@ class View(object):
                     "source": source,
                     "destination": destination,
                     "packet_size": packet_size})
-                if len(streams) > 0:
-                    groups[source + "_" + destination] = streams
+                for stream in streams:
+                    info = self.nntsc.get_stream_info(collection, stream)
+                    if len(info) == 0:
+                        continue
+                    if "." in info["address"]:
+                        family = "ipv4"
+                    else:
+                        family = "ipv6"
+
+                    key = "%s_%s_%s" % (source, destination, family)
+                    if key not in groups:
+                        groups[key] = [stream]
+                    else:
+                        groups[key].append(stream)
         return groups
 
 
