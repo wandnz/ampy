@@ -496,6 +496,12 @@ class Connection(object):
                             continue
                         self.memcache.store_streaminfo(s, s['stream_id'])
 
+            # Avoid saving streams that have never successfully stored
+            # data. This also means it'll be harder for people to start
+            # finding streams that have no data available for them
+            if s['lasttimestamp'] == 0:
+                continue
+
             # Save the stream info in our local store
             streams[s['stream_id']] = {
                 'parser': parser,
@@ -913,6 +919,7 @@ class Connection(object):
         # use labels.items() to operate on a copy, so that we can delete empty
         # stream lists from the original
         for label, streams in labels.items():
+            
             active = [s for s in streams \
                      if self.activity[s]["last"] > cutoff and \
                         self.activity[s]["first"] < end]
@@ -972,12 +979,17 @@ class Connection(object):
         # figure out what lines should be displayed in this view
         labels = self.view.get_view_streams(collection, view_id)
 
-        # determine which of these stream ids were possibly active in the
-        # last given time period
+        # Populate our data with empty lists for all requested labels, so
+        # we will at least return something valid for any inactive labels
+        for k in labels.keys():
+            data[k] = []
+
+        # Only want to query for streams that were active in the time period    
         labels = self._filter_active_streams(labels, start, end)
 
+
         if len(labels.keys()) == 0:
-            return {}
+            return data
 
         # TODO pick a stream id? these should all be the same collection etc
         # maybe we do need to call this on every stream_id to be sure?
@@ -1058,10 +1070,18 @@ class Connection(object):
 
         # figure out what lines should be displayed in this view
         labels = self.view.get_view_streams(collection, view_id)
+
+        # Populate our data with empty lists for all requested labels, so
+        # we will at least return something valid for any inactive labels
+        for k in labels.keys():
+            data[k] = []
+
+        # Only want to query for streams that were active in the time period    
         labels = self._filter_active_streams(labels, start, end)
 
+
         if len(labels.keys()) == 0:
-            return {}
+            return data
 
         # TODO pick a stream id? these should all be the same collection etc
         # maybe we do need to call this on every stream_id to be sure?
