@@ -1219,12 +1219,17 @@ class Connection(object):
 
             blockdata = parser.format_data(blockdata, stream, streaminfo)
 
-            # XXX try storing all data, even if empty - we can cache negative
-            # data too!
-            #if blockdata != []:
+            # Since we now like to timeout our postgres queries, we want to
+            # avoid caching empty data as this may actually be due to a timeout
+            # rather than there actually being no data.
+            #
+            # XXX It'd be really great if we got some indication that a
+            # timeout occurred, so we can decide whether we should be caching
+            # things or not!
             data += blockdata
             # Got all the data for this uncached block -- cache it
-            self.memcache.store_block(b, blockdata)
+            if blockdata != []:
+                self.memcache.store_block(b, blockdata)
 
         return data
 
