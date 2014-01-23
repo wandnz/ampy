@@ -62,6 +62,11 @@ class View(object):
             else:
                 return oldview
 
+            # if this was the last group, return view 0 so that the caller
+            # can react accordingly
+            if len(groups) == 0:
+                return 0
+
         else:
             # don't do anything, return the current view
             return oldview
