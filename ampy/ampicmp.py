@@ -33,7 +33,7 @@ class AmpIcmpParser(amp.AmpParser):
         if split == "FAMILY":
             return "IPv4/IPv6"
         if split == "ADDRESS":
-            return "only"
+            return "at"
         if split == "IPV4":
             return "IPv4"
         if split == "IPV6":
