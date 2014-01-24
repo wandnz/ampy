@@ -17,7 +17,16 @@ class AmpDnsParser(amp.AmpParser):
         self.splits = ["INSTANCE", "NONE", "FULL"]
         self.collection_name = "amp-dns"
 
+    def _split_to_human(self, split, instance):
+        if split == "FULL":
+            return ""
+        if split == "NONE":
+            return "per instance"
+        if split == "INSTANCE":
+            return "only %s" % (instance)
 
+        return ""
+    
     def add_stream(self, stream):
 
         super(AmpDnsParser, self).add_stream(stream)
@@ -389,12 +398,14 @@ class AmpDnsParser(amp.AmpParser):
             flags += "+nsid "
 
         flags = flags.strip()
-        label = "%s to %s, %s %s %s %s %s (%s)" % (keydict["source"],
+        label = "%s to %s, %s %s %s %s %s %s" % (keydict["source"],
                 keydict["destination"], keydict["query"],
                 keydict["query_class"], keydict["query_type"],
-                keydict["udp_payload_size"], flags, parts.group("split"))
-        if parts.group('split') == "INSTANCE":
-            label += " %s" % (parts.group('instance'))
+                keydict["udp_payload_size"], flags, 
+                self._split_to_human(parts.group('split'), 
+                        parts.group('instance')))
+       
+        
 
         return label
 
