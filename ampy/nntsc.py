@@ -1009,6 +1009,7 @@ class Connection(object):
             # If we have memcache check if this data is available already.
             if self.memcache:
                 key = {
+                    'collection': collection,
                     'label': label,
                     'duration': duration,
                     'detail': detail
@@ -1042,6 +1043,7 @@ class Connection(object):
             if self.memcache:
                 for label in result.keys():
                     key = {
+                        'collection': collection,
                         'label': label,
                         'duration': duration,
                         'detail': detail

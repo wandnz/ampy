@@ -95,8 +95,8 @@ class AmpyCache(object):
 
     def check_recent(self, query):
         """ Fetch recent data for the matrix from the cache, if present """
-        key = str("_".join([str(query['label']), str(query['duration']),
-                str(query['detail']), "recent"]))
+        key = str("_".join([str(query['collection']), str(query['label']),
+                    str(query['duration']), str(query['detail']), "recent"]))
 
         with self.mcpool.reserve() as mc:
             try:
@@ -104,7 +104,6 @@ class AmpyCache(object):
                     return mc.get(key)
             except pylibmc.SomeErrors:
                 pass
-
         return None
 
     def check_collection_streams(self, colid):
@@ -210,8 +209,8 @@ class AmpyCache(object):
         else:
             cachetime = 60 * 60 * 6
 
-        key = str("_".join([str(query['label']), str(query['duration']),
-                str(query['detail']), "recent"]))
+        key = str("_".join([str(query['collection']), str(query['label']),
+                    str(query['duration']), str(query['detail']), "recent"]))
 
         with self.mcpool.reserve() as mc:
             try:
