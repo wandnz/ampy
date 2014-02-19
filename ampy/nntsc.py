@@ -169,93 +169,79 @@ class Connection(object):
 
             return msg
 
-    def _request_streams(self, colid, startingfrom):
+    def _request_streams(self, colid, reqtype, boundary):
         """ Query NNTSC for all of the streams for a given collection
 
             Parameters:
               colid -- the id number of the collection to query for (not the
                        name!)
-              startingfrom -- the id of the last stream received for this
-                              collection, so you can ask for only new streams.
-                              If 0, you'll get all streams for the collection.
+              reqtype -- the request type to use, either NNTSC_REQ_STREAMS or
+                         NNTSC_REQ_ACTIVE_STREAMS
+              boundary -- a value that limits the range of stream returned.
 
+                          If requesting NNTSC_STREAMS, this is the id of the
+                          last stream that you already know about. This allows
+                          you to ask for only new streams. If 0, you will get
+                          all streams for the collection.
+
+                          If requesting NNTSC_ACTIVE_STREAMS, this is the time
+                          that marks the start of the "active" period, i.e. all
+                          streams that have not been active since the boundary 
+                          value will NOT be returned.
             Returns:
               a list of streams
+              returns None if an error occurs, most notably the query timing
+              out
         """
         streams = []
         client = self._connect_nntsc()
 
         if client == None:
             print >> sys.stderr, "Unable to connect to NNTSC exporter to request streams"
-            return []
+            return None
 
-        client.send_request(NNTSC_REQ_STREAMS, colid, startingfrom)
+        client.send_request(reqtype, colid, boundary)
+
+        if reqtype == NNTSC_REQ_ACTIVE_STREAMS:
+            logreq = "active "
+        else:
+            logreq = ""
+           
         while 1:
 
             msg = self._get_nntsc_message(client)
             if msg == None:
                 client.disconnect()
-                return []
+                return None
 
             # Check if we got a complete parsed message, otherwise read some
             # more data
             if msg[0] == -1:
                 continue
-            if msg[0] != NNTSC_STREAMS:
-                print >> sys.stderr, "Expected NNTSC_STREAMS response, not %d" % (msg[0])
-                return []
+            
+            if (msg[0] == NNTSC_STREAMS and reqtype == NNTSC_REQ_STREAMS) or \
+                     (msg[0] == NNTSC_ACTIVE_STREAMS and \
+                     reqtype == NNTSC_REQ_ACTIVE_STREAMS):
+                if msg[1]['collection'] != colid:
+                    continue
 
-            if msg[1]['collection'] != colid:
-                continue
-
-            streams += msg[1]['streams']
-            if msg[1]['more'] == False:
-                break
-
-        client.disconnect()
-        return streams
-
-    def _request_stream_activity(self, colid, lastactivity):
-        """ Query NNTSC for all of the streams for a given collection
-
-            Parameters:
-              colid -- the id number of the collection to query for
-              lastactivity -- the last time activity was checked for
-
-            Returns:
-              a list of streams
-        """
-        streams = []
-        client = self._connect_nntsc()
-
-        if client == None:
-            print >> sys.stderr, "Unable to connect to NNTSC exporter to request streams"
-            return []
-
-        client.send_request(NNTSC_REQ_ACTIVE_STREAMS, colid, lastactivity)
-        while 1:
-            msg = self._get_nntsc_message(client)
-            if msg == None:
+                streams += msg[1]['streams']
+                if msg[1]['more'] == False:
+                    break
+            elif msg[0] == NNTSC_QUERY_CANCELLED:
+                print >> sys.stderr, "Query for %sstreams for collection %d timed out" % (logreq, colid)
+                
                 client.disconnect()
-                return []
+                return None
+            else:
+                print >> sys.stderr, "Received unexpected response to %sstreams request: %d" % (logreq, msg[0])
+                client.disconnect()
+                return None
 
-            # Check if we got a complete parsed message, otherwise read some
-            # more data
-            if msg[0] == -1:
-                continue
-            if msg[0] != NNTSC_ACTIVE_STREAMS:
-                print >> sys.stderr, "Expected NNTSC_ACTIVE_STREAMS response, not %d" % (msg[0])
-                return []
-
-            if msg[1]['collection'] != colid:
-                continue
-
-            streams += msg[1]['streams']
-            if msg[1]['more'] == False:
-                break
 
         client.disconnect()
         return streams
+
 
     def _request_collections(self):
         """ Query NNTSC for all of the available collections
@@ -275,13 +261,18 @@ class Connection(object):
             client.disconnect()
             return None
 
-        if msg[0] != NNTSC_COLLECTIONS:
-            print >> sys.stderr, "Expected NNTSC_COLLECTIONS response, not %d" % (msg[0])
+        if msg[0] == NNTSC_COLLECTIONS:
             client.disconnect()
-            return None
-
+            return msg[1]['collections']
+        elif msg[0] == NNTSC_QUERY_CANCELLED:
+            print >> sys.stderr, "Request for NNTSC Collections timed out"
+        else:
+            print >> sys.stderr, "Unexpected response to NNTSC Collections request: %d" % (msg[0])
+            
         client.disconnect()
-        return msg[1]['collections']
+        return None
+
+
 
     def _lookup_parser(self, name):
         self.parser_lock.acquire()
@@ -427,7 +418,16 @@ class Connection(object):
 
         # if we don't have memcache or it has expired, fetch new data
         if len(data) == 0:
-            data = self._request_stream_activity(colid, lastactivity)
+            data = self._request_streams(colid, NNTSC_REQ_ACTIVE_STREAMS,
+                    lastactivity)
+            
+            if data == None:
+                # Request for streams failed, either due to a timeout or
+                # some other error. Don't cache the failed result so that
+                # we can try again next time
+                self.activity_lock.release()
+                return
+            
             # only update last activity if we have fetched new data
             self.collection_lock.acquire()
             coldata["lastactivity"] = now
@@ -470,7 +470,16 @@ class Connection(object):
         # will get every stream, otherwise we will only get new streams since
         # we last got checked.
         if len(data) == 0:
-            data = self._request_streams(colid, laststream)
+            data = self._request_streams(colid, NNTSC_REQ_STREAMS, laststream)
+
+            if data == None:
+                # Request for streams failed, either due to a timeout or
+                # some other error. Don't cache the failed result so that
+                # we can try again next time
+                self.activity_lock.release()
+                streamlock.release()
+                return
+
             fetched = True
 
         if not fetched:
@@ -1039,9 +1048,10 @@ class Connection(object):
                 result[label] = parser.format_data(result[label],
                         label, streaminfo)
 
-            # Make sure we cache any results we just fetched
-            if self.memcache:
-                for label in result.keys():
+                # Make sure we cache any results we just fetched
+                # Don't cache if we got a query timeout while getting the
+                # data!
+                if self.memcache and result[label]['timedout'] == []:
                     key = {
                         'collection': collection,
                         'label': label,
@@ -1054,6 +1064,9 @@ class Connection(object):
             # so merge that with cached data
             for k, v in result.iteritems():
                 data[k] = v["data"]
+
+        # TODO Inform the caller about labels where the data query timed out
+        # as this is probably something we need to warn the user about
         return data
 
     def get_period_view_data(self, collection, view_id, start, end, binsize, detail):
@@ -1090,66 +1103,70 @@ class Connection(object):
         collection_id, parser, streaminfo = self._data_request_prep(
                 collection, labels.values()[0][0])
 
-        if self.memcache:
-            # see if any of them have been cached
-            required = {}
-            for label, streams in labels.iteritems():
-                # treat a label as an entity that we cache - it might be made
-                # up of data from lots of streams, but it's only one set of data
-                blocks[label] = self.memcache.get_caching_blocks(label,
-                        start, end, binsize, detail)
-                req, cached[label] = self.memcache.search_cached_blocks(
-                        blocks[label])
-                #print "cached:%d uncached:%d id:%s start:%d end:%d" % (
-                #        len(cached[label]), len(req), label, start, end)
-                for r in req:
-                    # group up all the labels that need the same time blocks
-                    blockstart = r["start"]
-                    blockend = r["end"]
-                    binsize = r["binsize"]
-                    if blockstart not in required:
-                        required[blockstart] = {}
-                    if blockend not in required[blockstart]:
-                        required[blockstart][blockend] = {}
-                    if binsize not in required[blockstart][blockend]:
-                        required[blockstart][blockend][binsize] = {}
-                    required[blockstart][blockend][binsize][label] = streams
+        # see if any of them have been cached
+        required = {}
+        for label, streams in labels.iteritems():
+            # treat a label as an entity that we cache - it might be made
+            # up of data from lots of streams, but it's only one set of data
+            blocks[label] = self.memcache.get_caching_blocks(label,
+                    start, end, binsize, detail)
+            req, cached[label] = self.memcache.search_cached_blocks(
+                    blocks[label])
+            #print "cached:%d uncached:%d id:%s start:%d end:%d" % (
+            #        len(cached[label]), len(req), label, start, end)
+            for r in req:
+                # group up all the labels that need the same time blocks
+                blockstart = r["start"]
+                blockend = r["end"]
+                binsize = r["binsize"]
+                if blockstart not in required:
+                    required[blockstart] = {}
+                if blockend not in required[blockstart]:
+                    required[blockstart][blockend] = {}
+                if binsize not in required[blockstart][blockend]:
+                    required[blockstart][blockend][binsize] = {}
+                required[blockstart][blockend][binsize][label] = streams
 
-            # fetch those that aren't cached
-            fetched = {}
-            frequencies = {}
-            for bstart in required:
-                for bend in required[bstart]:
-                    for binsize, rqlabels in required[bstart][bend].iteritems():
-                        qr = self._get_data(collection_id, rqlabels, bstart,
-                                bend-1, binsize, detail, parser)
-                        #print qr
-                        if len(qr) == 0:
-                            return None
-                        for label, item in qr.iteritems():
-                            if label not in fetched:
-                                fetched[label] = []
-                            fetched[label] += item["data"]
-                            frequencies[label] = item["freq"]
+        # fetch those that aren't cached
+        fetched = {}
+        frequencies = {}
+        timeouts = {}
+        for bstart in required:
+            for bend in required[bstart]:
+                for binsize, rqlabels in required[bstart][bend].iteritems():
+                    qr = self._get_data(collection_id, rqlabels, bstart,
+                            bend-1, binsize, detail, parser)
+                    #print qr
+                    if len(qr) == 0:
+                        return None
+                    for label, item in qr.iteritems():
+                        if label not in fetched:
+                            fetched[label] = []
+                            timeouts[label] = []
+                        fetched[label] += item["data"]
+                        frequencies[label] = item["freq"]
+                        timeouts[label] += item["timedout"]
 
-            # deal with all the labels that we have fetched data for just now
-            for label, item in fetched.iteritems():
+        # deal with all the labels that we have fetched data for just now
+        for label, item in fetched.iteritems():
+            data[label] = self._process_blocks(
+                    blocks[label], cached[label],
+                    fetched[label], label, streaminfo,
+                    parser, frequencies[label], timeouts[label])
+        # deal with any streams that were entirely cached - should be
+        # every stream left that hasn't already been touched
+        for label, item in cached.iteritems():
+            if label not in fetched:
                 data[label] = self._process_blocks(
                         blocks[label], cached[label],
-                        fetched[label], label, streaminfo,
-                        parser, frequencies[label])
-            # deal with any streams that were entirely cached - should be
-            # every stream left that hasn't already been touched
-            for label, item in cached.iteritems():
-                if label not in fetched:
-                    data[label] = self._process_blocks(
-                            blocks[label], cached[label],
-                            [], label, streaminfo, parser, 0)
-            return data
+                        [], label, streaminfo, parser, 0, [])
+        # TODO Inform the caller about labels where the data query timed out
+        # as this is probably something we need to warn the user about
+        return data
 
 
     def _process_blocks(self, blocks, cached, queried, stream, streaminfo,
-            parser, freq):
+            parser, freq, timeouts):
         data = []
         now = int(time.time())
         for b in blocks:
@@ -1220,17 +1237,33 @@ class Connection(object):
                 ts += incrementby
 
             blockdata = parser.format_data(blockdata, stream, streaminfo)
-
-            # Since we now like to timeout our postgres queries, we want to
-            # avoid caching empty data as this may actually be due to a timeout
-            # rather than there actually being no data.
-            #
-            # XXX It'd be really great if we got some indication that a
-            # timeout occurred, so we can decide whether we should be caching
-            # things or not!
             data += blockdata
-            # Got all the data for this uncached block -- cache it
-            if blockdata != []:
+
+            cacheblock = True
+            # Don't cache blocks if they fall in any query ranges where
+            # the request for data timed out
+            while len(timeouts) > 0:
+                tstart = timeouts[0][0]
+                tend = timeouts[0][1]
+                # If our block ends before the first timeout, carry on
+                if tstart > b['end']:
+                    break
+
+                # If our block starts after the first timeout, pop it and
+                # try the next one
+                if tend < b['start']:
+                    timeouts = timeouts[1:]
+                    continue
+
+                if b['start'] >= tstart and b['start'] <= tend:
+                    cacheblock = False
+
+                elif b['end'] >= tstart and b['end'] <= tend:
+                    cacheblock = False
+
+                break
+
+            if cacheblock:
                 self.memcache.store_block(b, blockdata)
 
         return data
@@ -1311,6 +1344,28 @@ class Connection(object):
             if msg[0] == NNTSC_STREAMS:
                 continue
 
+            if msg[0] == NNTSC_QUERY_CANCELLED:
+                # At least some of the data is missing due to a query timeout
+                if msg[1]['collection'] != colid:
+                    continue
+
+                for lab in msg[1]['labels']:
+                    if lab not in labels:
+                        continue
+                    if lab not in data:
+                        data[lab] = {}
+                        data[lab]["data"] = []
+                        data[lab]["timedout"] = []
+                        
+                    data[lab]['timedout'].append((msg[1]['start'], msg[1]['end']))
+                    if msg[1]['more'] == False:
+                        # Make sure we report some sort of frequency if we
+                        # are missing all the data...
+                        if "freq" not in data[lab]:
+                            data[lab]["freq"] = binsize
+                        count += 1
+                        
+
             if msg[0] == NNTSC_HISTORY:
                 # Sanity checks
                 if msg[1]['collection'] != colid:
@@ -1324,6 +1379,9 @@ class Connection(object):
                 if label not in data:
                     data[label] = {}
                     data[label]["data"] = []
+                    data[label]["timedout"] = []
+
+                if "freq" not in data[label]:
                     data[label]["freq"] = msg[1]['binsize']
                 data[label]["data"] += msg[1]['data']
                 if msg[1]['more'] == False:
