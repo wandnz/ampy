@@ -980,6 +980,7 @@ class Connection(object):
         info = {}
         data = {}
         queries = {}
+        timeouts = []
         if detail is None:
             detail = "full"
         end = int(time.time())
@@ -1065,9 +1066,12 @@ class Connection(object):
             for k, v in result.iteritems():
                 data[k] = v["data"]
 
+                if result[label]['timedout'] != []:
+                    timeouts.append(label)
+
         # TODO Inform the caller about labels where the data query timed out
         # as this is probably something we need to warn the user about
-        return data
+        return data, timeouts
 
     def get_period_view_data(self, collection, view_id, start, end, binsize, detail):
         blocks = {}
