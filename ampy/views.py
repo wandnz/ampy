@@ -285,6 +285,10 @@ class View(object):
                     "packet_size": packet_size})
                 for stream in streams:
                     info = self.nntsc.get_stream_info(collection, stream)
+                    if info == None:
+                        # Could not fetch streams due to timeout?
+                        # TODO What do?
+                        continue
                     if len(info) == 0:
                         continue
                     if "." in info["address"]:
