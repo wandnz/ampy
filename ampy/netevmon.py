@@ -22,23 +22,6 @@ except ImportError:
 
 class Connection(object):
 
-    def __reflect_db(self):
-        self.metadata = MetaData(self.engine)
-        try:
-            self.metadata.reflect(bind=self.engine)
-        except OperationalError, e:
-            print >> sys.stderr, "Error binding to database %s" % (dbname)
-            print >> sys.stderr, "Are you sure you've specified the right database name?"
-            sys.exit(1)
-
-        # reflect() is supposed to take a 'views' argument which will
-        # force it to reflects views as well as tables, but our version of
-        # sqlalchemy didn't like that. So fuck it, I'll just reflect the
-        # views manually
-        views = self.inspector.get_view_names()
-        for v in views:
-            view_table = Table(v, self.metadata, autoload=True)
-
 
     def __init__(self, host=None, name="events", pwd=None, user=None):
         cstring = "dbname=%s" % (name)
@@ -50,15 +33,21 @@ class Connection(object):
             cstring += " password=%s" % (pwd)
 
         self.datacursor = None
+        self.cstring = cstring
+        self.cursorname = 'ampy_%030x' % random.randrange(16**30)
+        self.connect()
 
+    def connect(self):
         try:
-            self.conn = psycopg2.connect(cstring)
+            self.conn = psycopg2.connect(self.cstring)
         except psycopg2.DatabaseError as e:
             print >> sys.stderr, "Error connecting to event database:", e
             self.conn = None
-            return
+            return -1
 
-        self.cursorname = 'ampy_%030x' % random.randrange(16**30)
+        if self.datacursor is not None:
+            self._reset_cursor()
+        return 0
 
     def _reset_cursor(self):
         if self.conn == None:
@@ -81,6 +70,31 @@ class Connection(object):
         if self.conn:
             self.conn.close()
 
+    def _execute_netevmon_query(self, sql, params):
+        retried = False
+        if self.conn == None:
+            if self.connect() == -1:
+                return None
+
+        self._reset_cursor()
+        if self.datacursor == None:
+            return None
+
+        while 1:
+            try:
+                result = self.datacursor.execute(sql, params)
+                break
+            except psycopg2.OperationalError as e:
+                if not retried:
+                    if self.connect() == -1:
+                        return None
+                    retried = True
+                    continue
+                return None
+
+        return result
+
+
     def get_stream_events(self, stream_ids, start=None, end=None):
         """Fetches all events for a given stream between a start and end
            time. Events are returned as a Result object."""
@@ -90,10 +104,6 @@ class Connection(object):
 
         if start is None:
             start = end - (12 * 60 * 60)
-
-        self._reset_cursor()
-        if self.datacursor == None:
-            return ampy.result.Result([])
 
         selclause = "SELECT * FROM full_event_group_view "
 
@@ -113,7 +123,9 @@ class Connection(object):
 
         params = tuple([start] + [end] + stream_ids)
 
-        self.datacursor.execute(sql, params)
+        result = self._execute_netevmon_query(sql, params)
+        if result == None:
+            return ampy.result.Result([])
 
         eventlist = []
         while True:
@@ -128,12 +140,12 @@ class Connection(object):
     def get_events_in_group(self, group_id):
         """Fetches all of the events belonging to a specific event group.
            The events are returned as a Result object."""
-        self._reset_cursor()
-        if self.datacursor == None:
-            return ampy.result.Result([])
 
         sql = "SELECT * FROM full_event_group_view WHERE group_id=%s ORDER BY timestamp"
-        self.datacursor.execute(sql, (str(group_id),))
+        params = (str(group_id),)
+        result = self._execute_netevmon_query(sql, params)
+        if result == None:
+            return ampy.result.Result([])
 
         eventlist = []
         while True:
@@ -156,12 +168,11 @@ class Connection(object):
         start_dt = datetime.datetime.fromtimestamp(start)
         end_dt = datetime.datetime.fromtimestamp(end)
 
-        self._reset_cursor()
-        if self.datacursor == None:
-            return ampy.result.Result([])
-
         sql = "SELECT * FROM event_group WHERE group_start_time >= %s AND group_end_time <= %s ORDER BY group_start_time"
-        self.datacursor.execute(sql, (start_dt, end_dt))
+        params = (start_dt, end_dt)
+        result = self._execute_netevmon_query(sql, params)
+        if result == None:
+            return ampy.result.Result([])
 
         eventlist = []
         while True:
