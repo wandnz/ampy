@@ -999,7 +999,7 @@ class Connection(object):
 
 
         if len(labels.keys()) == 0:
-            return data
+            return data, []
 
         # TODO pick a stream id? these should all be the same collection etc
         # maybe we do need to call this on every stream_id to be sure?
@@ -1164,8 +1164,6 @@ class Connection(object):
                 data[label] = self._process_blocks(
                         blocks[label], cached[label],
                         [], label, streaminfo, parser, 0, [])
-        # TODO Inform the caller about labels where the data query timed out
-        # as this is probably something we need to warn the user about
         return data
 
 
