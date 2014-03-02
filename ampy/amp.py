@@ -2,6 +2,7 @@
 # -*- coding: ascii -*-
 
 import sqlalchemy
+from sqlalchemy.exc import OperationalError
 
 class AmpParser(object):
     """ Base class for all the AMP data types. Deals with all the things that
@@ -33,18 +34,26 @@ class AmpParser(object):
 
         self.streams = {}
 
+        self.ampdb = None
+        self.dbconfig = dbconfig
+
+    def connect(self):
+    
         # The AMP database stores site/mesh metadata
         try:
             # TODO make this configurable somewhere?
             url = sqlalchemy.engine.url.URL("postgresql", database="amp2",
-                    username=dbconfig['user'], host=dbconfig['host'],
-                    password=dbconfig['pwd'])
+                    username=self.dbconfig['user'], host=self.dbconfig['host'],
+                    password=self.dbconfig['pwd'])
             self.ampdb = sqlalchemy.create_engine(url)
             # test query to see if the database connection was actually made:
             # sqlalchemy is apparently stupid and doesn't let us easily check
             self.ampdb.table_names()
         except sqlalchemy.exc.OperationalError:
             self.ampdb = None
+            return -1
+
+        return 0
 
     def add_stream(self, s):
         """ Updates the internal maps based on a new stream 's'
@@ -134,12 +143,15 @@ class AmpParser(object):
         """
         mesh_sites = []
         # if the mesh is set then find the sites that belong
-        if mesh is not None and self.ampdb is not None:
-            mesh_sites = [x[0] for x in self.ampdb.execute(sqlalchemy.text(
-                        "SELECT ampname FROM active_mesh_members "
-                        "WHERE meshname = :mesh AND mesh_is_src = true "
-                        "ORDER BY ampname"),
-                    {"mesh": mesh})]
+        if mesh is not None:
+            query = "SELECT ampname FROM active_mesh_members \
+                WHERE meshname = :mesh AND mesh_is_src = true \
+                ORDER BY ampname"
+            params = {"mesh":mesh}
+
+            result = self._execute_ampdb_query(query, params)
+            if result is not None:
+                mesh_sites = [ x[0] for x in result]
 
         # if dest is set, find the sources that test to it
         if dest != None:
@@ -167,12 +179,16 @@ class AmpParser(object):
         """
         # if the mesh is set then find the sites that belong
         mesh_sites = []
-        if mesh is not None and self.ampdb is not None:
-            mesh_sites = [x[0] for x in self.ampdb.execute(sqlalchemy.text(
-                        "SELECT ampname FROM active_mesh_members "
-                        "WHERE meshname = :mesh AND mesh_is_dst = true "
-                        "ORDER BY ampname"),
-                    {"mesh": mesh})]
+
+        if mesh is not None:
+            query = "SELECT ampname FROM active_mesh_members \
+                WHERE meshname = :mesh AND mesh_is_dst = true \
+                ORDER BY ampname"
+            params = {"mesh":mesh}
+
+            result = self._execute_ampdb_query(query, params)
+            if result is not None:
+                mesh_sites = [ x[0] for x in result]
 
         # if source is set, find the destinations it tests to
         if source != None:
@@ -196,45 +212,47 @@ class AmpParser(object):
                 dests.add(d)
         return list(dests)
 
+   
     def _get_source_meshes(self, site=None):
         """ Fetch all source meshes, possibly filtered by a site """
-        if self.ampdb is None:
-            return []
-        # No site set, return all possible source meshes
         if site is None:
-            return [{"name":x[0], "longname":x[1], "description":x[2]}
-                for x in self.ampdb.execute(
-                        "SELECT mesh_name, mesh_longname, mesh_description "
-                        "FROM mesh "
-                        "WHERE mesh_active = true AND mesh_is_src = true")]
-        # Site is set, return all source meshes that the site is a part of
+            query = "SELECT mesh_name, mesh_longname, mesh_description \
+            FROM mesh WHERE mesh_active = true AND mesh_is_src = true"
+            params = {}
+        else:
+            query = "SELECT mesh_name, mesh_longname, mesh_description \
+            FROM active_mesh_members JOIN mesh ON \
+            active_mesh_members.meshname = mesh.mesh_name \
+            WHERE ampname = :site AND mesh_is_src = true"
+            params = {"site":site}
+
+        result = self._execute_ampdb_query(query, params)
+        if result is None:
+            return []
+
         return [{"name":x[0], "longname":x[1], "description":x[2]}
-            for x in self.ampdb.execute(sqlalchemy.text(
-                        "SELECT mesh_name, mesh_longname, mesh_description "
-                        "FROM active_mesh_members JOIN mesh "
-                        "ON active_mesh_members.meshname = mesh.mesh_name "
-                        "WHERE ampname = :site AND mesh_is_src = true"),
-                    {"site": site})]
+            for x in result]
 
     def _get_destination_meshes(self, site=None):
         """ Fetch all destination meshes, possibly filtered by a site """
-        if self.ampdb is None:
-            return []
-        # No site set, return all possible destination meshes
         if site is None:
-            return [{"name":x[0], "longname":x[1], "description":x[2]}
-                for x in self.ampdb.execute(
-                        "SELECT mesh_name, mesh_longname, mesh_description "
-                        "FROM mesh "
-                        "WHERE mesh_active = true AND mesh_is_dst = true")]
-        # Site is set, return all destination meshes that the site tests to
+            query = "SELECT mesh_name, mesh_longname, mesh_description \
+            FROM mesh WHERE mesh_active = true AND mesh_is_dst = true"
+            params = {}
+        else:
+            query = "SELECT mesh_name, mesh_longname, mesh_description \
+            FROM active_mesh_members JOIN mesh ON \
+            active_mesh_members.meshname = mesh.mesh_name \
+            WHERE ampname = :site AND mesh_is_dst = true"
+            params = {"site":site}
+
+        result = self._execute_ampdb_query(query, params)
+        if result is None:
+            return []
+
         return [{"name":x[0], "longname":x[1], "description":x[2]}
-            for x in self.ampdb.execute(sqlalchemy.text(
-                        "SELECT mesh_name, mesh_longname, mesh_description "
-                        "FROM active_mesh_members JOIN mesh "
-                        "ON active_mesh_members.meshname = mesh.mesh_name "
-                        "WHERE ampname = :site AND mesh_is_dst = true"),
-                    {"site": site})]
+            for x in result]
+        
 
     def _get_site_info(self, site):
         """ Get more detailed and human readable information about a site """
@@ -246,17 +264,40 @@ class AmpParser(object):
             "description": "",
             "location": "unknown location",
         }
-        if self.ampdb is None:
+        
+        query = "SELECT site_ampname as ampname, site_longname as longname, \
+        site_location as location, site_description as description, \
+        site_active as active FROM site WHERE site_ampname = :site"
+        params = {"site": site}
+        result = self._execute_ampdb_query(query, params)
+        
+        if result is None:
             return unknown
-        info = self.ampdb.execute(sqlalchemy.text(
-                    "SELECT site_ampname as ampname, "
-                    "site_longname as longname, "
-                    "site_location as location, "
-                    "site_description as description, "
-                    "site_active as active "
-                    "FROM site WHERE site_ampname = :site"),
-                    {"site": site}).first()
+
+        info = result.first()
+
         if info is None:
             return unknown
         return dict(info)
+
+    def _execute_ampdb_query(self, query, params):
+        retried = False
+
+        if self.ampdb == None:
+            if self.connect() == -1:
+                return None
+
+        while 1:
+            try:
+                result = self.ampdb.execute(sqlalchemy.text(query), params)
+                break
+            except OperationalError as e:
+                if not retried:
+                    if self.connect() == -1:
+                        return None
+                    retried = True
+                    continue
+                return None
+        return result
+
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :
