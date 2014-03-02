@@ -4,6 +4,8 @@
 import sqlalchemy
 import re, sys
 
+from sqlalchemy.exc import OperationalError
+
 # XXX move all this into nntsc.py? or can we get enough info into here that
 # it can actually do all the hard work?
 class View(object):
@@ -12,18 +14,26 @@ class View(object):
     def __init__(self, nntsc, dbconfig):
         """ Create connection to views database """
         self.nntsc = nntsc
+        self.dbconfig = dbconfig
+
+        self.connect()
+
+    def connect(self):
         # The view group database stores view group rules
         try:
             # TODO make this configurable somewhere?
             url = sqlalchemy.engine.url.URL("postgresql", database="views",
-                    username=dbconfig['user'], host=dbconfig['host'],
-                    password=dbconfig['pwd'])
+                    username=self.dbconfig['user'], host=self.dbconfig['host'],
+                    password=self.dbconfig['pwd'])
             self.viewdb = sqlalchemy.create_engine(url)
             # test query to see if the database connection was actually made:
             # sqlalchemy is apparently stupid and doesn't let us easily check
             self.viewdb.table_names()
-        except sqlalchemy.exc.OperationalError:
+        except OperationalError:
             self.viewdb = None
+            return -1
+
+        return 0
 
 
     def create_view(self, collection, oldview, action, options):
@@ -157,9 +167,14 @@ class View(object):
 
     def _get_groups_in_view(self, view_id):
         """ Get a list of the groups in a given view """
-        select = self.viewdb.execute(sqlalchemy.text(
-                    "SELECT view_groups FROM views WHERE view_id = :view_id"),
-                {"view_id": view_id})
+        
+        query = "SELECT view_groups FROM views WHERE view_id = :view_id"
+        params = {"view_id": view_id}
+                
+        select = self._execute_view_query(query, params)
+        if select is None:
+            return None
+
         groups = select.first()
         if groups is None:
             return []
@@ -168,21 +183,52 @@ class View(object):
 
     def _get_view_id(self, groups):
         """ Get the view id describing given groups, creating if necessary """
-        select = self.viewdb.execute(sqlalchemy.text(
-                    "SELECT view_id FROM views WHERE view_groups = :groups"),
-                {"groups": groups})
+        
+        query = "SELECT view_id FROM views WHERE view_groups = :groups"
+        params = {"groups":groups}
+
+        select = self._execute_view_query(query, params)
+        if select is None:
+            return None
+                
         view_id = select.first()
         if view_id is None:
             return self._create_view_entry(groups)
         return view_id[0]
 
+    
+    def _execute_view_query(self, query, params):
+        retried = False
+    
+        if self.viewdb == None:
+            if self.connect() == -1:
+                return None
+
+        while 1:
+            try:
+                result = self.viewdb.execute(sqlalchemy.text(query), params)
+                break
+            except OperationalError as e:
+                if not retried:
+                    if self.connect() == -1:
+                        return None
+                    retried = True
+                    continue
+                return None
+
+        return result
 
     def _get_group_id(self, group):
         """ Get the group id describing given group, creating if necessary """
-        select = self.viewdb.execute(sqlalchemy.text(
-                    "SELECT group_id FROM groups WHERE "
-                    "group_description = :group"),
-                {"group": group})
+        
+        query = "SELECT group_id FROM groups WHERE group_description = :group"
+        params = {"group": group}
+
+        select = self._execute_view_query(query, params)
+
+        if select == None:
+            return None
+
         group_id = select.first()
         if group_id is None:
             return self._create_group_entry(group)
@@ -191,10 +237,14 @@ class View(object):
 
     def _create_group_entry(self, group):
         """ Insert a group entry into the database """
-        insert = self.viewdb.execute(sqlalchemy.text(
-                    "INSERT INTO groups (group_description) VALUES (:group) "
-                    "RETURNING group_id"),
-            {"group": group})
+        query = "INSERT INTO groups (group_description) VALUES (:group) RETURNING group_id"
+        params = {"group", group}
+
+        insert = self._execute_view_query(query, params)
+
+        if insert == None:
+            return None
+
         group_id = insert.first()
         if group_id is None:
             return None
@@ -203,10 +253,13 @@ class View(object):
 
     def _create_view_entry(self, groups):
         """ Insert a view entry into the database """
-        insert = self.viewdb.execute(sqlalchemy.text(
-                    "INSERT INTO views (view_label, view_groups) VALUES "
-                    "(:label, :groups) RETURNING view_id"),
-                {"label": "no description", "groups": groups})
+        query = "INSERT INTO views (view_label, view_groups) VALUES (:label, :groups) RETURNING view_id"
+        params = {"label": "no description", "groups": groups}
+
+        insert = self._execute_view_query(query, params)
+        if insert is None:
+            return None
+
         view_id = insert.first()
         if view_id is None:
             return None
@@ -223,12 +276,12 @@ class View(object):
         if self.viewdb is None:
             return {}
 
-        result = self.viewdb.execute(sqlalchemy.text(
-                "SELECT group_description, group_id FROM groups WHERE "
-                "group_id IN "
-                "(SELECT unnest(view_groups) FROM views WHERE "
-                "view_id = :view_id)"),
-                {"view_id": view_id})
+        query = "SELECT group_description, group_id FROM groups WHERE group_id IN  (SELECT unnest(view_groups) FROM views WHERE view_id = :view_id)"
+        params = {"view_id": view_id}
+
+        result = self._execute_view_query(query, params)
+        if result is None:
+            return {}
 
         rules = {}
 
