@@ -238,7 +238,7 @@ class View(object):
     def _create_group_entry(self, group):
         """ Insert a group entry into the database """
         query = "INSERT INTO groups (group_description) VALUES (:group) RETURNING group_id"
-        params = {"group", group}
+        params = {"group": group}
 
         insert = self._execute_view_query(query, params)
 
