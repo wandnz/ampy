@@ -448,9 +448,23 @@ class Connection(object):
         self.activity_lock.release()
 
 
-    def _update_streams(self, colid, coldata, parser):
-        data = []
-        fetched = False
+    def _update_streams_nocache(self, colid, coldata, parser):
+        # Don't bother trying to cache a record of all the streams
+        # and their streaminfos as it is actually more trouble 
+        # than it is worth. The performance gains are pretty minimal 
+        # given that the ampy process also has a local copy of the 
+        # streams that it knows about, so aside from one big request 
+        # when the process is first used, you're only fetching new 
+        # streams (occasionally) so not a big workload.
+
+        # When we did try to cache this stuff, we ended up with
+        # bugs where the streaminfo cache entry had expired but the
+        # streamid was still in the cached streams list. The NNTSC
+        # protocol doesn't support fetching an arbitrary list of streams,
+        # so we would have had to do a complete fetch in that case 
+        # anyway.
+
+        
         maxts = 0
         lastactivity = coldata['lastactivity']
         laststream = coldata['laststream']
@@ -459,52 +473,15 @@ class Connection(object):
 
         streamlock.acquire()
         self.activity_lock.acquire()
+        
+        data = self._request_streams(colid, NNTSC_REQ_STREAMS, laststream)
 
-        # Try to fetch this data from the cache first.
-        if self.memcache:
-            # This is just a list of stream ids, with no stream info
-            data = self.memcache.check_collection_streams(colid)
-
-        # If it isn't cached or we don't have a cache, then fetch it properly,
-        # with full stream info and everything. If laststream is zero then we
-        # will get every stream, otherwise we will only get new streams since
-        # we last got checked.
-        if len(data) == 0:
-            data = self._request_streams(colid, NNTSC_REQ_STREAMS, laststream)
-
-            if data == None:
-                # Request for streams failed, either due to a timeout or
-                # some other error. Don't cache the failed result so that
-                # we can try again next time
-                self.activity_lock.release()
-                streamlock.release()
-                return
-
-            fetched = True
-
-        if not fetched:
-            # We might have already seen some (if not all) of it.
-            existing = set(streams.keys())
-
-            # Trim the data down to just the streams that are in the cache
-            # that we don't already know about.
-            data = data.difference(existing).union(existing.difference(data))
+        if data == None:
+            # Request failed due to a timeout or error
+            self.activity_lock.release()
+            streamlock.release()
 
         for s in data:
-            # Cache the individual stream info if we can do caching
-            if self.memcache:
-                if fetched:
-                    # Save this stream information that has just been fetched
-                    self.memcache.store_streaminfo(s, s['stream_id'])
-                else:
-                    # Lookup the stream id, the info should be cached
-                    s = self.memcache.check_streaminfo(s)
-                    if len(s) == 0:
-                        s = self.get_stream_info(colid, s)
-                        if len(s) == 0:
-                            continue
-                        self.memcache.store_streaminfo(s, s['stream_id'])
-
             # Avoid saving streams that have never successfully stored
             # data. This also means it'll be harder for people to start
             # finding streams that have no data available for them
@@ -534,12 +511,7 @@ class Connection(object):
             if s['lasttimestamp'] > maxts:
                 maxts = s['lasttimestamp']
 
-        # Cache the list of all streams if possible
-        if self.memcache and fetched:
-            self.memcache.store_collection_streams(colid, set(streams.keys()))
-
-        # Release the locks, other threads can now try to get data and will
-        # hopefully hit cached versions.
+        # Release the locks, other threads can now try to get data
         self.activity_lock.release()
         streamlock.release()
 
@@ -550,7 +522,6 @@ class Connection(object):
         if lastactivity == 0:
             self.collections[colid]['lastactivity'] = maxts
         self.collection_lock.release()
-
 
     def _update_stream_map(self, collection, parser):
         """ Asks NNTSC for any streams that we don't know about and adds
@@ -575,7 +546,7 @@ class Connection(object):
 
         if now < (lastchecked + STREAM_CHECK_FREQUENCY):
             return
-        self._update_streams(colid, coldata, parser)
+        self._update_streams_nocache(colid, coldata, parser)
 
         # Check this less frequently, we don't need to be too precise and
         # can save time and effort by sending less data less frequently. Also,
