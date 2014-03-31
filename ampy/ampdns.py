@@ -131,20 +131,15 @@ class AmpDnsParser(amp.AmpParser):
         if detail == "matrix":
             aggfuncs = ["avg", "stddev", "count"]
             aggcols = ["rtt"]
+        elif detail == "full":
+            aggfuncs = ["smoke"]
+            aggcols = ["rtt"]
         else:
             aggfuncs = ["avg"]
             aggcols = ["rtt"]
 
-        if detail == "full":
-            ntiles = ["rtt"]
-            others = []
-            ntileagg = ["avg"]
-            otheragg = []
-            result = client.request_percentiles(colid, streams, start,
-                    end, binsize, ntiles, others, ntileagg, otheragg)
-        else:
-            result = client.request_aggregate(colid, streams, start,
-                    end, aggcols, binsize, ["stream_id"], aggfuncs)
+        result = client.request_aggregate(colid, streams, start,
+            end, aggcols, binsize, ["stream_id"], aggfuncs)
 
         return result
 

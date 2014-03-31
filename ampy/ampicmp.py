@@ -132,21 +132,21 @@ class AmpIcmpParser(amp.AmpParser):
             aggfuncs = ["avg", "stddev", "count", "avg", "count"]
             aggcols = ["rtt", "rtt", "rtt", "loss", "loss"]
         else:
-            aggfuncs = ["avg", "avg"]
+            aggfuncs = ["smoke", "avg"]
             aggcols = ["rtt", "loss"]
 
         # 'full' implies a smokeping-style graph, so we'll need to grab
         # the percentile data
-        if detail == "full":
-            ntiles = ["rtt"]
-            others = ["loss"]
-            ntileagg = ["avg"]
-            otheragg = ["avg"]
-            result = client.request_percentiles(colid, streams, start, end,
-                    binsize, ntiles, others, ntileagg, otheragg)
-        else:
-            result = client.request_aggregate(colid, streams, start, end,
-                    aggcols, binsize, ["stream_id"], aggfuncs)
+        #if detail == "full":
+        #    ntiles = ["rtt"]
+        #    others = ["loss"]
+        #    ntileagg = ["avg"]
+        #    otheragg = ["avg"]
+        #    result = client.request_percentiles(colid, streams, start, end,
+        #            binsize, ntiles, others, ntileagg, otheragg)
+        #else:
+        result = client.request_aggregate(colid, streams, start, end,
+            aggcols, binsize, ["stream_id"], aggfuncs)
         return result
 
     def format_data(self, received, stream, streaminfo):
