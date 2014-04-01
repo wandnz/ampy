@@ -131,6 +131,9 @@ class AmpIcmpParser(amp.AmpParser):
         if detail == "matrix":
             aggfuncs = ["avg", "stddev", "count", "avg", "count"]
             aggcols = ["rtt", "rtt", "rtt", "loss", "loss"]
+        elif detail == "basic":
+            aggfuncs = ["avg", "avg"]
+            aggcols = ["rtt", "loss"]
         else:
             aggfuncs = ["smoke", "avg"]
             aggcols = ["rtt", "loss"]
