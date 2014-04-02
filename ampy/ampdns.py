@@ -431,7 +431,7 @@ class AmpDnsParser(amp.AmpParser):
         """ Display all streams/instances as individual result lines """
         groups = {}
         for stream, info in streams.items():
-            key = "group_%s_%s" % (groupid, info["instance"])
+            key = "group_%s_%s" % (groupid, info["address"])
             groups[key] = {
                     "streams": [stream],
                     "source": parts.group("source"),
@@ -443,7 +443,7 @@ class AmpDnsParser(amp.AmpParser):
                     "recurse": info['recurse'],
                     "dnssec": info['dnssec'],
                     "nsid": info['nsid'],
-                    "shortlabel": info["instance"]
+                    "shortlabel": "%s (%s)" % (info["instance"],info["address"])
             }
         return groups
 
