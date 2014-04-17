@@ -342,16 +342,16 @@ class AmpDnsParser(amp.AmpParser):
         parts = re.match("(?P<collection>[a-z-]+) "
                 "FROM (?P<source>[.a-zA-Z0-9-]+) "
                 "TO (?P<destination>[.a-zA-Z0-9-:]+) "
-                "OPTION (?P<query>[a-zA-Z0-9.]+) IN (?P<type>[A]+) "
+                "OPTION (?P<query>[a-zA-Z0-9.]+) IN (?P<type>[A-Z]+) "
                 "(?P<size>[0-9]+) (?P<flags>[TF]+) "
                 "(?P<split>[A-Z]+)[ ]*(?P<instance>[.a-zA-Z0-9-:]*)", rule)
         if parts is None:
-            return None
+            return None, None
         if parts.group("split") not in self.splits:
-            return None
+            return None, None
 
         if len(parts.group("flags")) != 3:
-            return None
+            return None, None
 
         keydict = {
             "source": parts.group("source"),
@@ -370,6 +370,9 @@ class AmpDnsParser(amp.AmpParser):
 
     def legend_label(self, rule):
         parts, keydict = self.split_group_rule(rule)
+        if parts is None:
+            print "Failed to parse DNS group rule:", rule
+            return ""
 
         flags = ""
         if keydict["recurse"]:
