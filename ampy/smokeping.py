@@ -70,12 +70,8 @@ class SmokepingParser(object):
             aggcols = ["median", "loss"]
             aggfuncs = ["avg", "avg"]
         else:
-            aggcols = ["uptime", "loss", "median",
-                'ping1', 'ping2', 'ping3', 'ping4', 'ping5', 'ping6', 'ping7',
-                'ping8', 'ping9', 'ping10', 'ping11', 'ping12', 'ping13',
-                'ping14', 'ping15', 'ping16', 'ping17', 'ping18', 'ping19',
-                'ping20']
-            aggfuncs = ["avg"] * len(aggcols)
+            aggcols = ["loss", "median", "pings"]
+            aggfuncs = ["avg", "avg", "smokearray"] #TODO implement cathymagic
 
         group = ["stream_id"]
 
@@ -90,27 +86,7 @@ class SmokepingParser(object):
             measurements, e.g. ping1, ping2, ping3 etc., into a single list
             called 'pings'.
         """
-        formatted = []
-
-        for d in received:
-            newdict = {}
-            pings = [None] * 20
-            export_pings = False
-            for k, v in d.items():
-
-                if "ping" in k:
-                    index = int(k.split("ping")[1]) - 1
-                    assert(index >= 0 and index < 20)
-                    pings[index] = v
-                    export_pings = True
-                else:
-                    newdict[k] = v
-
-            if export_pings:
-                newdict["pings"] = pings
-
-            formatted.append(newdict)
-        return formatted
+        return received
 
     def get_selection_options(self, params):
         """ Returns the list of names to populate a dropdown list with, given

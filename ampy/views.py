@@ -167,10 +167,13 @@ class View(object):
 
     def _get_groups_in_view(self, view_id):
         """ Get a list of the groups in a given view """
-        
+        # don't bother querying for view -1, it's a special empty one
+        if view_id == -1:
+            return []
+
         query = "SELECT view_groups FROM views WHERE view_id = :view_id"
         params = {"view_id": view_id}
-                
+
         select = self._execute_view_query(query, params)
         if select is None:
             return None
