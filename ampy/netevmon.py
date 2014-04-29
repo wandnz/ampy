@@ -23,7 +23,8 @@ except ImportError:
 class Connection(object):
 
 
-    def __init__(self, host=None, name="events", pwd=None, user=None):
+    def __init__(self, host=None, name="events", pwd=None, user=None,
+            port=None):
         cstring = "dbname=%s" % (name)
         if host != "" and host != None:
             cstring += " host=%s" % (host)
@@ -31,6 +32,8 @@ class Connection(object):
             cstring += " user=%s" % (user)
         if pwd != "" and pwd != None:
             cstring += " password=%s" % (pwd)
+        if port != "" and port != None:
+            cstring += " port=%d" % (port)
 
         self.datacursor = None
         self.cstring = cstring
