@@ -92,7 +92,7 @@ class Connection(object):
                     continue
                 return None
 
-        return result
+        return True
 
 
     def get_stream_events(self, stream_ids, start=None, end=None):
