@@ -23,14 +23,21 @@ except ImportError:
 class Connection(object):
 
 
-    def __init__(self, host=None, name="events", pwd=None, user=None):
+    def __init__(self, host=None, name=None, pwd=None, user=None, port=None):
+
+        if name is None:
+            name = "netevmon"
+
         cstring = "dbname=%s" % (name)
+
         if host != "" and host != None:
             cstring += " host=%s" % (host)
         if user != "" and user != None:
             cstring += " user=%s" % (user)
         if pwd != "" and pwd != None:
             cstring += " password=%s" % (pwd)
+        if port != "" and port != None:
+            cstring += " port=%d" % (port)
 
         self.datacursor = None
         self.cstring = cstring

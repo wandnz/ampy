@@ -38,12 +38,14 @@ class AmpParser(object):
         self.dbconfig = dbconfig
 
     def connect(self):
-    
+
         # The AMP database stores site/mesh metadata
         try:
-            # TODO make this configurable somewhere?
-            url = sqlalchemy.engine.url.URL("postgresql", database="amp2",
-                    username=self.dbconfig['user'], host=self.dbconfig['host'],
+            url = sqlalchemy.engine.url.URL("postgresql",
+                    database=self.dbconfig['database'],
+                    username=self.dbconfig['user'],
+                    host=self.dbconfig['host'],
+                    port=self.dbconfig['port'],
                     password=self.dbconfig['pwd'])
             self.ampdb = sqlalchemy.create_engine(url)
             # test query to see if the database connection was actually made:

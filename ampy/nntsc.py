@@ -66,7 +66,8 @@ class Connection(object):
             returns a list of streams from other collections that share
             common properties with a given stream
     """
-    def __init__(self, host="localhost", port=61234, ampconfig=None):
+    def __init__(self, host="localhost", port=61234, ampconfig=None,
+            viewconfig=None):
         """ Initialises the Connection class
 
             Parameters:
@@ -80,28 +81,46 @@ class Connection(object):
 
         self.parsers = {}
 
-        self.ampdbconfig = {}
+        self.ampdbconfig = {
+            'database': 'amp2',
+            'host': None,
+            'user': None,
+            'pwd': None,
+            'port': None,
+        }
+        self.viewdbconfig = {
+            'database': 'views',
+            'host': None,
+            'user': None,
+            'pwd': None,
+            'port': None,
+        }
 
         # Store the configuration for the amp2 metadata db, if possible
         if ampconfig != None:
+            if 'database' in ampconfig:
+                self.ampdbconfig['database'] = ampconfig['database']
             if 'host' in ampconfig:
                 self.ampdbconfig['host'] = ampconfig['host']
-            else:
-                self.ampdbconfig['host'] = None
-
             if 'user' in ampconfig:
                 self.ampdbconfig['user'] = ampconfig['user']
-            else:
-                self.ampdbconfig['user'] = None
-
             if 'pwd' in ampconfig:
                 self.ampdbconfig['pwd'] = ampconfig['pwd']
-            else:
-                self.ampdbconfig['pwd'] = None
-        else:
-            self.ampdbconfig['host'] = None
-            self.ampdbconfig['user'] = None
-            self.ampdbconfig['pwd'] = None
+            if 'port' in ampconfig:
+                self.ampdbconfig['port'] = ampconfig['port']
+
+        # Use specific configuration for the views database if it is given
+        if viewconfig != None:
+            if 'database' in viewconfig:
+                self.viewdbconfig['database'] = viewconfig['database']
+            if 'host' in viewconfig:
+                self.viewdbconfig['host'] = viewconfig['host']
+            if 'user' in viewconfig:
+                self.viewdbconfig['user'] = viewconfig['user']
+            if 'pwd' in viewconfig:
+                self.viewdbconfig['pwd'] = viewconfig['pwd']
+            if 'port' in viewconfig:
+                self.viewdbconfig['port'] = viewconfig['port']
 
         # These locks protect our core data structures.
         #
@@ -118,8 +137,7 @@ class Connection(object):
             self.memcache = False
 
         # Set up access to the views that will convert view_ids to stream_ids
-        # TODO use it's own config, not the ampdbconfig
-        self.view = View(self, self.ampdbconfig)
+        self.view = View(self, self.viewdbconfig)
 
         # Keep track of (roughly) when each stream id has been active so
         # that we can cull the search space slightly. If we know an id hasn't

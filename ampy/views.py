@@ -21,9 +21,11 @@ class View(object):
     def connect(self):
         # The view group database stores view group rules
         try:
-            # TODO make this configurable somewhere?
-            url = sqlalchemy.engine.url.URL("postgresql", database="views",
-                    username=self.dbconfig['user'], host=self.dbconfig['host'],
+            url = sqlalchemy.engine.url.URL("postgresql",
+                    database=self.dbconfig["database"],
+                    username=self.dbconfig['user'],
+                    host=self.dbconfig['host'],
+                    port=self.dbconfig['port'],
                     password=self.dbconfig['pwd'])
             self.viewdb = sqlalchemy.create_engine(url)
             # test query to see if the database connection was actually made:
