@@ -30,6 +30,9 @@ class Collection(object):
     def parse_group_description(self, description):
         return None
 
+    def stream_group_description(self, streamprops):
+        return None
+
     def detail_columns(self, detail):
         return None
 
@@ -39,9 +42,19 @@ class Collection(object):
     def group_to_labels(self, groupid, description, lookup=True):
         return []
 
-    def format_data(self, data, freq):
+    def format_single_data(self, data, freq):
         # For many collections, no formatting is required
         return data
+
+    def format_list_data(self, datalist, freq):
+        # For many collections, no formatting is required
+        return datalist
+        
+    def find_stream(self, streamid):
+        return self.streammanager.find_stream_properties(streamid)
+
+    def update_matrix_groups(self, source, dest, options, groups):
+        return groups
 
     def update_streams(self):
 

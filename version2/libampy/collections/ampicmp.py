@@ -1,3 +1,4 @@
+from libnntscclient.logger import *
 from libampy.collection import Collection
 import re
 from operator import itemgetter
@@ -44,7 +45,7 @@ class AmpIcmp(Collection):
         # along with the stream id
 
         return stream, {'address':stream['address']}
-            
+    
     def get_legend_label(self, description):
         groupparams = self.parse_group_description(description)
         if groupparams is None:
@@ -154,6 +155,19 @@ class AmpIcmp(Collection):
                 options[0], options[1], options[2],
                 options[3].upper())
 
+    def stream_group_description(self, streamprops):
+
+        print streamprops
+        for p in self.streamproperties:
+            if p not in streamprops:
+                log("Required stream property '%s' not present in %s stream" % \
+                    (p, self.collection_name))
+                return None
+        
+        return "FROM %s TO %s OPTION %s %s" % ( \
+                streamprops['source'], streamprops['destination'],
+                streamprops['packet_size'], streamprops['family'].upper())
+
     def parse_group_description(self, description):
         parts = re.match("FROM (?P<source>[.a-zA-Z0-9-]+) "
                 "TO (?P<destination>[.a-zA-Z0-9-]+) "
@@ -181,6 +195,31 @@ class AmpIcmp(Collection):
             keydict["address"] = parts.group("address")
 
         return keydict
+
+    def _matrix_group_streams(self, baseprops, family, groups):
+        
+        baseprops['family'] = family
+        label = "%s_%s_%s" % (baseprops['source'], baseprops['destination'], 
+                family)
+        streams = self.streammanager.find_streams(baseprops)
+
+        if len(streams) > 0:
+            # Remove the addresses, we just need the stream ids
+            streams = [item[0] for item in streams]
+            groups.append({'labelstring':label, 'streams':streams})
+
+    def update_matrix_groups(self, source, dest, options, groups):
+        
+        if len(options) < 1:
+            log("Missing packet size option when building matrix groups")
+            return groups
+
+        groupprops = {
+            'source':source, 'destination':dest, 'packet_size':options[0]
+        }
+
+        self._matrix_group_streams(groupprops, 'ipv4', groups)
+        self._matrix_group_streams(groupprops, 'ipv6', groups)
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :
 

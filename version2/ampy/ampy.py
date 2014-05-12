@@ -1,5 +1,6 @@
 import operator
 
+from libampy.ampmesh import AmpMesh
 from libampy.viewmanager import ViewManager
 from libampy.collection import Collection
 from libampy.nntsc import NNTSCConnection
@@ -11,7 +12,7 @@ from libampy.collections.ampicmp import AmpIcmp
 class Ampy(object):
 
     def __init__(self, ampdbconf, viewconf, nntscconf, eventconf):
-        #self.ampmeta = AmpMeta(ampdbconf)
+        self.ampmesh = AmpMesh(ampdbconf)
         self.viewmanager = ViewManager(viewconf)
         self.nntscconfig = nntscconf
         self.cache = AmpyCache(12)
@@ -20,54 +21,29 @@ class Ampy(object):
         self.collections = {}
         self.savedcoldata = {}
 
-    def _getcol(self, collection):
-        newcol = None
-        # If we have a matching collection, return that otherwise create a
-        # new instance of the collection
-
-        if collection in self.collections:
-            return self.collections[collection]
-
-        if collection not in self.savedcoldata:
-            log("Collection type %s does not exist in NNTSC database" % \
-                    (collection))
-            return None
-   
-        colid = self.savedcoldata[collection] 
-        if collection == "amp-icmp":
-            newcol = AmpIcmp(colid, self.viewmanager, self.nntscconfig)
-
-        if newcol is None:
-            log("Unknown collection type: %s" % (collection))
-            return None
-
-        self.collections[collection] = newcol
-        return newcol
-
     def start(self):
         return self._query_collections()
-
-    def _view_to_groups(self, collection, view_id):
-        col = self._getcol(collection)
-        if col == None:
-            return None, None
-        
-        if col.update_streams() is None:
-            return None, None
-        
-        viewgroups = self.viewmanager.get_view_groups(collection, view_id)
-
-        if viewgroups is None:
-            log("Unable to find groups for view id %d(%s)" % (view_id, collection))
-            return None, None
-        
-        return col, viewgroups
 
     def get_collections(self):
         return self.savedcoldata.keys()
 
     def get_recent_data(self, collection, view_id, duration, detail):
-        pass
+        alllabels = []
+
+        col, viewgroups = self._view_to_groups(collection, view_id)
+        if col is None:
+            log("Failed to fetch recent data")
+            return None
+
+        for gid, descr in viewgroups.iteritems():
+            grouplabels = col.group_to_labels(gid, descr, True)
+            if grouplabels is None:
+                log("Unable to convert group %d into stream labels" % (gid))
+                continue
+            alllabels += grouplabels
+
+        return self._fetch_recent(col, alllabels, duration, detail)
+
 
     def get_historic_data(self, collection, view_id, start, end, binsize, \
             detail):
@@ -145,6 +121,245 @@ class Ampy(object):
 
         return data
 
+    def get_view_legend(self, collection, view_id):
+        col, viewgroups = self._view_to_groups(collection, view_id)
+        if col is None:
+            log("Failed to generate legend")
+            return None
+
+        legend = []
+
+        # What we need:
+        # A set of 'legend' entries, one per group
+        # For each entry, we also need a set of 'lines', one per group member
+
+        nextlineid = 0
+        
+        # Sort the groups in the view by description.
+        # This ensures that A) the legend will be in a consistent order
+        # and B) the ordering is more obvious to the user (i.e. alphabetical
+        # starting with the first group property)
+        viewgroups = sorted(viewgroups.iteritems(), key=operator.itemgetter(1))
+        for gid, descr in viewgroups:
+            legendtext = col.get_legend_label(descr)
+            if legendtext is None:
+                legendtext = "Unknown"
+
+            # Don't lookup the streams themselves if we can avoid it
+            grouplabels = col.group_to_labels(gid, descr, False)
+            if grouplabels is None:
+                log("Unable to convert group %d into stream labels" % (gid))
+                continue
+            lines = []
+
+            # Yes, we could assign line ids within group_to_labels but
+            # then anyone implementing a collection has to make sure they
+            # remember to do it. Also these ids are only needed for legends,
+            # but group_to_labels is also used for other purposes so it
+            # is cleaner to do it here even if it means an extra iteration 
+            # over the grouplabels list.
+            for gl in grouplabels:
+                lines.append((gl['labelstring'], gl['shortlabel'], nextlineid))
+                nextlineid += 1
+
+            legend.append({'group_id':gid, 'label':legendtext, 'lines':lines})
+
+        return legend
+        
+
+    def get_selection_options(self, collection, selected):
+
+        col = self._getcol(collection)
+        if col == None:
+            log("Error while fetching selection options")
+            return None
+
+        if col.update_streams() is None:
+            log("Error while fetching selection options")
+            return None
+
+        options = col.get_selections(selected)
+        return options       
+
+    def test_graphtab_view(self, collection, tabcollection, view_id):
+           
+        col, groups = self._view_to_groups(collection, view_id)   
+        if col == None:
+            log("Error while constructing tabview")
+            return None
+        
+        tabcol = self._getcol(tabcollection)
+        if tabcol == None:
+            log("Error while constructing tabview")
+            return None
+
+        for gid, descr in groups.iteritems():
+            grouprule = col.parse_group_description(descr)
+
+            tabrule = tabcol.translate_group(grouprule)
+            if tabrule is None:
+                continue
+
+            labels = tabcol.group_to_labels('tabcheck', tabrule, True)
+            for lab in labels:
+                # We can bail as soon as we get one group with a stream
+                if len(lab['streams']) > 0:
+                    return True
+        
+        # If we get here, none of the translated groups would match any
+        # streams in the database
+        return False
+
+    def create_graphtab_view(self, collection, tabcollection, view_id):
+        col, groups = self._view_to_groups(collection, view_id)   
+        if col == None:
+            log("Error while constructing tabview")
+            return None
+        
+        tabcol = self._getcol(tabcollection)
+        if tabcol == None:
+            log("Error while constructing tabview")
+            return None
+
+        tabgroups = []
+        for gid, descr in groups.iteritems():
+            grouprule = col.parse_group_description(descr)
+
+            tabrule = tabcol.translate_group(grouprule)
+            if tabrule is None:
+                continue
+
+            tabid = self.viewmanager.get_group_id(tabcollection, tabrule)
+            if tabid is None:
+                continue
+
+            tabgroups.append(tabcol)
+
+        if len(tabgroups) == 0:
+            log("Unable to create tabview %s to %s for view %s" % \
+                    (collection, tabcollection, view_id))
+            log("No valid groups were found for new tab")
+            return None
+
+        tabgroups.sort()
+        tabview = self.viewmanager.get_view_id(tabcollection, tabgroups)
+        if tabview is None:
+            log("Unable to create tabview %s to %s for view %s" % \
+                    (collection, tabcollection, view_id))
+            log("Could not create new view")
+            return None
+
+        return tabview
+
+    def get_event_view(self, collection, stream):
+        col = self._getcol(collection)
+        if col == None:
+            log("Error while creating event view")
+            return None
+        
+        if col.update_streams() is None:
+            log("Error while creating event view")
+            return None
+        
+        streamprops = col.find_stream(stream)
+        if streamprops is None:
+            log("Error while creating event view")
+            log("Stream %s does not exist for collection %s" % \
+                    (stream, collection))
+            return None
+
+        eventgroup = col.stream_group_description(streamprops)
+        if eventgroup is None:
+            log("Error while creating event view")
+            log("Unable to generate group for stream id %s (%s)" % \
+                    (stream, collection))
+            return None
+
+        return self.viewmanager.add_group_to_view(collection, 0, eventgroup)
+
+    def modify_view(self, collection, view_id, action, options):
+        col = self._getcol(collection)
+        if col == None:
+            return None
+        if len(options) == 0:
+            return view_id
+
+
+        if action == "add":
+            newgroup = col.create_group_description(options)
+            if newgroup is None:
+                return view_id
+            return self.viewmanager.add_group_to_view(collection, view_id, 
+                    newgroup)
+        elif action == "del":
+            groupid = int(options[0])
+            return self.viewmanager.remove_group_from_view(collection, 
+                    view_id, groupid)
+        else:
+            return view_id
+
+    def get_matrix_data(self, collection, options, duration):
+        col = self._getcol(collection)
+        if col == None:
+            log("Error while fetching matrix data")
+            return None
+        
+        matrixgroups = self._get_matrix_groups(col, options)
+        if matrixgroups is None:
+            return None
+
+        return self._fetch_recent(col, matrixgroups, duration, "matrix")   
+            
+    def _fetch_recent(self, col, alllabels, duration, detail):
+        recent = {}
+        timeouts = {}
+        uncached = {}
+        querylabels = {}
+        end = int(time.time())
+        start = end - duration
+        
+        for lab in alllabels:
+            # Check if we have recent data cached for this label
+            cachehit = self.cache.search_recent(lab['labelstring'], 
+                    duration, detail)
+            # Got cached data, add it directly to our result
+            if cachehit is not None:
+                recent[lab['labelstring']] = cachehit
+                continue
+
+            # Not cached, need to fetch it
+            # Limit our query to active streams
+            lab['streams'] = col.filter_active_streams(lab['streams'], 
+                    start, end)
+    
+            # If no streams were active, don't query for them. Instead
+            # add an empty list to the result for this label.
+            if len(lab['streams']) == 0:
+                recent[lab['labelstring']] = []
+            else:
+                querylabels[lab['labelstring']] = lab['streams']
+
+
+        if len(querylabels) > 0:
+            # Fetch data for labels that weren't cached using one big
+            # query
+            result = col.fetch_history(querylabels, start, end, duration, 
+                    detail)
+
+            for label, queryresult in result.iteritems():
+                formatted = col.format_list_data(queryresult['data'], queryresult['freq']) 
+                # Cache the result
+                self.cache.store_recent(label, duration, detail, formatted)
+
+                # Add the result to our return dictionary
+                recent[label] = formatted
+                
+                # Also update the timeouts dictionary
+                if len(queryresult['timedout']) != 0:
+                    timeouts.append(label)
+
+        return recent, timeouts
+
     def _next_block(self, col, block, cached, queried, freq, binsize):
         
         # If this block is cached, we can return the cached data right away
@@ -208,7 +423,7 @@ class Ampy(object):
                     # The next available queried data point fits in the 
                     # bin we were expecting, so format it nicely and
                     # add it to our block
-                    datum = col.format_data(queried[0], freq)
+                    datum = col.format_single_data(queried[0], freq)
                     queried = queried[1:]
                     if freq > binsize:
                         datum['binstart'] = ts
@@ -284,101 +499,6 @@ class Ampy(object):
         
         return fetched, frequencies, timeouts
 
-    def get_view_legend(self, collection, view_id):
-        col, viewgroups = self._view_to_groups(collection, view_id)
-        if col is None:
-            log("Failed to generate legend")
-            return None
-
-        legend = []
-
-        # What we need:
-        # A set of 'legend' entries, one per group
-        # For each entry, we also need a set of 'lines', one per group member
-
-        nextlineid = 0
-        
-        # Sort the groups in the view by description.
-        # This ensures that A) the legend will be in a consistent order
-        # and B) the ordering is more obvious to the user (i.e. alphabetical
-        # starting with the first group property)
-        viewgroups = sorted(viewgroups.iteritems(), key=operator.itemgetter(1))
-        for gid, descr in viewgroups:
-            legendtext = col.get_legend_label(descr)
-            if legendtext is None:
-                legendtext = "Unknown"
-
-            # Don't lookup the streams themselves if we can avoid it
-            grouplabels = col.group_to_labels(gid, descr, False)
-            if grouplabels is None:
-                log("Unable to convert group %d into stream labels" % (gid))
-                continue
-            lines = []
-
-            # Yes, we could assign line ids within group_to_labels but
-            # then anyone implementing a collection has to make sure they
-            # remember to do it. Also these ids are only needed for legends,
-            # but group_to_labels is also used for other purposes so it
-            # is cleaner to do it here even if it means an extra iteration 
-            # over the grouplabels list.
-            for gl in grouplabels:
-                lines.append((gl['labelstring'], gl['shortlabel'], nextlineid))
-                nextlineid += 1
-
-            legend.append({'group_id':gid, 'label':legendtext, 'lines':lines})
-
-        return legend
-        
-
-    def get_selection_options(self, collection, selected):
-
-        col = self._getcol(collection)
-        if col == None:
-            return None
-
-        if col.update_streams() is None:
-            return None
-
-        options = col.get_selections(selected)
-        return options       
-
-    def get_group_id(self, collection, properties):
-        pass
-
-    def get_graphtab_view(self, collection, tabcol, view_id):
-        pass
-
-    def get_event_view(self, collection, stream):
-        pass
-
-    def modify_view(self, collection, view_id, action, options):
-        col = self._getcol(collection)
-        if col == None:
-            return None
-        if len(options) == 0:
-            return view_id
-
-
-        if action == "add":
-            newgroup = col.create_group_description(options)
-            if newgroup is None:
-                return view_id
-            return self.viewmanager.add_group_to_view(collection, view_id, 
-                    newgroup)
-        elif action == "del":
-            groupid = int(options[0])
-            return self.viewmanager.remove_group_from_view(collection, 
-                    view_id, groupid)
-        else:
-            return view_id
-
-    def get_matrix_groups(self, collection, options):
-        pass
-
-    def get_group_info(self, collection, group_id):
-        # XXX Check if we really need this one before implementing
-        pass
-
     
     def _query_collections(self):
         nntscdb = NNTSCConnection(self.nntscconfig)
@@ -393,6 +513,76 @@ class Ampy(object):
             self.savedcoldata[name] = col['id']
 
         return len(self.savedcoldata.keys())
+
+    def _getcol(self, collection):
+        newcol = None
+        # If we have a matching collection, return that otherwise create a
+        # new instance of the collection
+
+        if collection in self.collections:
+            return self.collections[collection]
+
+        if collection not in self.savedcoldata:
+            log("Collection type %s does not exist in NNTSC database" % \
+                    (collection))
+            return None
+   
+        colid = self.savedcoldata[collection] 
+        if collection == "amp-icmp":
+            newcol = AmpIcmp(colid, self.viewmanager, self.nntscconfig)
+
+        if newcol is None:
+            log("Unknown collection type: %s" % (collection))
+            return None
+
+        self.collections[collection] = newcol
+        return newcol
+
+    def _view_to_groups(self, collection, view_id):
+        col = self._getcol(collection)
+        if col == None:
+            return None, None
+        
+        if col.update_streams() is None:
+            return None, None
+        
+        viewgroups = self.viewmanager.get_view_groups(collection, view_id)
+
+        if viewgroups is None:
+            log("Unable to find groups for view id %d(%s)" % (view_id, collection))
+            return None, None
+        
+        return col, viewgroups
+
+    def _get_matrix_groups(self, col, options):
+        if len(options) < 2:
+            log("Invalid options for fetching matrix streams")
+            return None
+
+        if col.update_streams() is None:
+            log("Error while fetching matrix streams")
+            return None
+        
+        sourcemesh = options[0]
+        destmesh = options[1]
+
+        sources = self.ampmesh.get_sources(sourcemesh)
+        if sources is None:
+            log("Error while fetching matrix streams")
+            return None
+
+        destinations = self.ampmesh.get_destinations(destmesh)
+        if destinations is None:
+            log("Error while fetching matrix streams")
+            return None
+
+        groups = []
+
+        for s in sources:
+            for d in destinations:
+                col.update_matrix_groups(s, d, options[2:], groups)
+
+        return groups
 
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :

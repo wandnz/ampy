@@ -54,7 +54,7 @@ class StreamManager(object):
         if streamid not in self.streams:
             return None
 
-        return dict(zip(self.keylist, self.streams[streamid]))
+        return dict(zip(self.keylist, self.streams[streamid][0]))
 
     def find_streams(self, properties, searching=None, index=0, found=None):
 

@@ -162,8 +162,48 @@ class AmpyCache(object):
 
         return uncached, cached
 
+    def search_recent(self, label, duration, detail):
+        cachekey = self._recent_cache_key(label, duration, detail)
+
+        result = None
+        with self.mcpool.reserve() as mc:
+            try:
+                if cachekey in mc:
+                    result = mc.get(cachekey)
+            except pylibmc.SomeErrors as e:
+                log("Warning: pylibmc error while searching for recent data")
+                log(e)
+
+        return result
+
+    def store_recent(self, label, duration, detail, data):
+        cachetime = self._recent_cache_timeout(duration)
+        cachekey = self._recent_cache_key(label, duration, detail)
+
+        with self.mcpool.reserve() as mc:
+            try:
+                mc.set(cachekey, data, cachetime)
+            except pylibmc.SomeErrors as e:
+                log("Warning: pylibmc error while inserting recent data")
+                log(e)
+
+
     def _block_cache_key(self, start, binsize, detail, label):
         return str("_".join([label, str(binsize), str(start), str(detail)]))
 
+    def _recent_cache_key(self, label, duration, detail):
+        return str("_".join([label, "recent", str(duration), detail])) 
+
+    def _recent_cache_timeout(self, duration):
+        # Brendon's hideous cache timeout calculation algorithm
+        if duration <= 60 * 10:
+            return 60
+        if duration <= 60 * 60:
+            return 60 * 5
+        if duration <= 60 * 60 * 24:
+            return 60 * 30
+        if duration <= 60 * 60 * 24  * 7:
+            return 60 * 60 * 3
+        return 60 * 60 * 6
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :
