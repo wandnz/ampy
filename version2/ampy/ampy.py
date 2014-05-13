@@ -5,6 +5,8 @@ from libampy.viewmanager import ViewManager
 from libampy.collection import Collection
 from libampy.nntsc import NNTSCConnection
 from libampy.cache import AmpyCache
+from libampy.eventmanager import EventManager
+
 from libnntscclient.logger import *
 
 from libampy.collections.ampicmp import AmpIcmp
@@ -16,7 +18,7 @@ class Ampy(object):
         self.viewmanager = ViewManager(viewconf)
         self.nntscconfig = nntscconf
         self.cache = AmpyCache(12)
-        #self.netevmon = Netevmon(eventconf)
+        self.eventmanager = EventManager(eventconf)
 
         self.collections = {}
         self.savedcoldata = {}
@@ -197,6 +199,7 @@ class Ampy(object):
             grouprule = col.parse_group_description(descr)
 
             tabrule = tabcol.translate_group(grouprule)
+            print tabrule
             if tabrule is None:
                 continue
 
@@ -268,7 +271,7 @@ class Ampy(object):
                     (stream, collection))
             return None
 
-        eventgroup = col.stream_group_description(streamprops)
+        eventgroup = col.create_group_description(streamprops)
         if eventgroup is None:
             log("Error while creating event view")
             log("Unable to generate group for stream id %s (%s)" % \
@@ -286,7 +289,7 @@ class Ampy(object):
 
 
         if action == "add":
-            newgroup = col.create_group_description(options)
+            newgroup = col.create_group_from_list(options)
             if newgroup is None:
                 return view_id
             return self.viewmanager.add_group_to_view(collection, view_id, 
@@ -309,7 +312,31 @@ class Ampy(object):
             return None
 
         return self._fetch_recent(col, matrixgroups, duration, "matrix")   
-            
+
+    def get_view_events(self, collection, view_id, start, end):
+        col, groups = self._view_to_groups(collection, view_id)   
+        if col == None:
+            log("Error while fetching events for a view")
+            return None
+      
+        alllabels = [] 
+        for gid, descr in groups.iteritems():
+            grouplabels = col.group_to_labels(gid, descr, True)
+            if grouplabels is None:
+                log("Unable to convert group %d into stream labels" % (gid))
+                continue
+
+            alllabels += grouplabels
+
+        return self.eventmanager.fetch_events(alllabels, start, end)
+
+    def get_event_groups(self, start, end):
+        return self.eventmanager.fetch_groups(start, end)
+
+    def get_event_group_members(self, eventgroupid):
+        return self.eventmanager.fetch_event_group_members(eventgroupid)
+
+
     def _fetch_recent(self, col, alllabels, duration, detail):
         recent = {}
         timeouts = {}

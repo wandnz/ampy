@@ -7,7 +7,7 @@ class AmpMesh(object):
         if 'name' not in ampdbconfig:
             ampdbconfig['name'] = 'amp2'
         self.dbconfig = ampdbconfig
-        self.db = AmpyDatabase(ampdbconfig, True)
+        self.db = AmpyDatabase(ampdbconfig, False)
         self.db.connect(15)
 
     def _meshquery(self, query, params):
@@ -19,6 +19,7 @@ class AmpMesh(object):
 
         for row in self.db.cursor.fetchall():
             sites.append(row['ampname'])
+        self.db.closecursor()
         return sites
 
 

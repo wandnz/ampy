@@ -117,6 +117,7 @@ class AmpyDatabase(object):
         except KeyboardInterrupt:
             return -1
         except psycopg2.Error as e:
+            log(e)
             log(e.pgerror)
             try:
                 self.conn.rollback()
@@ -166,6 +167,7 @@ class AmpyDatabase(object):
             except InterfaceError as e:
                 log(e)
             return -1
+        self.cursor = None
         return 0
 
 

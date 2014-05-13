@@ -17,6 +17,7 @@ class Collection(object):
         self.streammanager = None
         self.collection_name = "basecollection"
         self.streamproperties = None
+        self.groupproperties = None
         self.colid = colid
 
         self.lastchecked = 0
@@ -24,13 +25,28 @@ class Collection(object):
         self.lastnewstream = 0
         self.collock = Lock()
 
-    def create_group_description(self, options):
-        return None        
+    def create_group_from_list(self, options):
+        if self.groupproperties is None:
+            return None
+
+        if len(options) > len(self.groupproperties):
+            log("Cannot convert list of properties to group -- too many properties")
+            return None
+
+        props = {}
+        for i in range(0, len(options)):
+            sp = self.groupproperties[i]
+            props[sp] = options[i]
+
+        return self.create_group_description(props) 
+
+    def translate_group(self, groupprops):
+        return None
 
     def parse_group_description(self, description):
         return None
 
-    def stream_group_description(self, streamprops):
+    def create_group_description(self, streamprops):
         return None
 
     def detail_columns(self, detail):

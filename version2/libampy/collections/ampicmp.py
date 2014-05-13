@@ -9,6 +9,8 @@ class AmpIcmp(Collection):
         super(AmpIcmp, self).__init__(colid, viewmanager, nntscconf)
         self.streamproperties = ['source', 'destination', 'packet_size', \
                 'family']
+        self.groupproperties = ['source', 'destination', 'packet_size', \
+                'aggregation']
         self.collection_name = "amp-icmp"
         self.splits = {
                 "NONE":"by address", 
@@ -16,6 +18,7 @@ class AmpIcmp(Collection):
                 "ADDRESS":"to",
                 "IPV4":"IPv4",
                 "IPV6":"IPv6"}
+        self.default_packet_size = "84"
        
     def detail_columns(self, detail):
         # the matrix view expects both the mean and stddev for the latency
@@ -136,37 +139,23 @@ class AmpIcmp(Collection):
 
         return sorted(labels, key=itemgetter('shortlabel'))
 
-    def create_group_description(self, options):
-        split = options[3].upper()
-        if split not in self.splits:
-            return None
+    def create_group_description(self, properties):
 
-        if split == "ADDRESS":
-            if len(options) != 5:
-                return None
-            return "FROM %s TO %s OPTION %s %s %s" % (
-                    options[0], options[1], options[2],
-                    options[3].upper(), options[4])
+        # If we're creating a description based on an existing group or
+        # stream, we need to convert the 'family' into an appropriate
+        # aggregation method.
+        if 'family' in properties:
+            properties['aggregation'] = properties['family'].upper()
 
-        if len(options) != 4:
-            return None
-
-        return "FROM %s TO %s OPTION %s %s" % (
-                options[0], options[1], options[2],
-                options[3].upper())
-
-    def stream_group_description(self, streamprops):
-
-        print streamprops
-        for p in self.streamproperties:
-            if p not in streamprops:
-                log("Required stream property '%s' not present in %s stream" % \
+        for p in self.groupproperties:
+            if p not in properties:
+                log("Required group property '%s' not present in %s group" % \
                     (p, self.collection_name))
                 return None
         
         return "FROM %s TO %s OPTION %s %s" % ( \
-                streamprops['source'], streamprops['destination'],
-                streamprops['packet_size'], streamprops['family'].upper())
+                properties['source'], properties['destination'],
+                properties['packet_size'], properties['aggregation'].upper())
 
     def parse_group_description(self, description):
         parts = re.match("FROM (?P<source>[.a-zA-Z0-9-]+) "
@@ -195,19 +184,7 @@ class AmpIcmp(Collection):
             keydict["address"] = parts.group("address")
 
         return keydict
-
-    def _matrix_group_streams(self, baseprops, family, groups):
-        
-        baseprops['family'] = family
-        label = "%s_%s_%s" % (baseprops['source'], baseprops['destination'], 
-                family)
-        streams = self.streammanager.find_streams(baseprops)
-
-        if len(streams) > 0:
-            # Remove the addresses, we just need the stream ids
-            streams = [item[0] for item in streams]
-            groups.append({'labelstring':label, 'streams':streams})
-
+    
     def update_matrix_groups(self, source, dest, options, groups):
         
         if len(options) < 1:
@@ -220,6 +197,61 @@ class AmpIcmp(Collection):
 
         self._matrix_group_streams(groupprops, 'ipv4', groups)
         self._matrix_group_streams(groupprops, 'ipv6', groups)
+
+    def translate_group(self, groupprops):
+        defaultsize = self.default_packet_size
+
+        if 'source' not in groupprops:
+            return None
+        if 'destination' not in groupprops:
+            return None
+
+        if 'packet_size' not in groupprops:
+            packetsize = defaultsize
+        else:
+            packetsize = groupprops['packet_size']
+
+        newprops = {'source':groupprops['source'],
+                'destination':groupprops['destination']}
+
+        req, sizes = self.streammanager.find_selections(newprops)
+
+        if req != 'packet_size':
+            log("Unable to find packet sizes for %s %s to %s" % \
+                    (self.collection_name, newprops['source'], \
+                    newprops['destination']))
+            return None
+
+        if sizes == []:
+            packetsize = defaultsize
+        elif packetsize not in sizes:
+            if defaultsize in sizes:
+                packetsize = defaultsize
+            else:
+                sizes.sort(key=int)
+                packetsize = sizes[0]
+
+        if 'aggregation' not in groupprops:
+            agg = "FAMILY"
+        else:
+            agg = groupprops['aggregation']
+
+        newprops['aggregation'] = agg
+        newprops['packet_size'] = packetsize
+
+        return self.create_group_description(newprops)
+
+    def _matrix_group_streams(self, baseprops, family, groups):
+        
+        baseprops['family'] = family
+        label = "%s_%s_%s" % (baseprops['source'], baseprops['destination'], 
+                family)
+        streams = self.streammanager.find_streams(baseprops)
+
+        if len(streams) > 0:
+            # Remove the addresses, we just need the stream ids
+            streams = [item[0] for item in streams]
+            groups.append({'labelstring':label, 'streams':streams})
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :
 

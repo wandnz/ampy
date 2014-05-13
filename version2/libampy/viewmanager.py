@@ -9,7 +9,7 @@ class ViewManager(object):
             viewdbconfig['name'] = "views"
 
         self.dbconfig = viewdbconfig
-        self.db = AmpyDatabase(viewdbconfig, True)
+        self.db = AmpyDatabase(viewdbconfig, False)
         self.db.connect(15)
     
 
@@ -37,6 +37,8 @@ class ViewManager(object):
 
         for row in self.db.cursor.fetchall():
             groups[row['group_id']] = row['group_description']
+        
+        self.db.closecursor()
         return groups
 
     def update_view_groups(self, collection, viewid, groups):
@@ -76,6 +78,7 @@ class ViewManager(object):
                 return None
 
         group_id = self.db.cursor.fetchone()['group_id']
+        self.db.closecursor()
         return group_id
 
         
@@ -103,6 +106,7 @@ class ViewManager(object):
                 return None
 
         view_id = self.db.cursor.fetchone()['view_id']
+        self.db.closecursor()
         return view_id
 
     def add_group_to_view(self, collection, viewid, description):
