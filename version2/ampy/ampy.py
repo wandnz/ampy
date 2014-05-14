@@ -10,6 +10,7 @@ from libampy.eventmanager import EventManager
 from libnntscclient.logger import *
 
 from libampy.collections.ampicmp import AmpIcmp
+from libampy.collections.amptraceroute import AmpTraceroute
 
 class Ampy(object):
 
@@ -194,6 +195,9 @@ class Ampy(object):
         if tabcol == None:
             log("Error while constructing tabview")
             return None
+        if tabcol.update_streams() is None:
+            log("Error while fetching selection options for tab collection")
+            return None
 
         for gid, descr in groups.iteritems():
             grouprule = col.parse_group_description(descr)
@@ -222,6 +226,9 @@ class Ampy(object):
         tabcol = self._getcol(tabcollection)
         if tabcol == None:
             log("Error while constructing tabview")
+            return None
+        if tabcol.update_streams() is None:
+            log("Error while fetching selection options for tab collection")
             return None
 
         tabgroups = []
@@ -344,7 +351,7 @@ class Ampy(object):
         querylabels = {}
         end = int(time.time())
         start = end - duration
-        
+       
         for lab in alllabels:
             # Check if we have recent data cached for this label
             cachehit = self.cache.search_recent(lab['labelstring'], 
@@ -358,14 +365,13 @@ class Ampy(object):
             # Limit our query to active streams
             lab['streams'] = col.filter_active_streams(lab['streams'], 
                     start, end)
-    
+   
             # If no streams were active, don't query for them. Instead
             # add an empty list to the result for this label.
             if len(lab['streams']) == 0:
                 recent[lab['labelstring']] = []
             else:
                 querylabels[lab['labelstring']] = lab['streams']
-
 
         if len(querylabels) > 0:
             # Fetch data for labels that weren't cached using one big
@@ -557,6 +563,8 @@ class Ampy(object):
         colid = self.savedcoldata[collection] 
         if collection == "amp-icmp":
             newcol = AmpIcmp(colid, self.viewmanager, self.nntscconfig)
+        if collection == "amp-traceroute":
+            newcol = AmpTraceroute(colid, self.viewmanager, self.nntscconfig)
 
         if newcol is None:
             log("Unknown collection type: %s" % (collection))
