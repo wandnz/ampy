@@ -9,7 +9,7 @@ class ViewManager(object):
             viewdbconfig['name'] = "views"
 
         self.dbconfig = viewdbconfig
-        self.db = AmpyDatabase(viewdbconfig, False)
+        self.db = AmpyDatabase(viewdbconfig, True)
         self.db.connect(15)
     
 
