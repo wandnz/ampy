@@ -37,13 +37,9 @@ class AmpIcmp(Collection):
     def prepare_stream_for_storage(self, stream):
         # Need to add a 'family' property so that we can group streams easily
         if 'address' not in stream:
-            return stream, (stream['stream_id'], None)
+            return stream, {} 
 
-        if '.' in stream['address']:
-            stream['family'] = 'ipv4'
-        else:
-            stream['family'] = 'ipv6'
-
+        stream['family'] = self._address_to_family(stream['address'])
         # We need the address for NONE aggregation, so we need to store that
         # along with the stream id
 
@@ -93,7 +89,7 @@ class AmpIcmp(Collection):
         
         groupparams = self.parse_group_description(description)
         if groupparams is None:
-            log("Failed to parse group description to generate legend lines")
+            log("Failed to parse group description to generate labels")
             return None
 
         baselabel = 'group_%s' % (groupid)
@@ -146,6 +142,9 @@ class AmpIcmp(Collection):
         # aggregation method.
         if 'family' in properties:
             properties['aggregation'] = properties['family'].upper()
+
+        if 'address' not in properties:
+            properties['address'] = ''
 
         for p in self.groupproperties:
             if p not in properties:
@@ -239,6 +238,9 @@ class AmpIcmp(Collection):
         newprops['aggregation'] = agg
         newprops['packet_size'] = packetsize
 
+        if 'address' in groupprops:
+            newprops['address'] = groupprops['address']
+
         return self.create_group_description(newprops)
 
     def _matrix_group_streams(self, baseprops, family, groups):
@@ -252,6 +254,14 @@ class AmpIcmp(Collection):
             # Remove the addresses, we just need the stream ids
             streams = [item[0] for item in streams]
             groups.append({'labelstring':label, 'streams':streams})
+
+    def _address_to_family(self, address):
+        if '.' in address:
+            return 'ipv4'
+        else:
+            return 'ipv6'
+
+        
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :
 
