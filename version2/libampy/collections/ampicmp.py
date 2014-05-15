@@ -61,7 +61,7 @@ class AmpIcmp(Collection):
 
     def _generate_label(self, baselabel, search, family, lookup):
         if family is None:
-            key = "baselabel"
+            key = baselabel
             shortlabel = "All addresses"
         else:
             key = baselabel + "_" + family
@@ -164,11 +164,13 @@ class AmpIcmp(Collection):
                 description)
 
         if parts is None:
-            log("Group description did not match regex for amp-icmp")
+            log("Group description did not match regex for %s" % \
+                    (self.collection_name))
             log(description)
             return None
         if parts.group("split") not in self.splits:
-            log("amp-icmp group description has no aggregation method")
+            log("%s group description has no aggregation method" % \
+                    (self.collection_name))
             log(description)
             return None
 
@@ -254,12 +256,6 @@ class AmpIcmp(Collection):
             # Remove the addresses, we just need the stream ids
             streams = [item[0] for item in streams]
             groups.append({'labelstring':label, 'streams':streams})
-
-    def _address_to_family(self, address):
-        if '.' in address:
-            return 'ipv4'
-        else:
-            return 'ipv6'
 
         
 

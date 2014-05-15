@@ -202,6 +202,11 @@ class Collection(object):
         for s in streams:
             self.streammanager.update_active_stream(s, now)
 
+    def _address_to_family(self, address):
+        if '.' in address:
+            return 'ipv4'
+        else:
+            return 'ipv6'
 
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :
