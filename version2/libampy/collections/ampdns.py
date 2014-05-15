@@ -8,10 +8,10 @@ class AmpDns(Collection):
     def __init__(self, colid, viewmanager, nntscconf):
         super(AmpDns, self).__init__(colid, viewmanager, nntscconf)
         self.streamproperties = ['source', 'destination', 
-                'query', 'query_type', 'query_class', 'udp_payload_size',
+                'query', 'query_class', 'query_type', 'udp_payload_size',
                 'recurse', 'dnssec', 'nsid']
         self.groupproperties = ['source', 'destination', 'query', 
-                'query_type', 'query_class', 'udp_payload_size',
+                'query_class', 'query_type', 'udp_payload_size',
                 'flags', 'aggregation']
         self.collection_name = "amp-dns"
 
@@ -20,7 +20,7 @@ class AmpDns(Collection):
         if detail == "matrix":
             aggfuncs = ["avg", "stddev", "count"]
             aggcols = ["rtt", "rtt", "rtt"]
-        elif details == "full":
+        elif detail == "full":
             aggfuncs = ["smoke"]
             aggcols = ["rtt"]
         else:
@@ -60,7 +60,7 @@ class AmpDns(Collection):
                 flags, agg)
         return label
    
-    def _lookup_streams(self, search):
+    def _lookup_streams(self, search, lookup):
         streams = []
     
         if lookup:
@@ -86,7 +86,7 @@ class AmpDns(Collection):
                 'query':groupparams['query'],
                 'query_type':groupparams['query_type'],
                 'query_class':groupparams['query_class'],
-                'udp_payload_size':groupparams['udp_payload_size'],
+                'udp_payload_size':int(groupparams['udp_payload_size']),
                 'recurse':False,
                 'dnssec':False,
                 'nsid':False,
@@ -98,18 +98,23 @@ class AmpDns(Collection):
             search['dnssec'] = True
         if groupparams["flags"][2] == "T":
             search['nsid'] = True
-        
-        streams = self._lookup_streams(search)
-        if streams is None:
-            return None
+       
 
         if groupparams['aggregation'] == "FULL":
+            streams = self._lookup_streams(search, lookup)
+            if streams is None:
+                return None
+            
             # Discard the addresses stored with each stream
             streams = [item[0] for item in streams]
             lab = {'labelstring':baselabel, 'streams':streams, 
                     'shortlabel':'All instances'}
             labels.append(lab)
         else:
+            streams = self._lookup_streams(search, True)
+            if streams is None:
+                return None
+
             for sid, store in streams:
                 if 'address' not in store:
                     log("Error: no address stored with stream id %s" % (sid))
@@ -159,7 +164,7 @@ class AmpDns(Collection):
             log(description)
             return None
 
-        if parts.group("split") not in self.splits:
+        if parts.group("split") not in ['FULL', 'NONE']:
             log("%s group description has no aggregation method" % \
                     (self.collection_name))
             log(description)
@@ -198,13 +203,15 @@ class AmpDns(Collection):
         groupprops = {
             'source':source, 'destination':dest, 'query':options[0],
             'query_class':options[1], 'query_type':options[2],
-            'udp_payload_size':options[3], 'flags':options[4]
+            'udp_payload_size':int(options[3])
         }
 
         v4streams = []
         v6streams = []
 
         streams = self.streammanager.find_streams(groupprops)
+        if source == 'prophet':
+            print dest, streams
         # Split the resulting streams into v4 and v6 groups based on the
         # stored address
         for sid, store in streams:
@@ -245,4 +252,6 @@ class AmpDns(Collection):
             flags += "T"
         else:
             flags += "F"
+
+        return flags
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :

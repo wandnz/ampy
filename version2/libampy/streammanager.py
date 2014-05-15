@@ -224,6 +224,9 @@ class StreamManager(object):
             # There is a specific value for the current stream property
             val = properties[key]
 
+            #print key, val
+            #print searching.keys()
+
             # No entry for this property value in hierarchy, so we can bail
             if val not in searching:
                 return found
