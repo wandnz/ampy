@@ -4,26 +4,42 @@ from libnntscclient.nntscclient import NNTSCClient
 from libnntscclient.logger import *
 
 class NNTSCConnection(object):
-    """ Class for querying a NNTSC database.
+    """
+    Class for querying a NNTSC database.
 
-        API Functions
-        -------------
-        request_collections:
-            Returns the full set of available collections as a list.
-        request_streams:
-            Returns all streams for a given collection, can also be
-            used to query for 'active' streams. The streams are returned
-            as a list of dictionaries where each dictionary describes a
-            stream,
-        request_history:
-            Queries NNTSC for aggregated historical data for a given 
-            time period and set of labels, binned according to the provided
-            binsize. Returns a dictionary, keyed by the label.
+    API Functions
+    -------------
+    request_collections:
+        Returns the full set of available collections as a list.
+    request_streams:
+        Returns all streams for a given collection, can also be
+        used to query for 'active' streams. The streams are returned
+        as a list of dictionaries where each dictionary describes a
+        stream,
+    request_history:
+        Queries NNTSC for aggregated historical data for a given 
+        time period and set of labels, binned according to the provided
+        binsize. Returns a dictionary, keyed by the label.
 
-        All API functions return None in the event of an error.
+    All API functions return None in the event of an error.
     """
 
     def __init__(self, config):
+        """
+        Init function for the NNTSCConnection class.
+
+        Parameters:
+          config -- a dictionary containing the configuration for the NNTSC
+                    connection.
+
+        Configuration parameters:
+          host: the host that is running the NNTSC you wish to connect to
+          port: the port that NNTSC is listening on for clients
+
+          If unspecified, the host defaults to 'localhost' and the port
+          defaults to 61234.
+        """
+
         self.client = None
         if 'host' in config:
             self.host = config['host']
@@ -35,10 +51,11 @@ class NNTSCConnection(object):
             self.port = 61234
 
     def _connect(self):
-        """ Attempts to establish a connection with the NNTSC database.
+        """ 
+        Attempts to establish a connection with the NNTSC database.
 
-            Returns None if the connection fails, otherwise it will return
-            the newly created NNTSCClient object.
+        Returns None if the connection fails, otherwise it will return
+        the newly created NNTSCClient object.
         
         """
         # If we've already got a connection, just use that
@@ -66,13 +83,14 @@ class NNTSCConnection(object):
         self.client = None
 
     def _get_nntsc_message(self):
-        """ Waits for NNTSC to send a response to a query. Will block until
-            a complete message arrives.
+        """ 
+        Waits for NNTSC to send a response to a query. Will block until
+        a complete message arrives.
 
-            Returns None if an error occurs, otherwise will return a tuple
-            representing the NNTSC message. The first element of the tuple
-            is the message type and the second element is a dictionary 
-            containing the message contents.
+        Returns None if an error occurs, otherwise will return a tuple
+        representing the NNTSC message. The first element of the tuple
+        is the message type and the second element is a dictionary 
+        containing the message contents.
         """
         if self.client == None:
             return None
@@ -91,10 +109,11 @@ class NNTSCConnection(object):
             return msg
 
     def request_collections(self):
-        """ Requests a list of collections from the NNTSC database.
+        """ 
+        Requests a list of collections from the NNTSC database.
 
-            Returns None if the request fails, otherwise will return a list
-            of dictionaries where each dictionary describes a collection.
+        Returns None if the request fails, otherwise will return a list
+        of dictionaries where each dictionary describes a collection.
         """
         if self.client == None:
             self._connect()
@@ -123,25 +142,26 @@ class NNTSCConnection(object):
 
 
     def request_streams(self, colid, reqtype, boundary):
-        """ Requests a list of streams from the NNTSC database.
+        """ 
+        Requests a list of streams from the NNTSC database.
         
-            Parameters:
-                colid -- The id number of the collection which is being
-                         queried
-                reqtype -- Should be either NNTSC_REQ_STREAMS for querying all
-                           streams or NNTSC_REQ_ACTIVE_STREAMS if only active
-                           streams are required
-                boundary -- If asking for active streams, this field is a
-                            timestamp. Only streams that were last updated since
-                            this timestamp will be returned. 
-                            Otherwise, this parameter is a stream id. Only 
-                            streams that were first observed after this stream
-                            was created will be returned.
-                            In either case, set this to zero to receive all
-                            streams.
+        Parameters:
+            colid -- The id number of the collection which is being
+                     queried
+            reqtype -- Should be either NNTSC_REQ_STREAMS for querying all
+                       streams or NNTSC_REQ_ACTIVE_STREAMS if only active
+                       streams are required
+            boundary -- If asking for active streams, this field is a
+                        timestamp. Only streams that were last updated since
+                        this timestamp will be returned. 
+                        Otherwise, this parameter is a stream id. Only 
+                        streams that were first observed after this stream
+                        was created will be returned.
+                        In either case, set this to zero to receive all
+                        streams.
 
-            Returns None if the request fails, otherwise returns a list of
-            dictionaries where each dictionary represents a single stream.
+        Returns None if the request fails, otherwise returns a list of
+        dictionaries where each dictionary represents a single stream.
         """
         streams = []
         
@@ -193,39 +213,40 @@ class NNTSCConnection(object):
         return streams
         
     def request_history(self, colid, labels, start, end, binsize, aggregators):
-        """ Requests historical time series data from a NNTSC database.
+        """ 
+        Requests historical time series data from a NNTSC database.
 
-            Parameters:
-                colid -- The id number of the collection which is being
-                         queried
-                labels -- A dictionary describing the streams to be queried.
-                          The keys are the label names and the values are a 
-                          list of stream ids to be combined to form the time
-                          series for that label.
-                start -- the start of the time period to query for
-                end -- the end of the time period to query for
-                binsize -- the bin size (in seconds) to use when aggregating 
-                           the time series data, i.e. a binsize of 600 will 
-                           produce one data point every 10 minutes. A binsize
-                           of zero is a special case that will aggregate the
-                           data into a single data point.
-                aggregators -- a tuple consisting of two lists. The first list
-                               contains the columns to query in the NNTSC
-                               database. The second list describes the 
-                               aggregation functions that should be applied to
-                               each of the columns in the first list. Both
-                               lists need to be the same length and the
-                               corresponding aggregation function must have the
-                               same list index as the column it applies to.
+        Parameters:
+            colid -- The id number of the collection which is being
+                     queried
+            labels -- A dictionary describing the streams to be queried.
+                      The keys are the label names and the values are a 
+                      list of stream ids to be combined to form the time
+                      series for that label.
+            start -- the start of the time period to query for
+            end -- the end of the time period to query for
+            binsize -- the bin size (in seconds) to use when aggregating 
+                       the time series data, i.e. a binsize of 600 will 
+                       produce one data point every 10 minutes. A binsize
+                       of zero is a special case that will aggregate the
+                       data into a single data point.
+            aggregators -- a tuple consisting of two lists. The first list
+                           contains the columns to query in the NNTSC
+                           database. The second list describes the 
+                           aggregation functions that should be applied to
+                           each of the columns in the first list. Both
+                           lists need to be the same length and the
+                           corresponding aggregation function must have the
+                           same list index as the column it applies to.
 
-            Returns None if the request fails, otherwise will return a 
-            dictionary keyed by the label name. The dict values are also
-            dictionaries containing the following items:
-                freq -- the expected time gap between each returned value
-                data -- a list containing the aggregated data for the label
-                timedout -- a list of tuples describing time periods where
-                            the request was not completed due to a query
-                            timeout
+        Returns None if the request fails, otherwise will return a 
+        dictionary keyed by the label name. The dict values are also
+        dictionaries containing the following items:
+            freq -- the expected time gap between each returned value
+            data -- a list containing the aggregated data for the label
+            timedout -- a list of tuples describing time periods where
+                        the request was not completed due to a query
+                        timeout
         """        
                 
                 
