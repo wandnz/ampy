@@ -183,12 +183,6 @@ class AmpDns(Collection):
 
         return keydict
 
-    def translate_group(self, groupprops):
-        # The only thing that translates to DNS is DNS itself, so we should
-        # be able to just return a description based on what we've just
-        # been given
-        return self.create_group_description(groupprops)
-
     def update_matrix_groups(self, source, dest, options, groups):
     
         # TODO Evaluate which options we don't care about in the matrix,
