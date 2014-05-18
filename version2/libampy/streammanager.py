@@ -62,7 +62,7 @@ class StreamManager(object):
           streamid -- the id number of the stream being added
           storage -- any additional data that should be stored with the 
                      streamid in the hierarchy, e.g. an IP address for ICMP
-                     streams
+                     streams. If None, no extra storage is used.
           properties -- a dictionary describing the stream properties for the
                         stream being added. All stream properties should be
                         present in the dictionary otherwise the insertion
@@ -101,7 +101,10 @@ class StreamManager(object):
 
         # Should have a list at this point, so append our new stream id and
         # any 'extra' data we need to keep here
-        curr.append((streamid, storage))
+        if storage is not None:
+            curr.append((streamid, storage))
+        else:
+            curr.append(streamid)
 
         # Also update our streamid -> streamprops dictionary so we can
         # look up streams by id as well.
@@ -188,9 +191,11 @@ class StreamManager(object):
                    thus far. If None, a new list will be created.
 
         Returns:
-            a list of tuples describing the streams that matched the given
-            criteria. The first element of the tuple is the stream id and
-            the second is the stored 'extra' data for the stream.
+            a list of streams that matched the given criteria. If there
+            was additional data stored with the stream ID, the list items
+            are tuples where the first element of the tuple is the stream id 
+            and the second is the stored 'extra' data for the stream.
+            Otherwise, the list items are just stream ids (no tuple at all).
 
         The properties dictionary is not required to contain all of the
         stream property keys. If a key is missing, all of the dictionaries
