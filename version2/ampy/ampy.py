@@ -12,6 +12,7 @@ from libnntscclient.logger import *
 from libampy.collections.ampicmp import AmpIcmp
 from libampy.collections.amptraceroute import AmpTraceroute
 from libampy.collections.ampdns import AmpDns
+from libampy.collections.rrdsmokeping import RRDSmokeping
 
 class Ampy(object):
 
@@ -568,6 +569,8 @@ class Ampy(object):
             newcol = AmpTraceroute(colid, self.viewmanager, self.nntscconfig)
         if collection == "amp-dns":
             newcol = AmpDns(colid, self.viewmanager, self.nntscconfig)
+        if collection == "rrd-smokeping":
+            newcol = RRDSmokeping(colid, self.viewmanager, self.nntscconfig)
 
         if newcol is None:
             log("Unknown collection type: %s" % (collection))
