@@ -14,6 +14,9 @@ class AmpyCache(object):
                 })
         self.mcpool = pylibmc.ThreadMappedPool(self.memcache)
 
+        self.streamview_cachetime = 60 * 60 * 24
+        self.viewgroups_cachetime = 60 * 60 * 6
+
     def __del__(self):
         self.mcpool.relinquish()
 
@@ -51,13 +54,8 @@ class AmpyCache(object):
             return failed
 
         key = self._block_cache_key(start, binsize, detail, label)
-
-        with self.mcpool.reserve() as mc:
-            try:
-                mc.set(key, blockdata, cachetime)
-            except pylibmc.WriteError as e:
-                log("Warning: Failed to cache data block %s")
-                log(e)
+        self._cachestore(key, blockdata, cachetime,
+                "inserting data block")
 
         return failed
 
@@ -122,18 +120,12 @@ class AmpyCache(object):
         for b in blocks:
             cachekey = self._block_cache_key(b['start'], binsize, detail, label)
 
-            # Look up the current block in memcache
-            with self.mcpool.reserve() as mc:
-                try:
-                    if cachekey in mc:
-                        cached[b['start']] = mc.get(cachekey)
-                        continue
-                except pylibmc.SomeErrors as e:
-                    log("Warning: pylibmc error while searching for cached block")
-                    log(e)
-                    # Add this block to list of uncached blocks 
-                    pass
-           
+            # Lookup the current block in memcache
+            fetched = self._cachefetch(cachekey, "cached block")
+            if fetched is not None:
+                cached[b['start']] = fetched
+                continue
+
             # Block was not in the cache
             missing += 1
 
@@ -164,29 +156,60 @@ class AmpyCache(object):
 
     def search_recent(self, label, duration, detail):
         cachekey = self._recent_cache_key(label, duration, detail)
-
-        result = None
-        with self.mcpool.reserve() as mc:
-            try:
-                if cachekey in mc:
-                    result = mc.get(cachekey)
-            except pylibmc.SomeErrors as e:
-                log("Warning: pylibmc error while searching for recent data")
-                log(e)
-
-        return result
+        return self._cachefetch(cachekey, "recent data")
 
     def store_recent(self, label, duration, detail, data):
         cachetime = self._recent_cache_timeout(duration)
         cachekey = self._recent_cache_key(label, duration, detail)
 
+        self._cachestore(cachekey, data, cachetime,
+                "inserting recent data")
+
+    def store_stream_view(self, streamid, viewid):
+        cachekey = self._stream_view_cache_key(streamid)
+        
+        self._cachestore(cachekey, viewid, self.streamview_cachetime,
+                "inserting stream view")
+
+    def search_stream_view(self, streamid):
+        cachekey = self._stream_view_cache_key(streamid)
+        return self._cachefetch(cachekey, "stream view")
+
+    
+    def store_view_groups(self, viewid, groups):
+        cachekey = self._view_groups_cache_key(viewid)
+        self._cachestore(cachekey, groups, self.viewgroups_cachetime, 
+                "inserting view groups")
+
+    def search_view_groups(self, viewid):
+        cachekey = self._view_groups_cache_key(viewid)
+        return self._cachefetch(cachekey, "view groups")
+
+    def _cachestore(self, key, data, cachetime, errorstr):
         with self.mcpool.reserve() as mc:
             try:
-                mc.set(cachekey, data, cachetime)
+                mc.set(key, data, cachetime)
             except pylibmc.SomeErrors as e:
-                log("Warning: pylibmc error while inserting recent data")
+                log("Warning: pylibmc error while %s" % (errorstr))
                 log(e)
 
+    def _cachefetch(self, key, errorstr):
+        result = None
+        with self.mcpool.reserve() as mc:
+            try:
+                if key in mc:
+                    result = mc.get(key)
+            except pylibmc.SomeErrors as e:
+                log("Warning: pylibmc error when searching for %s" % (errorstr))
+                log(e)
+
+        return result
+
+    def _view_groups_cache_key(self, viewid):
+        return "viewgroups_%s" % (str(viewid))
+
+    def _stream_view_cache_key(self, streamid):
+        return "streamview_%s" % (str(streamid))
 
     def _block_cache_key(self, start, binsize, detail, label):
         return str("_".join([label, str(binsize), str(start), str(detail)]))

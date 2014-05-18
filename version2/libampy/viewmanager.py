@@ -11,12 +11,8 @@ class ViewManager(object):
         self.dbconfig = viewdbconfig
         self.db = AmpyDatabase(viewdbconfig, True)
         self.db.connect(15)
-    
 
     def get_view_groups(self, collection, viewid):
-
-        # TODO Check the cache to see if we already know the groups for this
-        # particular view
 
         groups = {}
 
@@ -40,19 +36,6 @@ class ViewManager(object):
         
         self.db.closecursor()
         return groups
-
-    def update_view_groups(self, collection, viewid, groups):
-        pass 
-
-    def get_stream_view(self, collection, stream):
-        # Check if there is cache entry describing which view this stream
-        # maps to. If there is, return that and update the cache timeout.
-        # If not, return 0 so that the caller can work it out manually.
-        pass
-
-    def update_stream_view(self, collection, stream, view_id):
-        # Insert the stream-to-view mapping into the cache
-        pass
 
     def get_group_id(self, collection, description):
         # Create group if it doesn't exist

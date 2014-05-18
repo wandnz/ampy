@@ -264,6 +264,13 @@ class Ampy(object):
         return tabview
 
     def get_event_view(self, collection, stream):
+        # Check if we have a cache entry for this stream
+        cachedview = self.cache.search_stream_view(stream)
+        if cachedview is not None:
+            # Reset the cache timeout
+            self.cache.store_stream_view(stream, cachedview)
+            return cachedview
+
         col = self._getcol(collection)
         if col == None:
             log("Error while creating event view")
@@ -287,7 +294,11 @@ class Ampy(object):
                     (stream, collection))
             return None
 
-        return self.viewmanager.add_group_to_view(collection, 0, eventgroup)
+        view = self.viewmanager.add_group_to_view(collection, 0, eventgroup)
+
+        # Put the view in the cache for future lookups
+        self.cache.store_stream_view(stream, view)
+        return view
 
     def modify_view(self, collection, view_id, action, options):
         col = self._getcol(collection)
@@ -587,11 +598,21 @@ class Ampy(object):
         if col.update_streams() is None:
             return None, None
         
+        # Check if the groups are in the cache
+        cachedgroups = self.cache.search_view_groups(view_id)
+        if cachedgroups is not None:
+            # Refresh the cache timeout
+            self.cache.store_view_groups(view_id, cachedgroups)
+            return col, cachedgroups
+
         viewgroups = self.viewmanager.get_view_groups(collection, view_id)
 
         if viewgroups is None:
             log("Unable to find groups for view id %d(%s)" % (view_id, collection))
             return None, None
+       
+        # Put these groups in the cache
+        self.cache.store_view_groups(view_id, viewgroups)
         
         return col, viewgroups
 
