@@ -499,8 +499,8 @@ class Ampy(object):
         cached = {}
         for label in labels:
             # Check which blocks are cached and which are not
-            missing, found = self.cache.search_cached_blocks(blocks, start,
-                    end, binsize, detail, label['labelstring'])
+            missing, found = self.cache.search_cached_blocks(blocks, 
+                    binsize, detail, label['labelstring'])
             
             cached[label['labelstring']] = found
             
