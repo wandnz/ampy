@@ -1,6 +1,5 @@
 from libnntscclient.logger import *
 from libampy.collection import Collection
-import re
 from operator import itemgetter
 
 class RRDSmokeping(Collection):
