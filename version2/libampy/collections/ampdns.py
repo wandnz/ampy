@@ -1,6 +1,5 @@
 from libnntscclient.logger import *
 from libampy.collection import Collection
-import re
 from operator import itemgetter
 
 class AmpDns(Collection):
@@ -150,18 +149,15 @@ class AmpDns(Collection):
         
            
     def parse_group_description(self, description):
-        parts = re.match("FROM (?P<source>[.a-zA-Z0-9-]+) "
-                "TO (?P<destination>[.a-zA-Z0-9-:]+) "
-                "OPTION (?P<query>[a-zA-Z0-9.]+) (?P<class>[A-Z]+) "
-                "(?P<type>[A-Z]+) "
-                "(?P<size>[0-9]+) (?P<flags>[TF]+) "
-                "(?P<split>[A-Z]+)",
-                description)
-
+        regex = "FROM (?P<source>[.a-zA-Z0-9-]+) "
+        regex += "TO (?P<destination>[.a-zA-Z0-9-:]+) "
+        regex += "OPTION (?P<query>[a-zA-Z0-9.]+) (?P<class>[A-Z]+) "
+        regex += "(?P<type>[A-Z]+) "
+        regex += "(?P<size>[0-9]+) (?P<flags>[TF]+) "
+        regex += "(?P<split>[A-Z]+)"
+        
+        parts = self.apply_group_regex(regex, description)
         if parts is None:
-            log("Group description did not match regex for %s" % \
-                    (self.collection_name))
-            log(description)
             return None
 
         if parts.group("split") not in ['FULL', 'NONE']:

@@ -1,6 +1,5 @@
 from libnntscclient.logger import *
 from libampy.collection import Collection
-import re
 from operator import itemgetter
 
 class AmpIcmp(Collection):
@@ -157,17 +156,16 @@ class AmpIcmp(Collection):
                 properties['packet_size'], properties['aggregation'].upper())
 
     def parse_group_description(self, description):
-        parts = re.match("FROM (?P<source>[.a-zA-Z0-9-]+) "
-                "TO (?P<destination>[.a-zA-Z0-9-]+) "
-                "OPTION (?P<option>[a-zA-Z0-9]+) "
-                "(?P<split>[A-Z0-9]+)[ ]*(?P<address>[0-9.:a-zA-Z]*)",
-                description)
+        regex =  "FROM (?P<source>[.a-zA-Z0-9-]+) "
+        regex += "TO (?P<destination>[.a-zA-Z0-9-]+) "
+        regex += "OPTION (?P<option>[a-zA-Z0-9]+) "
+        regex += "(?P<split>[A-Z0-9]+)[ ]*(?P<address>[0-9.:a-zA-Z]*)"
+
+        parts = self._apply_group_regex(regex, description)
 
         if parts is None:
-            log("Group description did not match regex for %s" % \
-                    (self.collection_name))
-            log(description)
             return None
+        
         if parts.group("split") not in self.splits:
             log("%s group description has no aggregation method" % \
                     (self.collection_name))
