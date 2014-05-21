@@ -14,6 +14,10 @@ from libampy.collections.amptraceroute import AmpTraceroute
 from libampy.collections.ampdns import AmpDns
 from libampy.collections.rrdsmokeping import RRDSmokeping
 from libampy.collections.rrdmuninbytes import RRDMuninbytes
+from libampy.collections.lpipackets import LPIPackets
+from libampy.collections.lpibytes import LPIBytes
+from libampy.collections.lpiflows import LPIFlows
+from libampy.collections.lpiusers import LPIUsers
 
 class Ampy(object):
     """
@@ -1123,6 +1127,14 @@ class Ampy(object):
             newcol = RRDSmokeping(colid, self.viewmanager, self.nntscconfig)
         if collection == "rrd-muninbytes":
             newcol = RRDMuninbytes(colid, self.viewmanager, self.nntscconfig)
+        if collection == "lpi-packets":
+            newcol = LPIPackets(colid, self.viewmanager, self.nntscconfig)
+        if collection == "lpi-bytes":
+            newcol = LPIBytes(colid, self.viewmanager, self.nntscconfig)
+        if collection == "lpi-flows":
+            newcol = LPIFlows(colid, self.viewmanager, self.nntscconfig)
+        if collection == "lpi-users":
+            newcol = LPIUsers(colid, self.viewmanager, self.nntscconfig)
 
         if newcol is None:
             log("Unknown collection type: %s" % (collection))
