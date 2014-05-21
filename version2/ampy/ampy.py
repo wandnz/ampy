@@ -502,7 +502,7 @@ class Ampy(object):
             if tabid is None:
                 continue
 
-            tabgroups.append(tabcol)
+            tabgroups.append(tabid)
 
         # If no groups were successfully translated to the new collection,
         # bail as we have nothing to draw on the graph.
