@@ -405,9 +405,9 @@ class Ampy(object):
 
         Parameters:
           collection -- the name of the collection that the view belongs to.
-          selected -- a dictionary containing the stream properties that 
+          selected -- a list containing the stream properties that 
                       have already been selected, e.g. the choices already 
-                      made on the modal dialog.
+                      made on the modal dialog, in order.
 
         Returns:
           a dictionary where the key is a stream property and the value is
@@ -752,7 +752,6 @@ class Ampy(object):
 
         fetcheddata = self._fetch_recent(col, groups, duration, "matrix")
         if fetcheddata is None:
-            print "x"
             return None
 
         return fetcheddata[0], fetcheddata[1], sources, destinations
@@ -866,7 +865,6 @@ class Ampy(object):
         start = end - duration
        
         for lab in alllabels:
-            print lab
             # Check if we have recent data cached for this label
             cachehit = self.cache.search_recent(lab['labelstring'], 
                     duration, detail)
