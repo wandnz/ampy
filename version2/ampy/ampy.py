@@ -35,7 +35,11 @@ class Ampy(object):
         Prepares Ampy for operation. Must be called prior to calling any
         other API functions.
     get_collections:
-        Fetches a list of supported collections from the NNTSC database
+        Fetches a list of supported collections from the NNTSC database.
+    get_meshes:
+        Fetches a list of available AMP meshes.
+    get_amp_site_info:
+        Fetches detailed information about an AMP mesh member.
     get_recent_data:
         Fetches aggregated values for a time period starting at now and 
         going back a specified duration, i.e. the most recent measurements.
@@ -126,6 +130,52 @@ class Ampy(object):
         """
         return self.savedcoldata.keys()
 
+    def get_meshes(self, endpoint):
+        """
+        Fetches all source or destination meshes.
+
+        Parameters:
+          endpoint -- either "source" or "destination", depending on 
+                      which meshes are required.
+
+        Returns:
+          a list of dictionaries that describe the available meshes or 
+          None if an error occurs while querying for the meshes.
+
+        Mesh dictionary format:
+          The returned dictionaries should contain three elements:
+            name -- the internal unique identifier string for the mesh
+            longname -- a string containing a mesh name that is more 
+                        suited for public display
+            description -- a string describing the purpose of the mesh in
+                           reasonable detail
+        """
+        return self.ampmesh.get_meshes(endpoint)
+
+    def get_amp_site_info(self, sitename):
+        """
+        Fetches details about a particular AMP mesh member.
+
+        Parameters:
+          sitename -- the name of the mesh member to query for
+
+        Returns: 
+          a dictionary containing detailed information about the site.
+
+        The resulting dictionary contains the following items:
+          ampname -- a string containing the internal name for the site
+          longname -- a string containing a site name that is suitable for
+                      public display
+          location -- a string containing the city or data-centre where the
+                      amplet is located (if there is one for that site)
+          description -- a string containing any additional descriptive
+                         information about the site
+          active -- a boolean flag indicating whether the site is currently
+                    active
+        """
+        return self.ampmesh.get_site_info(sitename)
+        
+
     def get_recent_data(self, collection, view_id, duration, detail):
         """
         Fetches summary statistics for each label within a view that
@@ -148,9 +198,11 @@ class Ampy(object):
                      are aggregated.
 
         Returns:
-          a dictionary keyed by label where each value is a list containing
-          the one aggregated data point for the time period. Returns None
-          if an error occurs while fetching the data.
+          a tuple containing two elements. The first is a dictionary
+          mapping label identifier strings to a list containing the
+          summary statistics for that label. The second is a list of
+          labels which failed to fetch recent data due to a database query
+          timeout.
 
         """
         alllabels = []
@@ -376,9 +428,16 @@ class Ampy(object):
             log("Error while fetching selection options")
             return None
 
+        seldict = col.create_properties_from_list(selected)
+        if seldict is None:
+            log("Unable to understand selected options")
+            return None
+
         # The collection module does most of the work here
-        options = col.get_selections(selected)
+        options = col.get_selections(seldict)
         return options       
+
+    
 
     def test_graphtab_view(self, collection, tabcollection, view_id):
         """
@@ -655,9 +714,12 @@ class Ampy(object):
                       each matrix cell, in seconds.
 
         Returns:
-          a dictionary where the keys are labels identifying each matrix 
-          cell and the values are lists containing the data required to 
-          colour the matrix cell.
+          a tuple containing four elements. The first is a dictionary
+          mapping label identifier strings to a list containing the
+          summary statistics for that label. The second is a list of
+          labels which failed to fetch recent data due to a database query
+          timeout. The third is a list of source mesh members. The fourth
+          is a list of destination mesh members.
 
           Returns None if an error occurs while determining the matrix 
           groups or querying for the matrix data.
@@ -677,12 +739,23 @@ class Ampy(object):
             log("Error while fetching matrix data")
             return None
         
+        # Make sure we have an up-to-date set of streams
+        if col.update_streams() is None:
+            return None
+        
         # Work out which groups are required for this matrix 
         matrixgroups = self._get_matrix_groups(col, options)
         if matrixgroups is None:
             return None
 
-        return self._fetch_recent(col, matrixgroups, duration, "matrix")   
+        groups, sources, destinations = matrixgroups
+
+        fetcheddata = self._fetch_recent(col, groups, duration, "matrix")
+        if fetcheddata is None:
+            print "x"
+            return None
+
+        return fetcheddata[0], fetcheddata[1], sources, destinations
 
     def get_view_events(self, collection, view_id, start, end):
         """
@@ -772,7 +845,7 @@ class Ampy(object):
                      are aggregated.
         
         Returns:
-            a tuple containing two elemetnts. The first is a dictionary
+            a tuple containing two elements. The first is a dictionary
             mapping label identifier strings to a list containing the
             summary statistics for that label. The second is a list of
             labels which failed to fetch recent data due to a database query
@@ -793,6 +866,7 @@ class Ampy(object):
         start = end - duration
        
         for lab in alllabels:
+            print lab
             # Check if we have recent data cached for this label
             cachehit = self.cache.search_recent(lab['labelstring'], 
                     duration, detail)
@@ -1205,8 +1279,11 @@ class Ampy(object):
           options -- a list of parameters describing the matrix properties.
 
         Returns:
-          a list of dictionaries describing each of the groups that should
-          be present in the matrix. 
+          a tuple containing three items:
+            1. a list of dictionaries describing each of the groups that 
+               should be present in the matrix. 
+            2. a list of sites belonging to the source mesh.
+            3. a list of sites belonging to the destination mesh.
 
           Returns None if an error occurs while finding matrix groups.
 
@@ -1261,7 +1338,7 @@ class Ampy(object):
             for d in destinations:
                 col.update_matrix_groups(s, d, options[2:], groups)
 
-        return groups
+        return groups, sources, destinations
 
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :

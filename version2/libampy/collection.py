@@ -27,6 +27,9 @@ class Collection(object):
     create_group_from_list:
         Converts an ordered list of group properties into an appropriate
         group description for the collection.
+    create_properties_from_list:
+        Converts an ordered list of group properties into a dictionary
+        keyed by the property name.
     translate_group:
         Converts the properties that describe a group from another
         collection into a string describing an equivalent group for this
@@ -112,23 +115,39 @@ class Collection(object):
           using the provided property list
         """
         
+        props = self.create_properties_from_list(options)
+        if props is None:
+            return None
+        return self.create_group_description(props) 
+
+    def create_properties_from_list(self, options):
+        """
+        Converts an ordered list of group properties into a dictionary 
+        with the property names as keys.
+
+        Parameters:
+          options -- the list of properties describing the group. The
+                     properties MUST be in the same order as they are
+                     listed in the groupproperties list for the collection.
+
+        Returns:
+          a dictionary describing the group or None if no dictionary 
+          can be formed using the provided property list
+        """
         if self.groupproperties is None:
             # Child collection hasn't provided any group property list!
             return None
 
         if len(options) > len(self.groupproperties):
-            log("Cannot convert list of properties to group -- too many properties")
+            log("Cannot convert list of properties -- too many properties")
             return None
 
-        # Convert the list into a dictionary, using our known groupproperties
-        # as the keys
         props = {}
         for i in range(0, len(options)):
             sp = self.groupproperties[i]
             props[sp] = options[i]
 
-        return self.create_group_description(props) 
-
+        return props
     def translate_group(self, groupprops):
         """
         Attempts to create a group description string based on a set of 
