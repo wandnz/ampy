@@ -84,7 +84,7 @@ class Collection(object):
 
     def __init__(self, colid, viewmanager, nntscconf):
         self.viewmanager = viewmanager
-        self.nntsc = NNTSCConnection(nntscconf)
+        self.nntscconf = nntscconf
         self.streammanager = None
         self.colid = colid
         self.lastchecked = 0
@@ -579,8 +579,8 @@ class Collection(object):
         if aggregators is None:
             log("Failed to get aggregation columns for collection %s" % (self.collection_name))
             return None
-
-        history = self.nntsc.request_history(self.colid, labels, start, end, 
+        nntsc = NNTSCConnection(self.nntscconf)
+        history = nntsc.request_history(self.colid, labels, start, end, 
                 binsize, aggregators)
         if history is None:
             log("Failed to fetch history for collection %s" % (self.collection_name))
@@ -595,7 +595,8 @@ class Collection(object):
         Returns:
           the number of new streams or None if an error occurs.
         """
-        streams = self.nntsc.request_streams(self.colid, NNTSC_REQ_STREAMS,
+        nntsc = NNTSCConnection(self.nntscconf)
+        streams = nntsc.request_streams(self.colid, NNTSC_REQ_STREAMS,
                 self.lastnewstream)
 
         if streams is None:
@@ -643,7 +644,8 @@ class Collection(object):
           fetching streams.
 
         """
-        streams = self.nntsc.request_streams(self.colid, 
+        nntsc = NNTSCConnection(self.nntscconf)
+        streams = nntsc.request_streams(self.colid, 
                 NNTSC_REQ_ACTIVE_STREAMS, self.lastactive)
 
         if streams is None:

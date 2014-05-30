@@ -2,6 +2,7 @@ import datetime
 
 from libampy.database import AmpyDatabase
 from libnntscclient.logger import *
+from threading import Lock
 
 class EventManager(object):
     """
@@ -36,6 +37,7 @@ class EventManager(object):
         self.dbconfig = eventdbconfig
         self.db = AmpyDatabase(eventdbconfig, False)
         self.db.connect(15)
+        self.dblock = Lock()
 
     def fetch_events(self, labels, start, end):
         """ 
@@ -90,14 +92,17 @@ class EventManager(object):
         query += ")"
         params = tuple([start, end] + streamslist)
         
+        self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
             log("Error while querying for events")
+            self.dblock.release()
             return None
         
         events = []
         for row in self.db.cursor.fetchall():
             events.append(dict(row))
         self.db.closecursor() 
+        self.dblock.release()
         return events
 
 
@@ -124,8 +129,10 @@ class EventManager(object):
                    AND group_end_time <= %s ORDER BY group_start_time
                 """
         params = (start_dt, end_dt)
+        self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
             log("Error while querying event groups")
+            self.dblock.release()
             return None
         
         groups = []
@@ -133,6 +140,7 @@ class EventManager(object):
         for row in self.db.cursor.fetchall():
             groups.append(dict(row))
         self.db.closecursor() 
+        self.dblock.release()
         return groups
 
     def fetch_event_group_members(self, groupid):
@@ -154,14 +162,17 @@ class EventManager(object):
                 """
 
         params = (str(groupid), )
+        self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
             log("Error while querying event group members")
+            self.dblock.release()
             return None
 
         events = []
         for row in self.db.cursor.fetchall():
             events.append(dict(row))
         self.db.closecursor() 
+        self.dblock.release()
         return events
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :

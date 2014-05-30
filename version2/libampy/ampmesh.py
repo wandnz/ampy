@@ -1,5 +1,6 @@
 from libampy.database import AmpyDatabase
 from libnntscclient.logger import *
+from threading import Lock
 
 class AmpMesh(object):
     """ 
@@ -32,6 +33,7 @@ class AmpMesh(object):
         self.dbconfig = ampdbconfig
         self.db = AmpyDatabase(ampdbconfig, False)
         self.db.connect(15)
+        self.dblock = Lock()
 
     def _meshquery(self, query, params):
         """ 
@@ -47,13 +49,16 @@ class AmpMesh(object):
         """
         sites = []
 
+        self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
             log("Error while querying sources for mesh %s" % (mesh))
+            self.dblock.release()
             return None
 
         for row in self.db.cursor.fetchall():
             sites.append(row['ampname'])
         self.db.closecursor()
+        self.dblock.release()
         return sites
 
 
@@ -120,8 +125,10 @@ class AmpMesh(object):
         
         # If the endpoint is invalid, we'll currently return all meshes.
         # XXX Is this the correct behaviour?
+        self.dblock.acquire()
         if self.db.executequery(query, None) == -1:
             log("Error while querying %s meshes" % (endpoint))
+            self.dblock.release()
             return None
 
         meshes = []
@@ -129,6 +136,7 @@ class AmpMesh(object):
             meshes.append({'name':row[0], 'longname':row[1], \
                     'description':row[2]})
         self.db.closecursor()
+        self.dblock.release()
         return meshes
 
     def get_site_info(self, site):
@@ -167,17 +175,22 @@ class AmpMesh(object):
                 """
         params = (site,)
         
+        self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
             log("Error while querying for site %s" % (site))
+            self.dblock.release()
             return None
 
         result = self.db.cursor.fetchone()
         if result is None:
             log("Warning: unable to find site %s in amp database" % (site))
+            self.db.closecursor()
+            self.dblock.release()
             return unknown
 
         retdict = dict(result)
         self.db.closecursor()
+        self.dblock.release()
         return retdict
          
 

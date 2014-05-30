@@ -1,5 +1,6 @@
 from libampy.database import AmpyDatabase
 from libnntscclient.logger import *
+from threading import Lock
 
 class ViewManager(object):
     """
@@ -53,6 +54,7 @@ class ViewManager(object):
         self.dbconfig = viewdbconfig
         self.db = AmpyDatabase(viewdbconfig, True)
         self.db.connect(15)
+        self.dblock = Lock()
 
     def get_view_groups(self, collection, viewid):
         """
@@ -79,18 +81,23 @@ class ViewManager(object):
                 FROM views WHERE view_id=%s) """
         params = (collection, viewid)
 
+        self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
             log("Error while fetching the groups for a view")
+            self.dblock.release()
             return None
 
         # No groups matched this view
         if self.db.cursor.rowcount == 0:
+            self.db.closecursor()
+            self.dblock.release()
             return groups
 
         for row in self.db.cursor.fetchall():
             groups[row['group_id']] = row['group_description']
         
         self.db.closecursor()
+        self.dblock.release()
         return groups
 
     def get_group_id(self, collection, description):
@@ -113,8 +120,10 @@ class ViewManager(object):
                 group_description=%s"""
         params = (collection, description)
 
+        self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
             log("Error while checking if group exists")
+            self.dblock.release()
             return None
 
         # Ideally, this shouldn't happen but let's try and do something
@@ -131,10 +140,12 @@ class ViewManager(object):
                     """
             if self.db.executequery(query, params) == -1:
                 log("Error while inserting new group")
+                self.dblock.release()
                 return None
 
         group_id = self.db.cursor.fetchone()['group_id']
         self.db.closecursor()
+        self.dblock.release()
         return group_id
 
         
@@ -158,8 +169,10 @@ class ViewManager(object):
                 view_groups=%s"""
         params = (collection, groups)
 
+        self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
             log("Error while checking if view exists")
+            self.dblock.release()
             return None
 
         # Ideally, this shouldn't happen but let's try and do something
@@ -176,10 +189,12 @@ class ViewManager(object):
                     """
             if self.db.executequery(query, params) == -1:
                 log("Error while inserting new view")
+                self.dblock.release()
                 return None
 
         view_id = self.db.cursor.fetchone()['view_id']
         self.db.closecursor()
+        self.dblock.release()
         return view_id
 
     def add_group_to_view(self, collection, viewid, description):
