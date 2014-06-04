@@ -24,6 +24,9 @@ class Collection(object):
 
     API Functions 
     -------------
+    extra_blocks:
+        Determines how many extra blocks should be fetched when making
+        a data query.
     create_group_from_list:
         Converts an ordered list of group properties into an appropriate
         group description for the collection.
@@ -98,6 +101,31 @@ class Collection(object):
         self.streamproperties = None
         self.groupproperties = None
 
+    def extra_blocks(self, detail):
+        """
+        Determines how many extra blocks are required either side of the
+        requested time period, based on the requested level of detail.
+
+        Queries for the detailed graph should fetch extra blocks. 
+        Queries for the summary graph, tooltips or other non-scrolling
+        graphs should not fetch any extra blocks.
+
+        Child collections only need to implement this if they are not
+        using the full/summary details used by the basic time series
+        class in amp-web.
+
+        Parameters:
+          detail -- the level of detail requested for the data
+
+        Returns:
+          the number of extra blocks to add to each side of the 
+          requested time period.
+        """
+        if detail == "full":
+            return 2
+
+        return 0
+
     def create_group_from_list(self, options):
         """
         Converts an ordered list of group properties into a suitable group
@@ -115,12 +143,12 @@ class Collection(object):
           using the provided property list
         """
         
-        props = self.create_properties_from_list(options)
+        props = self.create_properties_from_list(options, self.groupproperties)
         if props is None:
             return None
         return self.create_group_description(props) 
 
-    def create_properties_from_list(self, options):
+    def create_properties_from_list(self, options, proplist):
         """
         Converts an ordered list of group properties into a dictionary 
         with the property names as keys.
@@ -128,23 +156,24 @@ class Collection(object):
         Parameters:
           options -- the list of properties describing the group. The
                      properties MUST be in the same order as they are
-                     listed in the groupproperties list for the collection.
-
+                     listed in proplist.
+          proplist -- the list of group properties, in order.
+        
         Returns:
           a dictionary describing the group or None if no dictionary 
           can be formed using the provided property list
         """
-        if self.groupproperties is None:
+        if proplist is None:
             # Child collection hasn't provided any group property list!
             return None
 
-        if len(options) > len(self.groupproperties):
+        if len(options) > len(proplist):
             log("Cannot convert list of properties -- too many properties")
             return None
 
         props = {}
         for i in range(0, len(options)):
-            sp = self.groupproperties[i]
+            sp = proplist[i]
             props[sp] = options[i]
 
         return props
@@ -652,7 +681,7 @@ class Collection(object):
             log("Failed to query NNTSC for active streams from collection %s" % (self.collection_name))
             return None
 
-        if streammanager is None:
+        if self.streammanager is None:
             log("Error: streammanager should not be None when fetching active streams!")
             return None
 

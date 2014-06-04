@@ -253,7 +253,8 @@ class Ampy(object):
             return None
 
         # Break the time period down into blocks for caching purposes
-        blocks = self.cache.get_caching_blocks(start, end, binsize, 2)
+        extra = col.extra_blocks(detail)
+        blocks = self.cache.get_caching_blocks(start, end, binsize, extra)
 
         # Find all labels for this view and their corresponding streams
         for gid, descr in viewgroups.iteritems():
@@ -428,7 +429,8 @@ class Ampy(object):
             log("Error while fetching selection options")
             return None
 
-        seldict = col.create_properties_from_list(selected)
+        seldict = col.create_properties_from_list(selected, 
+                col.streamproperties)
         if seldict is None:
             log("Unable to understand selected options")
             return None

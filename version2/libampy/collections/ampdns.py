@@ -19,7 +19,7 @@ class AmpDns(Collection):
         if detail == "matrix":
             aggfuncs = ["avg", "stddev", "count"]
             aggcols = ["rtt", "rtt", "rtt"]
-        elif detail == "full":
+        elif detail == "full" or detail == "summary":
             aggfuncs = ["smoke"]
             aggcols = ["rtt"]
         else:

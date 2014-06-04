@@ -19,7 +19,7 @@ class AmpTraceroute(AmpIcmp):
         if detail == "matrix":
             aggfuncs = ["avg"]
             aggcols = ["length"]
-        elif detail == "hops":
+        elif detail == "hops-full" or detail == "hops-summary":
             aggfuncs = ["most_array"]
             aggcols = ["path"]
         else:
@@ -28,6 +28,11 @@ class AmpTraceroute(AmpIcmp):
         
         return aggcols, aggfuncs
     
+    def extra_blocks(self, detail):
+        if detail == "hops-full" or detail == "full":
+            return 2
+        return 0
+
     def group_to_labels(self, groupid, description, lookup=True):
         groupparams = self.parse_group_description(description)
         if groupparams is None:
