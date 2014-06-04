@@ -7,10 +7,10 @@ class AmpDns(Collection):
     def __init__(self, colid, viewmanager, nntscconf):
         super(AmpDns, self).__init__(colid, viewmanager, nntscconf)
         self.streamproperties = ['source', 'destination', 
-                'query', 'query_class', 'query_type', 'udp_payload_size',
+                'query', 'query_type', 'query_class', 'udp_payload_size',
                 'recurse', 'dnssec', 'nsid']
         self.groupproperties = ['source', 'destination', 'query', 
-                'query_class', 'query_type', 'udp_payload_size',
+                'query_type', 'query_class', 'udp_payload_size',
                 'flags', 'aggregation']
         self.collection_name = "amp-dns"
 
@@ -156,7 +156,7 @@ class AmpDns(Collection):
         regex += "(?P<size>[0-9]+) (?P<flags>[TF]+) "
         regex += "(?P<split>[A-Z]+)"
         
-        parts = self.apply_group_regex(regex, description)
+        parts = self._apply_group_regex(regex, description)
         if parts is None:
             return None
 
