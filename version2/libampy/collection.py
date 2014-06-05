@@ -557,6 +557,11 @@ class Collection(object):
         Returns:
           a modified streams list with all inactive streams removed.
         """
+
+        # We only update active streams infrequently, so we shouldn't try
+        # to filter for any time period less than the update frequency
+        if (end - start) < ACTIVE_CHECK_FREQ * 2:
+            start = end - (ACTIVE_CHECK_FREQ * 2)
         return self.streammanager.filter_active_streams(streams, start, end)
 
     def fetch_history(self, labels, start, end, binsize, detail):
