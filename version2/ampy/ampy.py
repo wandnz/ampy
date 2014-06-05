@@ -38,6 +38,8 @@ class Ampy(object):
         Fetches a list of supported collections from the NNTSC database.
     get_meshes:
         Fetches a list of available AMP meshes.
+    get_matrix_members:
+        Fetches all the sites that are needed to construct a matrix.
     get_amp_site_info:
         Fetches detailed information about an AMP mesh member.
     get_recent_data:
@@ -151,6 +153,29 @@ class Ampy(object):
                            reasonable detail
         """
         return self.ampmesh.get_meshes(endpoint)
+
+    def get_matrix_members(self, sourcemesh, destmesh):
+        """
+        Fetches all the sites that are needed to construct a matrix.
+
+        Parameters:
+          sourcemesh -- the mesh that represents the test sources
+          destmesh -- the mesh that represents the test targets
+
+        Returns:
+          a tuple containing two lists: the first is the list of sources,
+          the second is the list of targets.
+          Returns None if the query fails.
+        """
+        sources = self.ampmesh.get_sources(sourcemesh)
+        if sources is None:
+            return None
+
+        dests = self.ampmesh.get_destinations(destmesh)
+        if dests is None:
+            return None
+
+        return (sources, dests)
 
     def get_amp_site_info(self, sitename):
         """
@@ -865,11 +890,17 @@ class Ampy(object):
         querylabels = {}
         end = int(time.time())
         start = end - duration
+        
        
         for lab in alllabels:
             # Check if we have recent data cached for this label
-            cachehit = self.cache.search_recent(lab['labelstring'], 
-                    duration, detail)
+            # Attach the collection to the cache label to avoid matching
+            # cache keys for both latency and hop count matrix cells
+            cachelabel = lab['labelstring'] + "_" + col.collection_name
+            if len(cachelabel) > 128:
+                log("Warning: matrix cache label %s is too long for memcache" % (cachelabel))
+
+            cachehit = self.cache.search_recent(cachelabel, duration, detail)
             # Got cached data, add it directly to our result
             if cachehit is not None:
                 recent[lab['labelstring']] = cachehit
@@ -896,7 +927,10 @@ class Ampy(object):
             for label, queryresult in result.iteritems():
                 formatted = col.format_list_data(queryresult['data'], queryresult['freq']) 
                 # Cache the result
-                self.cache.store_recent(label, duration, detail, formatted)
+                cachelabel = label + "_" + col.collection_name
+                if len(cachelabel) > 128:
+                    log("Warning: matrix cache label %s is too long for memcache" % (cachelabel))
+                self.cache.store_recent(cachelabel, duration, detail, formatted)
 
                 # Add the result to our return dictionary
                 recent[label] = formatted
