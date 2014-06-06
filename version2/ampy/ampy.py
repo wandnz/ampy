@@ -291,7 +291,7 @@ class Ampy(object):
 
         # Figure out which blocks are cached and which need to be queried 
         notcached, cached = self._find_cached_data(col, blocks, alllabels, 
-                start, end, binsize, detail)
+                binsize, detail)
 
         # Fetch all uncached data
         fetched = frequencies = timeouts = {}
@@ -1071,8 +1071,7 @@ class Ampy(object):
 
 
     
-    def _find_cached_data(self, col, blocks, labels, start, end, binsize, 
-            detail):
+    def _find_cached_data(self, col, blocks, labels, binsize, detail):
         """
         Determines which data blocks for a set of labels are cached and 
         which blocks need to be queried.
@@ -1082,10 +1081,6 @@ class Ampy(object):
           blocks -- a list of dictionaries describing the blocks for which
                     data is required.
           labels -- a list of labels that data is required for.
-          start -- the timestamp at the start of the time period covered by
-                   the blocks.
-          end -- the timestamp at the end of the time period covered by 
-                 the blocks.
           binsize -- the aggregation frequency required for the data.
           detail -- the level of detail required for the data.
 
@@ -1098,6 +1093,13 @@ class Ampy(object):
         """
         notcached = {}
         cached = {}
+
+        if len(blocks) == 0:
+            return notcached, cached
+
+        start = blocks[0]['start']
+        end = blocks[-1]['end']
+
         for label in labels:
             # Check which blocks are cached and which are not
             missing, found = self.cache.search_cached_blocks(blocks, 
