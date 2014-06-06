@@ -989,7 +989,7 @@ class Ampy(object):
         # If this block is cached, we can return the cached data right away
         if block['start'] in cached:
             return cached[block['start']], queried
-        
+       
         if freq > binsize:
             # Measurements do not align nicely with our request binsize so
             # be very careful about how we match query results to blocks
@@ -1020,7 +1020,8 @@ class Ampy(object):
 
             if len(queried) == 0:
                 # No more queried data so we must be missing a measurement
-                datum = {"binstart":ts, "timestamp":ts}
+                if block['end'] - ts >= incrementby:
+                    datum = {"binstart":ts, "timestamp":ts}
                 ts += incrementby
             else:
                 nextdata = int(queried[0][usekey])
