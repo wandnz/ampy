@@ -213,8 +213,11 @@ class AmpIcmp(Collection):
         newprops = {'source':groupprops['source'],
                 'destination':groupprops['destination']}
 
-        req, sizes = self.streammanager.find_selections(newprops)
+        sels = self.streammanager.find_selections(newprops)
+        if sels is None:
+            return None
 
+        req, sizes = sels
         if req != 'packet_size':
             log("Unable to find packet sizes for %s %s to %s" % \
                     (self.collection_name, newprops['source'], \
