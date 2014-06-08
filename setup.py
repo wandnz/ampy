@@ -13,7 +13,7 @@ setup(
     description='Python library for interacting with AMP data.',
     packages=['ampy'],
     install_requires=requires,
-    version='0.0',
+    version='2.0',
     author='',
     author_email='',
     url='',
