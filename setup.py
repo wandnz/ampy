@@ -1,5 +1,7 @@
+from pkg_resources import Requirement, resource_filename
+
 try:
-    from setuptools.core import setup
+    from setuptools import setup, find_packages
 except ImportError:
     from distutils.core import setup
 
@@ -10,12 +12,11 @@ requires = [
 
 setup(
     name='ampy',
-    description='Python library for interacting with AMP data.',
-    packages=['ampy'],
+    description='Python library for interacting with NNTSC data.',
+    packages = find_packages(),
     install_requires=requires,
     version='2.0',
-    author='',
-    author_email='',
-    url='',
-    long_description=open('README.txt').read(),
+    author='Shane Alcock, Brendon Jones',
+    author_email='contact@wand.net.nz',
+    url='http://www.wand.net.nz',
 )
