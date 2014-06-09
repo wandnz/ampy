@@ -28,6 +28,12 @@ class AmpDns(Collection):
 
         return aggcols, aggfuncs
 
+    def calculate_binsize(self, start, end, detail):
+        if (end - start) / 60.0 < 200:
+            return 60
+
+        return super(AmpDns, self).calculate_binsize(start, end, detail) 
+
     def prepare_stream_for_storage(self, stream):
         if 'address' not in stream:
             return stream, {}
