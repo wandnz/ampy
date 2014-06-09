@@ -6,9 +6,9 @@ class AmpDns(Collection):
 
     def __init__(self, colid, viewmanager, nntscconf):
         super(AmpDns, self).__init__(colid, viewmanager, nntscconf)
-        self.streamproperties = ['source', 'destination', 
+        self.streamproperties = ['source', 'destination', 'recurse', 
                 'query', 'query_type', 'query_class', 'udp_payload_size',
-                'recurse', 'dnssec', 'nsid']
+                'dnssec', 'nsid']
         self.groupproperties = ['source', 'destination', 'query', 
                 'query_type', 'query_class', 'udp_payload_size',
                 'flags', 'aggregation']
