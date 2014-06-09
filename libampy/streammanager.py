@@ -292,6 +292,12 @@ class StreamManager(object):
 
             val = selected[k]
 
+            # Convert boolean strings to actual boolean values if needed
+            if val not in curr and val == "true":
+                val = True
+            if val not in curr and val == "false":
+                val = False
+
             # Make sure the selected value for this level is actually valid
             if val not in curr:
                 log("Selected value %s for property %s is not present in the stream manager, invalid selection" % (val, k))
