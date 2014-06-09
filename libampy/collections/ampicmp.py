@@ -32,6 +32,12 @@ class AmpIcmp(Collection):
             aggcols = ["rtt", "loss"] 
     
         return (aggcols, aggfuncs)
+
+    def calculate_binsize(self, start, end, detail):
+        if (end - start) / 60.0 < 200:
+            return 60
+
+        return super(AmpIcmp, self).calculate_binsize(start, end, detail)
         
     def prepare_stream_for_storage(self, stream):
         # Need to add a 'family' property so that we can group streams easily

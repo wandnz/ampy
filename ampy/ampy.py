@@ -250,7 +250,7 @@ class Ampy(object):
 
 
     def get_historic_data(self, collection, view_id, start, end, 
-            binsize, detail):
+            detail, binsize = None):
         """
         Fetches aggregated time series data for each label within a view.
 
@@ -259,10 +259,12 @@ class Ampy(object):
           view_id -- the view to fetch time series data for.
           start -- a timestamp indicating when the time series should begin.
           end -- a timestamp indicating when the time series should end.
-          binsize -- the desired aggregation frequency.
           detail --  the level of detail, e.g. 'full', 'matrix'. This will
                      determine which data columns are queried and how they
                      are aggregated.
+          binsize -- the desired aggregation frequency. If None, this will
+                     be automatically calculated based on the time period
+                     that you asked for.
 
         Returns:
           a dictionary keyed by label where each value is a list containing
@@ -276,6 +278,9 @@ class Ampy(object):
         if col is None:
             log("Failed to fetch historic data")
             return None
+
+        if binsize is None:
+            binsize = col.calculate_binsize(start, end, detail)
 
         # Break the time period down into blocks for caching purposes
         extra = col.extra_blocks(detail)

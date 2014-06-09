@@ -126,6 +126,49 @@ class Collection(object):
 
         return 0
 
+    def calculate_binsize(self, start, end, detail):
+        """
+        Determines an appropriate binsize for a graph covering the 
+        specified time period. 
+
+        The default minimum binsize is 5 minutes. The default maximum
+        binsize is 4 hours.
+
+        Child collections should implement this if the default binsize
+        algorithm is inappropriate for the typical stream for that
+        collection. In particular, collections that measure more 
+        frequently than every 5 minutes should override this to provide
+        a binsize closer to the measurement frequency.
+
+        Parameters:
+          start -- the start of the time period for the graph.
+          end -- the end of the time period for the graph.
+          detail -- the level of detail requested for the data.
+
+        Returns:
+          the recommended binsize in seconds
+        """
+
+        # Aim to have around 200 datapoints on a typical graph
+        minbin = int(((end - start)) / 200)
+
+        # Most collections measure at 5 min intervals so use this
+        # as a minimum binsize    
+        if minbin <= 300:
+            binsize = 300
+        elif minbin <= 600:
+            binsize = 600
+        elif minbin <= 1200:
+            binsize = 1200
+        elif minbin <= 2400:
+            binsize = 2400
+        elif minbin <= 4800:
+            binsize = 4800
+        else:
+            binsize = 14400
+
+        return binsize
+
     def create_group_from_list(self, options):
         """
         Converts an ordered list of group properties into a suitable group
