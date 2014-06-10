@@ -204,7 +204,8 @@ class AmpIcmp(Collection):
             views[(source, dest)] = -1
             return
 
-        cellgroup = self.create_group_from_list([source, dest, '84', 'FAMILY'])
+        cellgroup = self.create_group_from_list([source, dest, 
+                self.default_packet_size, 'FAMILY'])
         if cellgroup is None:
             log("Failed to create group for %s matrix cell" % \
                     (self.collection_name))
