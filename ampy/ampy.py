@@ -676,7 +676,7 @@ class Ampy(object):
                     (stream, collection))
             return None
 
-        view = self.viewmanager.add_group_to_view(collection, 0, eventgroup)
+        view = self.viewmanager.add_groups_to_view(collection, 0, [eventgroup])
 
         # Put the view in the cache for future lookups
         self.cache.store_stream_view(stream, view)
@@ -723,8 +723,8 @@ class Ampy(object):
             newgroup = col.create_group_from_list(options)
             if newgroup is None:
                 return view_id
-            return self.viewmanager.add_group_to_view(collection, view_id, 
-                    newgroup)
+            return self.viewmanager.add_groups_to_view(collection, view_id, 
+                    [newgroup])
         elif action == "del":
             # XXX In theory, we could support removing more than one group?
             groupid = int(options[0])
