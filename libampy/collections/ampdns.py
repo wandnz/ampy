@@ -55,6 +55,8 @@ class AmpDns(Collection):
 
         if groupparams['aggregation'] == "FULL":
             agg = "combined instances"
+        elif groupparams['aggregation'] == "FAMILY":
+            agg = "ipv4/ipv6"
         else:
             agg = ""
 
@@ -76,6 +78,29 @@ class AmpDns(Collection):
                 return None
 
         return streams
+
+    def _generate_family_label(self, baselabel, search, family, lookup):
+        key = baselabel + "_" + family
+        shortlabel = family
+
+        if lookup:
+            streams = self.streammanager.find_streams(search)
+            if streams is None:
+                log("Failed to find streams for label %s, %s" % \
+                        (key, self.collection_name))
+                return None
+
+            famstreams = []
+            for sid, store in streams:
+                if 'address' not in store:
+                    continue
+                if family.lower() == self._address_to_family(store['address']):
+                    famstreams.append(sid)
+        else:
+            famstreams = []
+
+        return {'labelstring':key, 'streams':famstreams, 
+                'shortlabel':shortlabel}
 
     def group_to_labels(self, groupid, description, lookup=True):
         labels = []
@@ -115,6 +140,18 @@ class AmpDns(Collection):
             lab = {'labelstring':baselabel, 'streams':streams, 
                     'shortlabel':'All instances'}
             labels.append(lab)
+        elif groupparams['aggregation'] == "FAMILY":
+            nextlab = self._generate_family_label(baselabel, search, "IPv4", 
+                    lookup)
+            if nextlab is None:
+                return None
+            labels.append(nextlab)
+            nextlab = self._generate_family_label(baselabel, search, "IPv6", 
+                    lookup)
+            if nextlab is None:
+                return None
+            labels.append(nextlab)
+
         else:
             streams = self._lookup_streams(search, True)
             if streams is None:
@@ -138,7 +175,7 @@ class AmpDns(Collection):
         # Put in a suitable aggregation method if one is not present, i.e.
         # we are converting a stream into a group
         if 'aggregation' not in properties:
-            properties['aggregation'] = "NONE"
+            properties['aggregation'] = "FAMILY"
 
         # Convert flags into the flag string
         if 'flags' not in properties:
@@ -157,8 +194,8 @@ class AmpDns(Collection):
     def parse_group_description(self, description):
         regex = "FROM (?P<source>[.a-zA-Z0-9-]+) "
         regex += "TO (?P<destination>[.a-zA-Z0-9-:]+) "
-        regex += "OPTION (?P<query>[a-zA-Z0-9.]+) (?P<class>[A-Z]+) "
-        regex += "(?P<type>[A-Z]+) "
+        regex += "OPTION (?P<query>[a-zA-Z0-9.]+) (?P<type>[A-Z]+) "
+        regex += "(?P<class>[A-Z]+) "
         regex += "(?P<size>[0-9]+) (?P<flags>[TF]+) "
         regex += "(?P<split>[A-Z]+)"
         
@@ -166,7 +203,7 @@ class AmpDns(Collection):
         if parts is None:
             return None
 
-        if parts.group("split") not in ['FULL', 'NONE']:
+        if parts.group("split") not in ['FULL', 'NONE', 'FAMILY']:
             log("%s group description has no aggregation method" % \
                     (self.collection_name))
             log(description)
@@ -185,29 +222,39 @@ class AmpDns(Collection):
 
         return keydict
 
-    def update_matrix_groups(self, source, dest, options, groups):
+    def update_matrix_groups(self, source, dest, groups, views, viewmanager):
     
-        # TODO Evaluate which options we don't care about in the matrix,
-        # i.e. do we care if we combine all the flag combinations into a
-        # single value?
-
-        if len(options) < 5:
-            log("Not all options present when building matrix groups for %s" \
-                    % (self.collection_name))
-            return groups
-
+        # Firstly, we want to try to populate our matrix cell using streams
+        # where the target DNS server is the authoritative server, if
+        # any such streams are available. This can be done by looking for
+        # streams where there was no recursion.
+        #
+        # If no such streams are available, the server is probably a 
+        # public DNS server. In this case, we're going to use streams for
+        # resolving www.google.com. This should be cached, so we should
+        # get a reasonable estimate of server performance.
+        #
+        # Note, this assumes that we are always going to test www.google.com
+        # for each non-authoritative server but surely we can manage
+        # to do this.
         groupprops = {
-            'source':source, 'destination':dest, 'query':options[0],
-            'query_class':options[1], 'query_type':options[2],
-            'udp_payload_size':int(options[3])
+            'source':source, 'destination':dest, 'recurse':False
         }
-
+       
+        streams = self.streammanager.find_streams(groupprops)
+           
+        if len(streams) == 0:
+            groupprops['recurse'] = True
+            groupprops['query'] = "www.google.com"
+            groupprops['query_type'] = "A" 
+            groupprops['query_class'] = "IN"
+            streams = self.streammanager.find_streams(groupprops)    
+        
         v4streams = []
         v6streams = []
 
-        streams = self.streammanager.find_streams(groupprops)
-        if source == 'prophet':
-            print dest, streams
+        cellgroups = set()
+
         # Split the resulting streams into v4 and v6 groups based on the
         # stored address
         for sid, store in streams:
@@ -219,16 +266,33 @@ class AmpDns(Collection):
             else:
                 v6streams.append(sid)
 
-        # Add the two new groups
-        groups.append({
-            'labelstring':'%s_%s_ipv4' % (source, dest),
-            'streams':v4streams
-        })
+            streamprops = self.streammanager.find_stream_properties(sid)
+            groupdesc = self.create_group_description(streamprops)
+            cellgroups.add(groupdesc)
 
-        groups.append({
-            'labelstring':'%s_%s_ipv6' % (source, dest),
-            'streams':v4streams
-        })
+        if len(cellgroups) != 0:
+            cellview = viewmanager.add_groups_to_view(self.collection_name,
+                    0, list(cellgroups))
+        else:
+            cellview = -1
+
+        if cellview is None:
+            views[(source,dest)] = -1
+        else:
+            views[(source,dest)] = cellview
+
+        # Add the two new groups
+        if len(v4streams) > 0:
+            groups.append({
+                'labelstring':'%s_%s_ipv4' % (source, dest),
+                'streams':v4streams
+            })
+
+        if len(v6streams) > 0:
+            groups.append({
+                'labelstring':'%s_%s_ipv6' % (source, dest),
+                'streams':v6streams
+            })
 
             
     def _create_flag_string(self, properties):

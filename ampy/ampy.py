@@ -740,29 +740,27 @@ class Ampy(object):
         Parameters:
           collection -- the name of the collection that the matrix 
                         belongs to.
-          options -- an ordered list describing which groups should appear
+          options -- an ordered list describing which meshes should appear
                      in the matrix.
           duration -- the amount of recent data that should be queried for
                       each matrix cell, in seconds.
 
         Returns:
-          a tuple containing four elements. The first is a dictionary
+          a tuple containing five elements. The first is a dictionary
           mapping label identifier strings to a list containing the
           summary statistics for that label. The second is a list of
           labels which failed to fetch recent data due to a database query
           timeout. The third is a list of source mesh members. The fourth
-          is a list of destination mesh members.
+          is a list of destination mesh members. The fifth is a dictionary
+          containing the view ids for the graphs that each matrix cell
+          will link to.
 
           Returns None if an error occurs while determining the matrix 
           groups or querying for the matrix data.
 
         The options parameter must contain at least two items: the source 
         and destination meshes for the matrix. Any subsequent items are 
-        used by the collection module to determine the groups that 
-        correspond to each matrix cell. Using amp-icmp as an example, the 
-        third item in the options list should be a packet size. If 
-        provided, this would limit the matrix cells to only include 
-        streams that matched the given packet size.
+        ignored.
         
         """
 
@@ -780,13 +778,13 @@ class Ampy(object):
         if matrixgroups is None:
             return None
 
-        groups, sources, destinations = matrixgroups
+        groups, sources, destinations, views = matrixgroups
 
         fetcheddata = self._fetch_recent(col, groups, duration, "matrix")
         if fetcheddata is None:
             return None
 
-        return fetcheddata[0], fetcheddata[1], sources, destinations
+        return fetcheddata[0], fetcheddata[1], sources, destinations, views
 
     def get_view_events(self, collection, view_id, start, end):
         """
@@ -1368,6 +1366,7 @@ class Ampy(object):
             return None
 
         groups = []
+        views = {}
 
         # For each source / dest combination, update the list of groups to
         # include any groups that should be queried to colour the
@@ -1378,9 +1377,9 @@ class Ampy(object):
         # streams.
         for s in sources:
             for d in destinations:
-                col.update_matrix_groups(s, d, options[2:], groups)
+                col.update_matrix_groups(s, d, groups, views, self.viewmanager)
 
-        return groups, sources, destinations
+        return groups, sources, destinations, views
 
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :

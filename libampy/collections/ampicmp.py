@@ -190,18 +190,35 @@ class AmpIcmp(Collection):
 
         return keydict
     
-    def update_matrix_groups(self, source, dest, options, groups):
+    def update_matrix_groups(self, source, dest, groups, views, viewmanager):
         
-        if len(options) < 1:
-            log("Missing packet size option when building matrix groups")
-            return groups
-
         groupprops = {
-            'source':source, 'destination':dest, 'packet_size':options[0]
+            'source':source, 'destination':dest, 
+                    'packet_size':self.default_packet_size
         }
 
-        self._matrix_group_streams(groupprops, 'ipv4', groups)
-        self._matrix_group_streams(groupprops, 'ipv6', groups)
+        v4 = self._matrix_group_streams(groupprops, 'ipv4', groups)
+        v6 = self._matrix_group_streams(groupprops, 'ipv6', groups)
+
+        if v4 == 0 and v6 == 0:
+            views[(source, dest)] = -1
+            return
+
+        cellgroup = self.create_group_from_list([source, dest, '84', 'FAMILY'])
+        if cellgroup is None:
+            log("Failed to create group for %s matrix cell" % \
+                    (self.collection_name))
+            return None
+
+        viewid = viewmanager.add_groups_to_view(self.collection_name, 0,
+                [cellgroup])
+        if viewid is None:
+            views[(source, dest)] = -1
+        else:
+            views[(source, dest)] = viewid 
+
+        
+
 
     def translate_group(self, groupprops):
         defaultsize = self.default_packet_size
@@ -263,7 +280,8 @@ class AmpIcmp(Collection):
             # Remove the addresses, we just need the stream ids
             streams = [item[0] for item in streams]
             groups.append({'labelstring':label, 'streams':streams})
-
+        
+        return len(streams)
         
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :
