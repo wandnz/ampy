@@ -22,6 +22,8 @@ CREATE TABLE member (
 CREATE INDEX index_member_meshname ON member(member_meshname);
 CREATE INDEX index_member_ampname ON member(member_ampname);
 
+ALTER TABLE member ADD CONSTRAINT uniq_membership UNIQUE (member_meshname, member_ampname);
+
 CREATE VIEW active_mesh_members AS SELECT
     member_meshname as meshname,
     member_ampname as ampname,
