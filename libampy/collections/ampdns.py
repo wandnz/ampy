@@ -56,7 +56,7 @@ class AmpDns(Collection):
         if groupparams['aggregation'] == "FULL":
             agg = "combined instances"
         elif groupparams['aggregation'] == "FAMILY":
-            agg = "ipv4/ipv6"
+            agg = "IPv4/IPv6"
         else:
             agg = ""
 
