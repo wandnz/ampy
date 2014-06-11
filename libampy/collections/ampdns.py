@@ -231,7 +231,7 @@ class AmpDns(Collection):
         #
         # If no such streams are available, the server is probably a 
         # public DNS server. In this case, we're going to use streams for
-        # resolving www.google.com. This should be cached, so we should
+        # resolving google.com. This should be cached, so we should
         # get a reasonable estimate of server performance.
         #
         # Note, this assumes that we are always going to test www.google.com
@@ -245,11 +245,11 @@ class AmpDns(Collection):
            
         if len(streams) == 0:
             groupprops['recurse'] = True
-            groupprops['query'] = "www.google.com"
+            groupprops['query'] = "google.com"
             groupprops['query_type'] = "A" 
             groupprops['query_class'] = "IN"
             streams = self.streammanager.find_streams(groupprops)    
-        
+       
         v4streams = []
         v6streams = []
 
