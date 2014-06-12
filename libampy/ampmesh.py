@@ -122,6 +122,8 @@ class AmpMesh(object):
             query += " AND mesh_is_src = true"
         elif endpoint == "destination":
             query += " AND mesh_is_dst = true"
+       
+        query += " ORDER BY mesh_longname"
         
         # If the endpoint is invalid, we'll currently return all meshes.
         # XXX Is this the correct behaviour?
