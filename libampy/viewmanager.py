@@ -27,8 +27,8 @@ class ViewManager(object):
       get_view_id
         Searches for a view that contains a given set of groups. If one does 
         not exist, a new view is created.
-      add_group_to_view:
-        Returns the id of the view that results from adding a new group to
+      add_groups_to_view:
+        Returns the id of the view that results from adding new groups to
         an existing view.
       remove_group_from_view:
         Returns the id of the view that results from removing a group from an
@@ -197,17 +197,17 @@ class ViewManager(object):
         self.dblock.release()
         return view_id
 
-    def add_group_to_view(self, collection, viewid, description):
+    def add_groups_to_view(self, collection, viewid, descriptions):
         """
-        Adds a new group to an existing view and returns the ID of the
+        Adds new groups to an existing view and returns the ID of the
         modified view.
 
         Parameters:
           collection -- the collection that the view belongs to
           viewid -- the ID number of the view being modified. A view id of
                     zero represents an empty view (i.e. with no groups)
-          description -- a string describing the group to be added to the
-                         view
+          descriptions -- a list of strings describing the groups to be 
+                          added to the view
 
         Returns:
           the ID of the view that results from adding the group to the
@@ -222,16 +222,18 @@ class ViewManager(object):
             return None
         groups = groups.keys()
         
-        # Find the group ID for the group we are about to add
-        groupid = self.get_group_id(collection, description)
-        if groupid is None:
-            return None
+        for d in descriptions:
 
-        # Always keep our groups in sorted order, as this makes it much
-        # easier to query the views table later on
-        if groupid not in groups:
-            groups.append(groupid)
-            groups.sort()
+            # Find the group ID for the group we are about to add
+            groupid = self.get_group_id(collection, d)
+            if groupid is None:
+                return None
+
+            # Always keep our groups in sorted order, as this makes it much
+            # easier to query the views table later on
+            if groupid not in groups:
+                groups.append(groupid)
+                groups.sort()
         
         # Work out the view id for the new set of groups
         newview = self.get_view_id(collection, groups)

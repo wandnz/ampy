@@ -249,7 +249,7 @@ class StreamManager(object):
         
         return found
 
-    def find_selections(self, selected):
+    def find_selections(self, selected, logmissing=True):
         """
         Gets a list of possible values at a hierarchy level, given a set of
         selections made at earlier levels.
@@ -259,6 +259,8 @@ class StreamManager(object):
         Parameters:
           selected -- a dictionary containing all of the currently selected
                       stream properties.
+          logmissing -- if True, log an error message if a selection option
+                        is not present in the hierarchy.
 
         Returns:
           a tuple of two items : the name of the stream property being 
@@ -300,7 +302,8 @@ class StreamManager(object):
 
             # Make sure the selected value for this level is actually valid
             if val not in curr:
-                log("Selected value %s for property %s is not present in the stream manager, invalid selection" % (val, k))
+                if logmissing:
+                    log("Selected value %s for property %s is not present in the stream manager, invalid selection" % (val, k))
                 return None
 
             curr = curr[val]

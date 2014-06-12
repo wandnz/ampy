@@ -220,6 +220,7 @@ class Collection(object):
             props[sp] = options[i]
 
         return props
+
     def translate_group(self, groupprops):
         """
         Attempts to create a group description string based on a set of 
@@ -404,7 +405,7 @@ class Collection(object):
 
         return self.streammanager.find_stream_properties(streamid)
 
-    def update_matrix_groups(self, source, dest, options, groups):
+    def update_matrix_groups(self, source, dest, groups, views, viewmanager):
         """
         Finds all groups (and labels and streams) that must be queried to
         populate a matrix cell for this collection.
@@ -415,25 +416,22 @@ class Collection(object):
         Parameters:
           source -- the source for the matrix cell
           dest -- the destination for the matrix cell
-          options -- an ordered list of additional group properties for the
-                     matrix cell
           groups -- a dictionary containing all groups for the matrix so far
+          views -- a dictionary mapping matrix cells to view ids
 
         Returns:
-          an updated groups dictionary now containing the groups required for 
-          the source/destination cell. Each added group will contain a list of
-          labels belonging to that group and each label will include a list
-          of stream ids to query for that label.
+          Nothing, but the groups dictionary is updated to contain the groups 
+          required for the source/destination cell. Each added group will 
+          contain a list of labels belonging to that group and each label will 
+          include a list of stream ids to query for that label.
 
-        The options parameter can be used to limit a cell to only groups
-        matching a certain set of group properties. All group properties
-        other than the 'source' and 'destination' should be present in this
-        list and the options must be provided in the order they appear in 
-        the groupproperties list.
+          The views dictionary is also updated. In this case, an entry is
+          added with the key (source, dest) and the value is a view id for
+          the graph to show if the matrix cell is clicked on.
 
         """
         
-        return groups
+        return
 
     def update_streams(self):
         """
@@ -470,7 +468,7 @@ class Collection(object):
         self.collock.release()
         return now
 
-    def get_selections(self, selected):
+    def get_selections(self, selected, logmissing=True):
         """
         Given a set of known stream properties, finds the next possible
         decision point and returns the set of available options at that
@@ -482,6 +480,9 @@ class Collection(object):
 
         Parameters:
           selected -- a dictionary of stream properties with known values
+          logmissing -- if True, report an error message if any of the
+                        selected options are not present in the streams
+                        hierarchy.
 
         Returns:
           a dictionary where the key is a stream property and the value is
@@ -526,9 +527,10 @@ class Collection(object):
 
         # Stupid python not having a do-while construct
         while repeat:
-            found = self.streammanager.find_selections(selected)
+            found = self.streammanager.find_selections(selected, logmissing)
             if found is None:
-                log("Failed to get selection options for collection %s" % (self.collection_name))
+                if logmissing:
+                    log("Failed to get selection options for collection %s" % (self.collection_name))
                 return found
 
             key, options = found
