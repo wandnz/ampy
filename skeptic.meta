@@ -1,29 +1,29 @@
 mesh | nzdns | NZ DNS | New Zealand DNS Servers | f | t
 mesh | trademedns | Trademe DNS | Trademe DNS Servers | f | t
-mesh | amptest | Test Amplets | AMP Test Network | t | f
+#mesh | amptest | Test Amplets | AMP Test Network | t | f
 mesh | nzweb | NZ Web | New Zealand Websites | f | t
 mesh | rir | RIR | Regional Internet Registries | f | t
 mesh | alldns | DNS | All DNS Servers | f | t
-mesh | reannz-ps | REANNZ PerfSonar | REANNZ PerfSonar Monitors | t | f
+#mesh | reannz-ps | REANNZ PerfSonar | REANNZ PerfSonar Monitors | t | f
 mesh | nzisp | NZ ISPs | New Zealand ISP s | f | t
 mesh | cdn | CDNs | Content Distribution Networks | f | t
 mesh | intweb | International Web | International Websites | f | t
 mesh | rootdns | Root DNS | Root DNS Servers | f | t
 mesh | pubdns | Open DNS | Open DNS Servers | f | t
 mesh | google | Google | Google Services | f | t
-mesh | nzamp | New Zealand Amplets | Deployed Amplets | f | t
+mesh | nzamp | New Zealand Amplets | Deployed Amplets | t | t
  
-site | prophet | Prophet | Hamilton | Prophet Test Amplet | amptest
-site | centos.vagrant.quarterpounder | Centos Test Amplet | Hamilton | | amptest
-site | waikato-dell.amp.wand.net.nz | Waikato Development Amplet | Hamilton | | amptest
+#site | prophet | Prophet | Hamilton | Prophet Test Amplet | amptest
+#site | centos.vagrant.quarterpounder | Centos Test Amplet | Hamilton | | amptest
+#site | waikato-dell.amp.wand.net.nz | Waikato Development Amplet | Hamilton | | amptest
 
-site | ps01-akl.reannz.co.nz | Auckland REANNZ perfSONAR node | Auckland | | reannz-ps | amptest
-site | ps02-wlg.reannz.co.nz | Wellington REANNZ perfSONAR node | Wellington | | reannz-ps | amptest
-site | ps03-chc.reannz.co.nz | Christchurch REANNZ perfSONAR node | Christchurch | | reannz-ps | amptest
-site | ps04-dud.reannz.co.nz | Dunedin REANNZ perfSONAR node | Dunedin | | reannz-ps | amptest
-site | ps14-hlz.reannz.co.nz | Hamilton REANNZ perfSONAR node | Hamilton | | reannz-ps | amptest
-site | ps16-mup.reannz.co.nz | Massey REANNZ perfSONAR node | Palmerston North | | reannz-ps | amptest
-site | ps17-avl.reannz.co.nz | Avalon REANNZ perfSONAR node | Avalon | | reannz-ps | amptest
+#site | ps01-akl.reannz.co.nz | Auckland REANNZ perfSONAR node | Auckland | | reannz-ps | amptest
+#site | ps02-wlg.reannz.co.nz | Wellington REANNZ perfSONAR node | Wellington | | reannz-ps | amptest
+#site | ps03-chc.reannz.co.nz | Christchurch REANNZ perfSONAR node | Christchurch | | reannz-ps | amptest
+#site | ps04-dud.reannz.co.nz | Dunedin REANNZ perfSONAR node | Dunedin | | reannz-ps | amptest
+#site | ps14-hlz.reannz.co.nz | Hamilton REANNZ perfSONAR node | Hamilton | | reannz-ps | amptest
+#site | ps16-mup.reannz.co.nz | Massey REANNZ perfSONAR node | Palmerston North | | reannz-ps | amptest
+#site | ps17-avl.reannz.co.nz | Avalon REANNZ perfSONAR node | Avalon | | reannz-ps | amptest
 
 site | ns1.dns.net.nz | ns1.dns.net.nz | | | nzdns | alldns
 site | ns2.dns.net.nz | ns2.dns.net.nz | | | nzdns | alldns
