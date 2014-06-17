@@ -84,7 +84,7 @@ class AmpThroughput(Collection):
         else:
             family = ""
 
-        label = "%s : %s for %s secs, %sb writes %s %s" % (source, dest,
+        label = "%s : %s for %s secs, %sB writes %s %s" % (source, dest,
                 gps['duration'], gps['writesize'], gps['direction'], family)
 
         return label 
