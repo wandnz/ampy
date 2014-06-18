@@ -83,9 +83,13 @@ class AmpThroughput(Collection):
             family = "IPv4/IPv6"
         else:
             family = ""
+        
+        durationsecs = gps['duration'] / 1000.0
+        kilobytes = gps['writesize'] / 1024.0
 
-        label = "%s : %s for %s secs, %sB writes %s %s" % (source, dest,
-                gps['duration'], gps['writesize'], gps['direction'], family)
+
+        label = "%s : %s for %.1f secs, %.1f kB writes %s %s" % (source, dest,
+                durationsecs, kilobytes, gps['direction'], family)
 
         return label 
 
@@ -155,13 +159,16 @@ class AmpThroughput(Collection):
                         (key, self.collection_name))
 
             for sid, store in streams:
-                if 'localaddress' not in store or 'remoteaddress' not in store:
+                if 'local' not in store or 'remote' not in store:
                     log("Error: no addresses stored with stream id %s" % (sid))
                     return None
 
-                streamlabel = shortlabel + " %s and %s" % \
-                        (store['localaddress'], store['remoteaddress'])
-                lab = {'labelstring':key + "_" + sid,
+                if shortlabel == "in":
+                    streamlabel = "%s to %s" % (store['remote'], store['local'])
+                else:
+                    streamlabel = "%s to %s" % (store['local'], store['remote'])
+
+                lab = {'labelstring':key + "_" + str(sid),
                         'streams':[sid], 'shortlabel':streamlabel}
                 labels.append(lab)
 
