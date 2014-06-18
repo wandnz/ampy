@@ -9,6 +9,7 @@ class AmpThroughput(Collection):
         self.streamproperties = ['source', 'destination',  
                 'duration', 'writesize', 'tcpreused', 'direction', 'family']
         self.groupproperties = self.streamproperties
+        self.integerproperties = ['duration', 'writesize']
         self.collection_name = "amp-throughput"
 
     def detail_columns(self, detail):
