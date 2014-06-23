@@ -32,7 +32,7 @@ class EventManager(object):
     
         # Default database name is netevmon
         if 'name' not in eventdbconfig:
-            viewdbconfig['name'] = "netevmon"
+            eventdbconfig['name'] = "netevmon"
 
         self.dbconfig = eventdbconfig
         self.db = AmpyDatabase(eventdbconfig, False)
