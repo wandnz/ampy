@@ -21,7 +21,7 @@ class RRDMuninbytes(Collection):
         if data['bytes'] == None:
             data['mbps'] = None
         else:
-            data['mbps'] = ((float(data['bytes']) * 8.0) / 1000000.0) / freq
+            data['mbps'] = ((float(data['bytes']) * 8.0) / 1000000.0)
 
         return data
 

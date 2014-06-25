@@ -14,7 +14,7 @@ class LPIFlows(Collection):
         self.metric = "flows"
 
     def detail_columns(self, detail):
-        return ['flows'], ['avg']
+        return ['flows'], ['max']
 
     def create_group_description(self, properties):
         for p in self.groupproperties:
