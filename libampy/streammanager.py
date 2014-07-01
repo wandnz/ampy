@@ -16,11 +16,6 @@ class StreamManager(object):
     -------------
     add_stream:
         Adds a new stream to the hierarchy.
-    update_active_stream:
-        Updates the times that a stream was known to be active.
-    filter_active_streams:
-        Modifies a list of streams to only contain streams that were active
-        during a given time period.
     find_stream_properties:
         Returns the set of stream properties that describe the stream matching
         a given id.
@@ -52,7 +47,6 @@ class StreamManager(object):
 
         self.basedict = {}
         self.streams = {}
-        self.activity = {}
 
     def add_stream(self, streamid, storage, properties):
         """
@@ -110,48 +104,8 @@ class StreamManager(object):
         # look up streams by id as well.
         self.streams[streamid] = key, storage
 
-        # Remember when this stream was active too, so we can filter out
-        # inactive streams easily   
-        if 'firsttimestamp' in properties and 'lasttimestamp' in properties:
-            self.activity[streamid] = {
-                    'first':properties['firsttimestamp'],
-                    'last':properties['lasttimestamp']
-            }
         return curr
 
-    def update_active_stream(self, streamid, timestamp):
-        """
-        Updates the entry for a stream in the stream activity map.
-
-        Parameters:
-          streamid -- the id of the stream to be updated
-          timestamp -- the time that the stream was observed to be active
-
-        """
-
-        if streamid not in self.activity:
-            # It's a new stream, create a new map entry
-            self.activity[streamid] = {'first':timestamp, 'last':timestamp}
-        else:
-            # Otherwise, just update the most recent timestamp
-            self.activity[streamid]['last'] = timestamp
-
-    def filter_active_streams(self, streams, start, end):
-        """
-        Given a list of stream ids, removes all streams that were not active
-        during a specified time period.
-
-        Parameters:
-          streams -- the list of stream ids to be filtered
-          start -- the start of the time period of interest
-          end -- the end of the time period of interest
-
-        Returns:
-          a new list of stream ids, with the inactive streams removed.
-        """
-        return [s for s in streams \
-                if self.activity[s]['last'] > start and \
-                    self.activity[s]['first'] < end]
 
     def find_stream_properties(self, streamid):
         """
