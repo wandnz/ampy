@@ -77,9 +77,6 @@ class Collection(object):
     prepare_stream_for_storage:
         Performs any necessary conversions on the stream properties so
         that it can be inserted into a stream manager hierarchy.
-    filter_active_streams:
-        Filters a list of streams to only contain streams that were active
-        during a particular time period.
     fetch_history:
         Fetches aggregated historical data for a set of labels.
 
@@ -91,7 +88,6 @@ class Collection(object):
         self.streammanager = None
         self.colid = colid
         self.lastchecked = 0
-        self.lastactive = 0
         self.lastnewstream = 0
         self.collock = Lock()
         
@@ -457,14 +453,6 @@ class Collection(object):
             # Account for time taken querying for streams
             self.lastchecked = time.time()
         
-        if now >= (self.lastactive + ACTIVE_CHECK_FREQ):
-            if self._fetch_active_streams() is None:
-                self.collock.release()
-                return None
-
-            # Account for time taken querying for streams
-            self.lastactive = time.time()
-             
         self.collock.release()
         return now
 
@@ -589,26 +577,6 @@ class Collection(object):
         # (ID, storage data).
         return stream, None
     
-    def filter_active_streams(self, streams, start, end):
-        """
-        Removes all entries in a streams list that were not active during 
-        the specified time period.
-
-        Parameters:
-          streams -- a list of stream IDs
-          start -- a timestamp indicating the start of the time period
-          end -- a timestamp indicating the end of the time period
-
-        Returns:
-          a modified streams list with all inactive streams removed.
-        """
-
-        # We only update active streams infrequently, so we shouldn't try
-        # to filter for any time period less than the update frequency
-        if (end - start) < ACTIVE_CHECK_FREQ * 2:
-            start = end - (ACTIVE_CHECK_FREQ * 2)
-        return self.streammanager.filter_active_streams(streams, start, end)
-
     def fetch_history(self, labels, start, end, binsize, detail):
         """
         Queries NNTSC for aggregated historical data for a set of labels.
@@ -686,14 +654,7 @@ class Collection(object):
         if self.streammanager is None:
             self.streammanager = StreamManager(self.streamproperties)
 
-        mostrecent = 0
-
         for s in streams:
-            # Ignore streams that do not have any data, so as to avoid
-            # the empty graph problem
-            if s['lasttimestamp'] == 0:
-                continue
-
             # Do any necessary tweaking to prepare the stream for storage
             # in our stream manager
             s, store = self.prepare_stream_for_storage(s)
@@ -706,39 +667,6 @@ class Collection(object):
             if s['stream_id'] > self.lastnewstream:
                 self.lastnewstream = s['stream_id']
 
-            if s['lasttimestamp'] > mostrecent:
-                mostrecent = s['lasttimestamp']
-
-        if self.lastactive == 0:
-            self.lastactive = mostrecent
-        return len(streams)
-
-    def _fetch_active_streams(self):
-        """
-        Fetch any streams that have been active since the last time we
-        checked.
-
-        Returns:
-          the number of active streams, or None if an error occurs while
-          fetching streams.
-
-        """
-        nntsc = NNTSCConnection(self.nntscconf)
-        streams = nntsc.request_streams(self.colid, 
-                NNTSC_REQ_ACTIVE_STREAMS, self.lastactive)
-
-        if streams is None:
-            log("Failed to query NNTSC for active streams from collection %s" % (self.collection_name))
-            return None
-
-        if self.streammanager is None:
-            log("Error: streammanager should not be None when fetching active streams!")
-            return None
-
-        now = time.time()
-
-        for s in streams:
-            self.streammanager.update_active_stream(s, now)
         return len(streams)
 
     def _address_to_family(self, address):

@@ -910,9 +910,6 @@ class Ampy(object):
                 continue
 
             # Not cached, need to fetch it
-            # Limit our query to active streams
-            lab['streams'] = col.filter_active_streams(lab['streams'], 
-                    start, end)
    
             # If no streams were active, don't query for them. Instead
             # add an empty list to the result for this label.
@@ -1116,10 +1113,6 @@ class Ampy(object):
             if len(missing) == 0:
                 continue
             
-            # Remove inactive streams from the streams list
-            label['streams'] = col.filter_active_streams(label['streams'], 
-                    start, end)
-
             # Add missing blocks to the list of data to be fetched from NNTSC
             for b in missing:        
                 if b not in notcached:
