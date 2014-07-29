@@ -10,6 +10,7 @@ class RRDMuninbytes(Collection):
         self.groupproperties = ['switch', 'interfacelabel', 'direction']
         self.collection_name = 'rrd-muninbytes'
         self.groupsplits = ["SENT", "RECEIVED", "BOTH"]
+        self.viewstyle = self.collection_name
 
     def detail_columns(self, detail):
         return ["bytes"], ["avg"]

@@ -56,7 +56,7 @@ class ViewManager(object):
         self.db.connect(15)
         self.dblock = Lock()
 
-    def get_view_groups(self, collection, viewid):
+    def get_view_groups(self, viewstyle, viewid):
         """
         Queries the views database to find the set of groups that belong 
         to a given view.
@@ -76,10 +76,10 @@ class ViewManager(object):
         if viewid == 0:
             return groups
 
-        query = """SELECT group_id, group_description FROM groups WHERE
-                collection = %s AND group_id IN (SELECT unnest(view_groups)
-                FROM views WHERE view_id=%s) """
-        params = (collection, viewid)
+        query = """SELECT collection, group_id, group_description FROM 
+                groups WHERE group_id IN (SELECT unnest(view_groups)
+                FROM views WHERE collection=%s AND view_id=%s) """
+        params = (viewstyle, viewid)
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
@@ -94,7 +94,13 @@ class ViewManager(object):
             return groups
 
         for row in self.db.cursor.fetchall():
-            groups[row['group_id']] = row['group_description']
+            if row['collection'] in groups:
+                groups[row['collection']].append( \
+                    (row['group_id'], row['group_description']))
+            else:
+                groups[row['collection']] = \
+                    [(row['group_id'], row['group_description'])]
+
         
         self.db.closecursor()
         self.dblock.release()
@@ -149,7 +155,7 @@ class ViewManager(object):
         return group_id
 
         
-    def get_view_id(self, collection, groups):
+    def get_view_id(self, viewstyle, groups):
         """
         Queries the views database for a view that contains the given
         set of groups. If a matching view does not exist, one is created.
@@ -167,7 +173,7 @@ class ViewManager(object):
         # Create view if it doesn't exist
         query = """SELECT view_id FROM views WHERE collection=%s AND 
                 view_groups=%s"""
-        params = (collection, groups)
+        params = (viewstyle, groups)
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
@@ -178,7 +184,7 @@ class ViewManager(object):
         # Ideally, this shouldn't happen but let's try and do something
         # sensible if it does
         if self.db.cursor.rowcount > 1:
-            log("Warning: multiple views match in collection %s, %s" % (collection, description))
+            log("Warning: multiple views match in collection %s, %s" % (viewstyle, description))
             log("Using first instance")
 
         if self.db.cursor.rowcount == 0:
@@ -197,7 +203,7 @@ class ViewManager(object):
         self.dblock.release()
         return view_id
 
-    def add_groups_to_view(self, collection, viewid, descriptions):
+    def add_groups_to_view(self, viewstyle, collection, viewid, descriptions):
         """
         Adds new groups to an existing view and returns the ID of the
         modified view.
@@ -217,11 +223,14 @@ class ViewManager(object):
 
         """
         # First, find all the groups for the original view
-        groups = self.get_view_groups(collection, viewid)
+        groups = self.get_view_groups(viewstyle, viewid)
         if groups is None:
             return None
-        groups = groups.keys()
-        
+
+        existing = []
+        for col, vgs in groups.iteritems():
+            existing += [x[0] for x in vgs]
+
         for d in descriptions:
 
             # Find the group ID for the group we are about to add
@@ -231,24 +240,24 @@ class ViewManager(object):
 
             # Always keep our groups in sorted order, as this makes it much
             # easier to query the views table later on
-            if groupid not in groups:
-                groups.append(groupid)
-                groups.sort()
+            if groupid not in existing:
+                existing.append(groupid)
+                existing.sort()
         
         # Work out the view id for the new set of groups
-        newview = self.get_view_id(collection, groups)
+        newview = self.get_view_id(viewstyle, existing)
         if newview is None:
             return None
         return newview
 
 
-    def remove_group_from_view(self, collection, viewid, groupid):
+    def remove_group_from_view(self, viewstyle, viewid, groupid):
         """
         Removes a group from an existing view and returns the ID of the
         modified view.
 
         Parameters:
-          collection -- the collection that the view belongs to
+          viewstyle -- the view collection that the view belongs to
           viewid -- the ID number of the view being modified. A view id of
                     zero represents an empty view (i.e. with no groups)
           groupid -- the ID number of the group to be removed
@@ -263,23 +272,25 @@ class ViewManager(object):
         """
 
         # First, find all the groups that belong to the original view
-        groups = self.get_view_groups(collection, viewid)
+        groups = self.get_view_groups(viewstyle, viewid)
         if groups is None:
             return None
-        groups = groups.keys()
+        existing = []
+        for col, vgs in groups.iteritems():
+            existing += [x[0] for x in vgs]
 
         # Remove the group from the group list if present
-        if groupid in groups:
-            groups.remove(groupid)
+        if groupid in existing:
+            existing.remove(groupid)
         else:
             return viewid
 
         # If the view is now empty, return 0 to indicate no active groups
-        if len(groups) == 0:
+        if len(existing) == 0:
             return 0
 
         # Work out the view id for the new set of groups
-        newview = self.get_view_id(collection, groups)
+        newview = self.get_view_id(viewstyle, existing)
         if newview is None:
             return None
         return newview

@@ -7,6 +7,7 @@ class LPIBytes(LPIPackets):
         super(LPIBytes, self).__init__(colid, viewmanager, nntscconf)
         self.collection_name = "lpi-bytes"
         self.metric = "bytes"
+        self.viewstyle = self.collection_name
 
     def detail_columns(self, detail):
         return ['bytes'], ['avg']

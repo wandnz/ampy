@@ -18,6 +18,7 @@ class AmpIcmp(Collection):
                 "IPV4":"IPv4",
                 "IPV6":"IPv6"}
         self.default_packet_size = "84"
+        self.viewstyle = "amp-latency"
        
     def detail_columns(self, detail):
         # the matrix view expects both the mean and stddev for the latency
@@ -211,8 +212,8 @@ class AmpIcmp(Collection):
                     (self.collection_name))
             return None
 
-        viewid = viewmanager.add_groups_to_view(self.collection_name, 0,
-                [cellgroup])
+        viewid = viewmanager.add_groups_to_view(self.viewstyle, 
+                self.collection_name, 0, [cellgroup])
         if viewid is None:
             views[(source, dest)] = -1
         else:

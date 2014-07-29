@@ -11,6 +11,7 @@ class LPIPackets(Collection):
         self.collection_name = "lpi-packets"
         self.diraggs = ["IN", "OUT", "BOTH"]
         self.metric = "packets"
+        self.viewstyle = self.collection_name
 
     def detail_columns(self, detail):
         return ['packets'], ['avg']
