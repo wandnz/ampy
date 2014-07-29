@@ -411,8 +411,6 @@ class Ampy(object):
             log("Failed to generate legend")
             return None
 
-        print viewgroups
-
         legend = []
 
         # What we need:
@@ -669,7 +667,7 @@ class Ampy(object):
         tabgroups.sort()
 
         # Create ourselves a new view
-        tabview = self.viewmanager.get_view_id(tabcollection.viewstyle, \
+        tabview = self.viewmanager.get_view_id(tabcol.viewstyle, \
                 tabgroups)
         if tabview is None:
             log("Unable to create tabview %s to %s for view %s" % \
