@@ -90,6 +90,7 @@ class Collection(object):
         self.lastchecked = 0
         self.lastnewstream = 0
         self.collock = Lock()
+        self.integerproperties = []
         
         # These members MUST be overridden by the child collection's init
         # function
@@ -213,7 +214,10 @@ class Collection(object):
         props = {}
         for i in range(0, len(options)):
             sp = proplist[i]
-            props[sp] = options[i]
+            if sp in self.integerproperties:
+                props[sp] = int(options[i])
+            else:
+                props[sp] = options[i]
 
         return props
 

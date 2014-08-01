@@ -14,6 +14,7 @@ class AmpDns(Collection):
                 'flags', 'aggregation']
         self.collection_name = "amp-dns"
         self.viewstyle = "amp-latency"
+        self.integerproperties = ['udp_payload_size']
 
     
     def detail_columns(self, detail):
