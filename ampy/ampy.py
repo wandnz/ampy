@@ -766,14 +766,14 @@ class Ampy(object):
           
         """
           
-        col = self._getcol(collection, False)
-        if col == None:
-            return None
         if len(options) == 0:
             return view_id
 
 
         if action == "add":
+            col = self._getcol(collection, False)
+            if col == None:
+                return None
             newgroup = col.create_group_from_list(options)
             if newgroup is None:
                 return view_id
@@ -783,7 +783,7 @@ class Ampy(object):
             # XXX In theory, we could support removing more than one group?
             groupid = int(options[0])
             return self.viewmanager.remove_group_from_view(
-                    col.viewstyle, view_id, groupid)
+                    collection, view_id, groupid)
         else:
             return view_id
 
