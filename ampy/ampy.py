@@ -12,6 +12,7 @@ from libnntscclient.logger import *
 from libampy.collections.ampicmp import AmpIcmp
 from libampy.collections.amptraceroute import AmpTraceroute
 from libampy.collections.ampdns import AmpDns
+from libampy.collections.amptcpping import AmpTcpping
 from libampy.collections.rrdsmokeping import RRDSmokeping
 from libampy.collections.rrdmuninbytes import RRDMuninbytes
 from libampy.collections.lpipackets import LPIPackets
@@ -954,26 +955,9 @@ class Ampy(object):
         if block['start'] in cached:
             return cached[block['start']], queried
        
-        if freq > binsize:
-            # Measurements do not align nicely with our request binsize so
-            # be very careful about how we match query results to blocks
-            incrementby = freq
-            usekey = 'timestamp'
+        incrementby = binsize
+        usekey = 'binstart'
 
-            # Measurements don't always happen exactly on the frequency,
-            # i.e. there can be a second or two of delay. Ideally, we
-            # should account for this when we are searching for the next
-            # data point
-            delayfactor = 10 
-            
-        else:
-            incrementby = binsize
-            usekey = 'binstart'
-
-            # The database will always give us nice round timestamps
-            # based on the requested binsize
-            delayfactor = 0
-   
         blockdata = []
         ts = block['start']
 
@@ -1200,6 +1184,8 @@ class Ampy(object):
             newcol = AmpTraceroute(colid, self.viewmanager, self.nntscconfig)
         if collection == "amp-dns":
             newcol = AmpDns(colid, self.viewmanager, self.nntscconfig)
+        if collection == "amp-tcpping":
+            newcol = AmpTcpping(colid, self.viewmanager, self.nntscconfig)
         if collection == "rrd-smokeping":
             newcol = RRDSmokeping(colid, self.viewmanager, self.nntscconfig)
         if collection == "rrd-muninbytes":
