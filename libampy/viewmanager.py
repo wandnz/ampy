@@ -17,6 +17,29 @@ class ViewManager(object):
     combine all results into a single line or create one line per stream.
     Each line for a stream group will consist of one or more streams.
 
+    Some notes on collections:
+      The terminology here can get slightly confusing, now that a view
+      contain groups from multiple collections.
+
+      Stream group collections are simple -- they describe the collection
+      that all of the streams in the group belong to and therefore the
+      module that must be used to operate on that group. There is a clear
+      one-to-one mapping of group collection to collection module.
+      Groups from the amp-icmp collection use the amp-icmp module, for 
+      instance.
+
+      However, it makes sense for some collections to be shown on the
+      same graph. For example, amp-icmp, amp-dns and amp-tcpping are
+      all latency measurements and are therefore directly comparable. 
+      In this case, we use 'amp-latency' to describe a view that can
+      consist of groups from any available latency collection. However,
+      there is no 'amp-latency' module in ampy -- each group is still
+      processed using its own collection module.
+
+      Wherever possible, we'll try to use the term 'viewstyle' to refer
+      to the view-level collection, e.g. 'amp-latency' for latency views,
+      and 'collection' to refer to the group collection.
+
     API Functions
     -------------
       get_view_groups:
@@ -66,9 +89,11 @@ class ViewManager(object):
           viewid -- the id number of the view
 
         Returns:
-          a dictionary containing the groups that are part of the given view.
-          The dictionary keys are the group id numbers and the values are
-          the group description strings.
+          a dictionary containing the groups that are part of the given view,
+          broken down by the group collection.
+          The dictionary keys are the collection names and the values
+          are tuples containing the group id and the group description
+          string.
           Will return None if the query fails.
         """
         groups = {}
@@ -161,7 +186,7 @@ class ViewManager(object):
         set of groups. If a matching view does not exist, one is created.
 
         Parameters:
-          collection -- the collection that the group belongs to
+          viewstyle -- the collection that the view belongs to
           groups -- a list of group IDs to query for
 
         Returns:
@@ -209,7 +234,8 @@ class ViewManager(object):
         modified view.
 
         Parameters:
-          collection -- the collection that the view belongs to
+          viewstyle -- the collection that the existing view belongs to
+          collection -- the collection that the new groups belong to
           viewid -- the ID number of the view being modified. A view id of
                     zero represents an empty view (i.e. with no groups)
           descriptions -- a list of strings describing the groups to be 

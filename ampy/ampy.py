@@ -201,7 +201,7 @@ class Ampy(object):
         return self.ampmesh.get_site_info(sitename)
         
 
-    def get_recent_data(self, collection, view_id, duration, detail):
+    def get_recent_data(self, viewstyle, view_id, duration, detail):
         """
         Fetches summary statistics for each label within a view that
         summarise the most recent measurements collected for each label.
@@ -214,7 +214,7 @@ class Ampy(object):
         See get_historic_data if you need time series data.
 
         Parameters:
-          collection -- the name of the collection that the view belongs to.
+          viewstyle -- the name of the collection that the view belongs to.
           view_id -- the view to fetch recent data for.
           duration -- the length of the time period to fetch data for, in
                       seconds. 
@@ -235,7 +235,7 @@ class Ampy(object):
 
         # Most of the work here is finding all of the labels for the
         # view we're given.
-        viewgroups = self._view_to_groups(collection, view_id)
+        viewgroups = self._view_to_groups(viewstyle, view_id)
         if viewgroups is None:
             log("Failed to fetch recent data")
             return None
@@ -262,13 +262,13 @@ class Ampy(object):
         return recentdata, timeouts
 
 
-    def get_historic_data(self, collection, view_id, start, end, 
+    def get_historic_data(self, viewstyle, view_id, start, end, 
             detail, binsize = None):
         """
         Fetches aggregated time series data for each label within a view.
 
         Parameters:
-          collection -- the name of the collection that the view belongs to.
+          viewstyle -- the name of the collection that the view belongs to.
           view_id -- the view to fetch time series data for.
           start -- a timestamp indicating when the time series should begin.
           end -- a timestamp indicating when the time series should end.
@@ -287,7 +287,7 @@ class Ampy(object):
         """
         history = {}
 
-        viewgroups = self._view_to_groups(collection, view_id)
+        viewgroups = self._view_to_groups(viewstyle, view_id)
         if viewgroups is None:
             log("Failed to fetch historic data")
             return None
@@ -301,89 +301,20 @@ class Ampy(object):
             colhist = self._get_collection_history(col, vgs, start, end, 
                     detail, binsize)
 
+            if colhist is None:
+                log("Error while fetching historical data for %s" % (colname))
+                return None
+
             history.update(colhist)
         return history
 
-    def _get_collection_history(self, col, groups, start, end, detail, binsize):
-        alllabels = []
-
-        if binsize is None:
-            binsize = col.calculate_binsize(start, end, detail)
-
-        # Break the time period down into blocks for caching purposes
-        extra = col.extra_blocks(detail)
-        blocks = self.cache.get_caching_blocks(start, end, binsize, extra)
-
-        # Find all labels for this view and their corresponding streams
-        for (gid, descr) in groups:
-            grouplabels = col.group_to_labels(gid, descr, True)
-            if grouplabels is None:
-                log("Unable to convert group %d into stream labels" % (gid))
-                continue
-            alllabels += grouplabels
-
-        # Figure out which blocks are cached and which need to be queried 
-        notcached, cached = self._find_cached_data(col, blocks, alllabels, 
-                binsize, detail)
-
-        # Fetch all uncached data
-        fetched = frequencies = timeouts = {}
-        if len(notcached) != 0:
-            fetch = self._fetch_uncached_data(col, notcached, binsize, detail)
-            if fetch is None:
-                return None
-
-            fetched, frequencies, timeouts = fetch
-
-        # Merge fetched data with cached data to produce complete series
-
-        data = {}
-        for label, dbdata in fetched.iteritems():
-            data[label] = []
-            failed = timeouts[label]
-
-            for b in blocks:
-                blockdata, dbdata = self._next_block(col, b, cached[label], 
-                    dbdata, frequencies[label], binsize)
-                
-                data[label] += blockdata
-
-                # Store this block in our cache for fast lookup next time
-                # If it already is there, we'll reset the cache timeout instead
-                failed = self.cache.store_block(b, blockdata, label, binsize, 
-                        detail, failed)
-
-        
-        # Any labels that were fully cached won't be touched by the previous
-        # bit of code so we need to check the cached dictionary for any
-        # labels that don't appear in the fetched data and process those too
-
-        for label, item in cached.iteritems():
-            
-            # If the label is present in our returned data, we've already
-            # processed it
-            if label in data:
-                continue
-            data[label] = []
-            
-            # Slightly repetitive code but seems silly to create a 10 parameter
-            # function to run these few lines of code
-            for b in blocks:
-                blockdata, ignored = self._next_block(col, b, cached[label], 
-                        [], 0, binsize)
-                data[label] += blockdata
-                ignored = self.cache.store_block(b, blockdata, label, binsize, detail, [])
-
-
-        return data
-
-    def get_view_legend(self, collection, view_id):
+    def get_view_legend(self, viewstyle, view_id):
         """
         Generates appropriate legend label strings for each group in a given
         view.
 
         Parameters:
-          collection -- the name of the collection that the view belongs to.
+          viewstyle -- the name of the collection that the view belongs to.
           view_id -- the view to generate legend labels for.
         
         Returns:
@@ -406,7 +337,7 @@ class Ampy(object):
               the first line and increment from there.
 
         """
-        viewgroups = self._view_to_groups(collection, view_id)
+        viewgroups = self._view_to_groups(viewstyle, view_id)
         if viewgroups is None:
             log("Failed to generate legend")
             return None
@@ -441,34 +372,6 @@ class Ampy(object):
 
         return legend
 
-    def _add_legend_item(self, legend, col, gid, descr, nextlineid):
-        added = 0
-        legendtext = col.get_legend_label(descr)
-        if legendtext is None:
-            legendtext = "Unknown"
-
-        # Don't lookup the streams themselves if we can avoid it
-        grouplabels = col.group_to_labels(gid, descr, False)
-        if grouplabels is None:
-            log("Unable to convert group %d into stream labels" % (gid))
-            return added
-        lines = []
-
-        # Yes, we could assign line ids within group_to_labels but
-        # then anyone implementing a collection has to make sure they
-        # remember to do it. Also these ids are only needed for legends,
-        # but group_to_labels is also used for other purposes so it
-        # is cleaner to do it here even if it means an extra iteration 
-        # over the grouplabels list.
-        for gl in grouplabels:
-            lines.append((gl['labelstring'], gl['shortlabel'], nextlineid))
-            nextlineid += 1
-            added += 1
-
-        legend.append({'group_id':gid, 'label':legendtext, 'lines':lines,
-                'collection':col.collection_name})
-        return added
-        
 
     def get_selection_options(self, collection, selected):
         """
@@ -482,7 +385,8 @@ class Ampy(object):
         dialogs for selecting what series to display on a graph.
 
         Parameters:
-          collection -- the name of the collection that the view belongs to.
+          collection -- the name of the collection to use to interpret
+                        the options.
           selected -- a list containing the stream properties that 
                       have already been selected, e.g. the choices already 
                       made on the modal dialog, in order.
@@ -513,7 +417,7 @@ class Ampy(object):
 
     
 
-    def test_graphtab_view(self, collection, tabcollection, view_id):
+    def test_graphtab_view(self, viewstyle, tabcollection, view_id):
         """
         Checks whether it would be possible to generate a valid view that
         is equivalent to a view from another related collection.
@@ -530,7 +434,7 @@ class Ampy(object):
         translated.
         
         Parameters:
-          collection -- the name of the collection that the original view
+          viewstyle -- the name of the collection that the original view
                         belongs to.
           tabcollection -- the name of the collection that the view is to 
                            be translated to.
@@ -542,14 +446,14 @@ class Ampy(object):
           None if an error occurs while evaluating the translation.
 
         Note:
-          If collection and tabcollection are the same, this function 
+          If viewstyle and tabcollection are the same, this function 
           should ALWAYS return True.
         """
        
-        if collection == tabcollection:
+        if viewstyle == tabcollection:
             return True
         
-        groups = self._view_to_groups(collection, view_id)   
+        groups = self._view_to_groups(viewstyle, view_id)   
         if groups == None:
             log("Error while constructing tabview")
             return None
@@ -584,7 +488,7 @@ class Ampy(object):
         # streams in the database
         return False
 
-    def create_graphtab_view(self, collection, tabcollection, view_id):
+    def create_graphtab_view(self, viewstyle, tabcollection, view_id):
         """
         Creates a new view for a collection based on an existing view
         for another collection.
@@ -598,7 +502,7 @@ class Ampy(object):
         new graph.
         
         Parameters:
-          collection -- the name of the collection that the original view
+          viewstyle -- the name of the collection that the original view
                         belongs to.
           tabcollection -- the name of the collection that the view is to 
                            be translated to.
@@ -611,13 +515,13 @@ class Ampy(object):
             in the specified new collection.
 
         Note:
-          If collection and tabcollection are the same, this function should
+          If viewstyle and tabcollection are the same, this function should
           ALWAYS return the view_id that was passed in.
         """
-        if collection == tabcollection:
+        if viewstyle == tabcollection:
             return view_id
 
-        groups = self._view_to_groups(collection, view_id)   
+        groups = self._view_to_groups(viewstyle, view_id)   
         if groups == None:
             log("Error while constructing tabview")
             return None
@@ -658,7 +562,7 @@ class Ampy(object):
         # this API in the future
         if len(tabgroups) == 0:
             log("Unable to create tabview %s to %s for view %s" % \
-                    (collection, tabcollection, view_id))
+                    (viewstyle, tabcollection, view_id))
             log("No valid groups were found for new tab")
             return None
 
@@ -741,7 +645,10 @@ class Ampy(object):
         Adds or removes a group from an existing view.
 
         Parameters:
-          collection -- the name of the collection that the view belongs to.
+          collection -- if adding groups, this is the name of the 
+                        collection that the new groups belong to. If
+                        removing a group, this is the style of the view
+                        that is being removed from.
           view_id -- the ID number of the view to be modified
           action -- either "add" if adding a group or "del" if removing one.
           options -- if adding a group, this is an ordered list of group
@@ -836,12 +743,12 @@ class Ampy(object):
 
         return fetcheddata[0], fetcheddata[1], sources, destinations, views
 
-    def get_view_events(self, collection, view_id, start, end):
+    def get_view_events(self, viewstyle, view_id, start, end):
         """
         Finds all events that need to be displayed for a given graph.
 
         Parameters:
-          collection -- the name of the collection that the view belongs to.
+          viewstyle -- the name of the collection that the view belongs to.
           view_id -- the ID of the view that is being shown on the graph.
           start -- the timestamp at the start of the time period shown on 
                    the graph.
@@ -854,7 +761,7 @@ class Ampy(object):
           Returns None if an error occurs while fetching the events.
         """
 
-        groups = self._view_to_groups(collection, view_id)   
+        groups = self._view_to_groups(viewstyle, view_id)   
         if groups == None:
             log("Error while fetching events for a view")
             return None
@@ -1355,7 +1262,7 @@ class Ampy(object):
             log("Unable to find groups for view id %d(%s)" % \
                     (view_id, viewstyle))
             return None
-       
+      
         # Put these groups in the cache
         self.cache.store_view_groups(view_id, viewgroups)
         
@@ -1433,5 +1340,142 @@ class Ampy(object):
 
         return groups, sources, destinations, views
 
+    def _get_collection_history(self, col, groups, start, end, detail, binsize):
+        """
+        Fetches historical data for a set of groups belonging to a provided
+        collection.
+
+        Parameters:
+          col -- the collection module to process the groups with
+          groups -- the groups to fetch historical data for
+          start -- a timestamp describing the start of the historical period
+          end -- a timestamp describing the end of the historical period
+          detail --  the level of detail, e.g. 'full', 'matrix'. This will
+                     determine which data columns are queried and how they
+                     are aggregated.
+          binsize -- the desired aggregation frequency. If None, this will
+                     be automatically calculated based on the time period
+                     that you asked for.
+
+        Returns:
+          a dictionary keyed by label where each value is a list containing
+          the aggregated time series data for the specified time period. 
+          Returns None if an error occurs while fetching the data.
+        """
+
+        alllabels = []
+
+        if binsize is None:
+            binsize = col.calculate_binsize(start, end, detail)
+
+        # Break the time period down into blocks for caching purposes
+        extra = col.extra_blocks(detail)
+        blocks = self.cache.get_caching_blocks(start, end, binsize, extra)
+
+        # Find all labels for this view and their corresponding streams
+        for (gid, descr) in groups:
+            grouplabels = col.group_to_labels(gid, descr, True)
+            if grouplabels is None:
+                log("Unable to convert group %d into stream labels" % (gid))
+                continue
+            alllabels += grouplabels
+
+        # Figure out which blocks are cached and which need to be queried 
+        notcached, cached = self._find_cached_data(col, blocks, alllabels, 
+                binsize, detail)
+
+        # Fetch all uncached data
+        fetched = frequencies = timeouts = {}
+        if len(notcached) != 0:
+            fetch = self._fetch_uncached_data(col, notcached, binsize, detail)
+            if fetch is None:
+                return None
+
+            fetched, frequencies, timeouts = fetch
+
+        # Merge fetched data with cached data to produce complete series
+
+        data = {}
+        for label, dbdata in fetched.iteritems():
+            data[label] = []
+            failed = timeouts[label]
+
+            for b in blocks:
+                blockdata, dbdata = self._next_block(col, b, cached[label], 
+                    dbdata, frequencies[label], binsize)
+                
+                data[label] += blockdata
+
+                # Store this block in our cache for fast lookup next time
+                # If it already is there, we'll reset the cache timeout instead
+                failed = self.cache.store_block(b, blockdata, label, binsize, 
+                        detail, failed)
+
+        
+        # Any labels that were fully cached won't be touched by the previous
+        # bit of code so we need to check the cached dictionary for any
+        # labels that don't appear in the fetched data and process those too
+
+        for label, item in cached.iteritems():
+            
+            # If the label is present in our returned data, we've already
+            # processed it
+            if label in data:
+                continue
+            data[label] = []
+            
+            # Slightly repetitive code but seems silly to create a 10 parameter
+            # function to run these few lines of code
+            for b in blocks:
+                blockdata, ignored = self._next_block(col, b, cached[label], 
+                        [], 0, binsize)
+                data[label] += blockdata
+                ignored = self.cache.store_block(b, blockdata, label, binsize, detail, [])
+
+
+        return data
+
+    def _add_legend_item(self, legend, col, gid, descr, nextlineid):
+        """
+        Adds a legend entry for a group to a list of existing legend entries.
+
+        Parameters:
+          legend -- the list of existing legend entries
+          col -- the collection module for the group
+          gid -- the id number of the group
+          descr -- the textual description of the group
+          nextlineid -- the next free unique identifier for graph lines
+
+        Returns:
+          the number of entries added to the legend list
+        """
+
+        added = 0
+        legendtext = col.get_legend_label(descr)
+        if legendtext is None:
+            legendtext = "Unknown"
+
+        # Don't lookup the streams themselves if we can avoid it
+        grouplabels = col.group_to_labels(gid, descr, False)
+        if grouplabels is None:
+            log("Unable to convert group %d into stream labels" % (gid))
+            return added
+        lines = []
+
+        # Yes, we could assign line ids within group_to_labels but
+        # then anyone implementing a collection has to make sure they
+        # remember to do it. Also these ids are only needed for legends,
+        # but group_to_labels is also used for other purposes so it
+        # is cleaner to do it here even if it means an extra iteration 
+        # over the grouplabels list.
+        for gl in grouplabels:
+            lines.append((gl['labelstring'], gl['shortlabel'], nextlineid))
+            nextlineid += 1
+            added += 1
+
+        legend.append({'group_id':gid, 'label':legendtext, 'lines':lines,
+                'collection':col.collection_name})
+        return added
+        
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :
