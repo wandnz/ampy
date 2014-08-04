@@ -88,7 +88,11 @@ class AmpIcmp(Collection):
             streams = []
 
         return {'labelstring':key, 'streams':streams, 'shortlabel':shortlabel}
-            
+
+    def _group_to_search(self, groupparams):            
+        return {'source':groupparams['source'], 
+                'destination':groupparams['destination'],
+                'packet_size':groupparams['packet_size']}
 
     def group_to_labels(self, groupid, description, lookup=True):
         labels = []
@@ -99,9 +103,7 @@ class AmpIcmp(Collection):
             return None
 
         baselabel = 'group_%s' % (groupid)
-        search = {'source':groupparams['source'], 
-                'destination':groupparams['destination'],
-                'packet_size':groupparams['packet_size']}
+        search = self._group_to_search(groupparams)
 
         if groupparams['aggregation'] in ['IPV4', 'FAMILY']:
             nextlab = self._generate_label(baselabel, search, "IPv4", lookup)
@@ -190,7 +192,7 @@ class AmpIcmp(Collection):
             keydict["address"] = parts.group("address")
 
         return keydict
-    
+   
     def update_matrix_groups(self, source, dest, groups, views, viewmanager):
         
         groupprops = {
