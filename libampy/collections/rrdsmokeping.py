@@ -9,6 +9,7 @@ class RRDSmokeping(Collection):
         self.streamproperties = ['source', 'host']
         self.groupproperties = ['source', 'host']
         self.collection_name = "rrd-smokeping"
+        self.viewstyle = self.collection_name
 
     def detail_columns(self, detail):
         if detail == "minimal":

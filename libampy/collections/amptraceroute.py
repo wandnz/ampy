@@ -14,6 +14,7 @@ class AmpTraceroute(AmpIcmp):
                 'aggregation', 'address']
         self.collection_name = "amp-traceroute"
         self.default_packet_size = "60"
+        self.viewstyle = "amp-traceroute"
 
     def detail_columns(self, detail):
         if detail == "matrix":

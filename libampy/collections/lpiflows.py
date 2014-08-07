@@ -12,6 +12,7 @@ class LPIFlows(Collection):
         self.diraggs = ["IN", "OUT", "BOTH"]
         self.supportedmetrics = ['new', 'peak']
         self.metric = "flows"
+        self.viewstyle = self.collection_name
 
     def detail_columns(self, detail):
         return ['flows'], ['avg']

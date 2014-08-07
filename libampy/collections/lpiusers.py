@@ -11,6 +11,7 @@ class LPIUsers(Collection):
         self.collection_name = "lpi-users"
         self.aggmetrics = ['OBSERVED', "ACTIVE", "BOTH"]
         self.metric = "users"
+        self.viewstyle = self.collection_name
 
     def detail_columns(self, detail):
         return ['users'], ['avg']

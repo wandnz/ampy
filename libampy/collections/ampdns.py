@@ -13,6 +13,8 @@ class AmpDns(Collection):
                 'query_type', 'query_class', 'udp_payload_size',
                 'flags', 'aggregation']
         self.collection_name = "amp-dns"
+        self.viewstyle = "amp-latency"
+        self.integerproperties = ['udp_payload_size']
 
     
     def detail_columns(self, detail):
@@ -271,8 +273,8 @@ class AmpDns(Collection):
             cellgroups.add(groupdesc)
 
         if len(cellgroups) != 0:
-            cellview = viewmanager.add_groups_to_view(self.collection_name,
-                    0, list(cellgroups))
+            cellview = viewmanager.add_groups_to_view(self.viewstyle, 
+                    self.collection_name, 0, list(cellgroups))
         else:
             cellview = -1
 
