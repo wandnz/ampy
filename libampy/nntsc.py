@@ -212,7 +212,8 @@ class NNTSCConnection(object):
         self._disconnect()
         return streams
         
-    def request_history(self, colid, labels, start, end, binsize, aggregators):
+    def request_history(self, colid, labels, start, end, binsize, aggregators,
+            groupcols):
         """ 
         Requests historical time series data from a NNTSC database.
 
@@ -238,6 +239,10 @@ class NNTSCConnection(object):
                            lists need to be the same length and the
                            corresponding aggregation function must have the
                            same list index as the column it applies to.
+            groupcols -- a list of columns to add to a "GROUP BY" clause
+                         in the database query, i.e. columns where only one
+                         result should be reported for each unique set of
+                         values for those columns.
 
         Returns None if the request fails, otherwise will return a 
         dictionary keyed by the label name. The dict values are also
@@ -258,7 +263,7 @@ class NNTSCConnection(object):
             return None
         
         result = self.client.request_aggregate(colid, labels, start, end, \
-                aggregators[0], binsize, ["stream_id"], aggregators[1])
+                aggregators[0], binsize, groupcols, aggregators[1])
         if result == -1:
             log("Failed to request aggregate data for collection %d" % (colid))
             self._disconnect()      

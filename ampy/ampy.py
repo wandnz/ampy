@@ -292,7 +292,7 @@ class Ampy(object):
         if viewgroups is None:
             log("Failed to fetch historic data")
             return None
-        
+    
         for colname, vgs in viewgroups.iteritems():
             col = self._getcol(colname)
             if col is None:
@@ -1180,7 +1180,7 @@ class Ampy(object):
         colid = self.savedcoldata[collection] 
         if collection == "amp-icmp":
             newcol = AmpIcmp(colid, self.viewmanager, self.nntscconfig)
-        if collection == "amp-traceroute":
+        if collection == "amp-traceroute" or collection == "amp-astraceroute":
             newcol = AmpTraceroute(colid, self.viewmanager, self.nntscconfig)
         if collection == "amp-dns":
             newcol = AmpDns(colid, self.viewmanager, self.nntscconfig)

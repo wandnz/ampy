@@ -283,6 +283,29 @@ class Collection(object):
 
         return None
 
+    def group_columns(self, detail):
+        """
+        Given a requested level of detail, returns the columns that should
+        be grouped during a database query.
+        
+        Only child collections that require grouping should implement this
+        function.
+
+        Common levels of detail are:
+          'full' -- used for drawing the main graphs
+          'matrix' -- used for getting aggregate numbers for the matrix cells
+          'basic' -- used for drawing matrix tooltip graphs
+
+        Parameters:
+          detail -- the level of detail required
+
+        Returns:
+          a list of columns to append to a GROUP BY clause when making the
+          database query.
+        """
+
+        return []
+
     def detail_columns(self, detail):
         """
         Given a requested level of detail, returns the columns that should
@@ -630,9 +653,15 @@ class Collection(object):
         if aggregators is None:
             log("Failed to get aggregation columns for collection %s" % (self.collection_name))
             return None
+
+        groupcols = self.group_columns(detail)
+        if groupcols is None:
+            log("Failed to get group columns for collection %s" % (self.collection_name))
+            return None
+
         nntsc = NNTSCConnection(self.nntscconf)
         history = nntsc.request_history(self.colid, labels, start, end, 
-                binsize, aggregators)
+                binsize, aggregators, groupcols)
         if history is None:
             log("Failed to fetch history for collection %s" % (self.collection_name))
             return None
