@@ -255,7 +255,8 @@ class Ampy(object):
                     continue
                 alllabels += grouplabels
 
-            rec, tim = self._fetch_recent(col, alllabels, duration, detail)
+            rec, tim = col.get_collection_recent(self.cache, alllabels, 
+                    duration, detail)
 
             recentdata.update(rec)
             timeouts += tim
@@ -299,8 +300,17 @@ class Ampy(object):
                 log("Failed to create collection module %s" % (colname))
                 return None
 
-            colhist = self._get_collection_history(col, vgs, start, end, 
-                    detail, binsize)
+            # Find all labels for this view and their corresponding streams
+            alllabels = []
+            for (gid, descr) in vgs:
+                grouplabels = col.group_to_labels(gid, descr, True)
+                if grouplabels is None:
+                    log("Unable to convert group %d into stream labels" % (gid))
+                    continue
+                alllabels += grouplabels 
+
+            colhist = col.get_collection_history(self.cache, alllabels, start, 
+                    end, detail, binsize)
 
             if colhist is None:
                 log("Error while fetching historical data for %s" % (colname))
@@ -738,7 +748,8 @@ class Ampy(object):
 
         groups, sources, destinations, views = matrixgroups
 
-        fetcheddata = self._fetch_recent(col, groups, duration, "matrix")
+        fetcheddata = col.get_collection_recent(self.cache, groups, duration, 
+                "matrix")
         if fetcheddata is None:
             return None
 
@@ -820,306 +831,6 @@ class Ampy(object):
         """
         return self.eventmanager.fetch_event_group_members(eventgroupid)
 
-
-    def _fetch_recent(self, col, alllabels, duration, detail):
-        """
-        Internal function for querying NNTSC for 'recent' data, i.e. summary
-        statistics for a recent time period leading up until the current time.
-
-        If there is recent data for a queried label in the cache, that will be
-        used. Otherwise, a query will be made to the NNTSC database.
-
-        Parameters:
-          col -- the module for the collection that the recent data belongs to.
-          alllabels -- a list of labels that require recent data.
-          duration -- the amount of recent data that should be queried for, in
-                      seconds.
-          detail --  the level of detail, e.g. 'full', 'matrix'. This will
-                     determine which data columns are queried and how they
-                     are aggregated.
-        
-        Returns:
-            a tuple containing two elements. The first is a dictionary
-            mapping label identifier strings to a list containing the
-            summary statistics for that label. The second is a list of
-            labels which failed to fetch recent data due to a database query
-            timeout.
-            Returns None if an error is encountered while fetching the data.
-        
-        A label in the alllabels dictionary must be a dictionary containing
-        at least two elements: 
-            labelstring -- an unique string identifying the label
-            streams -- a list of stream IDs that belong to the label.
-
-        """
-        recent = {}
-        timeouts = {}
-        uncached = {}
-        querylabels = {}
-        end = int(time.time())
-        start = end - duration
-        
-       
-        for lab in alllabels:
-            # Check if we have recent data cached for this label
-            # Attach the collection to the cache label to avoid matching
-            # cache keys for both latency and hop count matrix cells
-            cachelabel = lab['labelstring'] + "_" + col.collection_name
-            if len(cachelabel) > 128:
-                log("Warning: matrix cache label %s is too long for memcache" % (cachelabel))
-
-            cachehit = self.cache.search_recent(cachelabel, duration, detail)
-            # Got cached data, add it directly to our result
-            if cachehit is not None:
-                recent[lab['labelstring']] = cachehit
-                continue
-
-            # Not cached, need to fetch it
-   
-            # If no streams were active, don't query for them. Instead
-            # add an empty list to the result for this label.
-            if len(lab['streams']) == 0:
-                recent[lab['labelstring']] = []
-            else:
-                querylabels[lab['labelstring']] = lab['streams']
-
-        if len(querylabels) > 0:
-            # Fetch data for labels that weren't cached using one big
-            # query
-            result = col.fetch_history(querylabels, start, end, duration, 
-                    detail)
-
-            for label, queryresult in result.iteritems():
-                formatted = col.format_list_data(queryresult['data'], queryresult['freq']) 
-                # Cache the result
-                cachelabel = label + "_" + col.collection_name
-                if len(cachelabel) > 128:
-                    log("Warning: matrix cache label %s is too long for memcache" % (cachelabel))
-                self.cache.store_recent(cachelabel, duration, detail, formatted)
-
-                # Add the result to our return dictionary
-                recent[label] = formatted
-                
-                # Also update the timeouts dictionary
-                if len(queryresult['timedout']) != 0:
-                    timeouts.append(label)
-
-        return recent, timeouts
-
-    def _next_block(self, col, block, cached, queried, freq, binsize):
-        """
-        Internal function for populating a time series block with the correct
-        datapoints from a NNTSC query result for a particular label.
-
-        This function will also insert 'gaps' into the block if a measurement
-        is missing from the query result.
-
-        In theory this should be straightforward but gets very complicated
-        due to a couple of factors:
-         1. the measurement frequency may be larger than the requested binsize
-            (which we use for sizing our blocks), so no aggregation has
-            occured. 
-         2. measurements are not guaranteed to happen at exactly the timestamp
-            you expect; they may be delayed by several seconds, especially
-            some AMP tests.
-
-        These factors mean that in certain cases it can be very difficult
-        to tell whether a measurement is missing or whether it is just late.
-        As long as the database is aggregating data for us, this isn't a
-        problem -- everything gets aligned to the correct bin.
-
-        In short, don't touch this code unless you really know what you are
-        doing and are prepared to work through all the edge cases to make
-        sure you don't break anything.
-
-        Parameters:
-          col -- the module for the collection that the recent data belongs to.
-          block -- a dictionary describing the boundaries of the block that
-                   is to be populated.
-          cached -- a dictionary containing cached blocks for this label.
-          queried -- a list of data points for this label fetched from NNTSC.
-          freq -- the measurement frequency for this label as reported by 
-                  NNTSC.
-          binsize -- the requested aggregation frequency when querying NNTSC.
-
-        Returns:
-          a tuple with two elements. The first is a list of data points that
-          belong to the specified block, including empty datapoints for any
-          gaps in the measurement data. The second is an updated 'queried'
-          list where the data points that were assigned to the block have
-          been removed.
-
-        """
-
-        # If this block is cached, we can return the cached data right away
-        if block['start'] in cached:
-            return cached[block['start']], queried
-       
-        incrementby = binsize
-        usekey = 'binstart'
-
-        blockdata = []
-        ts = block['start']
-
-        while ts < block['end']:
-            # We are unlikely to be predicting the future
-            if ts > time.time():
-                break
-
-            if len(queried) == 0:
-                # No more queried data so we must be missing a measurement
-                if block['end'] - ts >= incrementby:
-                    datum = {"binstart":ts, "timestamp":ts}
-                ts += incrementby
-            else:
-                nextdata = int(queried[0][usekey])
-                maxts = ts + incrementby
-                if maxts > block['end']:
-                    maxts = block['end']
-
-                # We should only have one measurement per timestamp, but
-                # it is unfortunately possible for us to end up with more
-                # than one under very certain cases (usually freq > binsize
-                # and measurements getting severely delayed, e.g. 
-                # prophet->afrinic ipv6)
-                #
-                # Trying to aggregate the multiple measurements is difficult
-                # and not really something ampy should be doing so I'm
-                # just going to discard any additional measurements after
-                # the first one
-                if nextdata < ts:
-                    ts = nextdata + incrementby
-                    queried = queried[1:]
-                    continue
-                
-                if nextdata < maxts:
-                    # The next available queried data point fits in the 
-                    # bin we were expecting, so format it nicely and
-                    # add it to our block
-                    datum = col.format_single_data(queried[0], freq)
-                    queried = queried[1:]
-                    if freq > binsize:
-                        datum['binstart'] = ts
-                    ts += incrementby
-
-                elif ts + incrementby <= nextdata:
-                    # Next measurement doesn't appear to match our expected
-                    # bin, so insert a 'gap' and move on
-                    datum = {"binstart":ts, "timestamp":ts}
-                    ts += incrementby
-                else:
-                    ts += incrementby
-                    continue
-            
-            # Always add the first datum, even if it is a missing measurement.
-            # This ensures that our graphing code will force a gap between the
-            # previous block and this one if the first measurement is missing.
-            blockdata.append(datum)
-
-        return blockdata, queried
-
-
-    
-    def _find_cached_data(self, col, blocks, labels, binsize, detail):
-        """
-        Determines which data blocks for a set of labels are cached and 
-        which blocks need to be queried.
-
-        Parameters:
-          col -- the module for the collection that the labels belong to.
-          blocks -- a list of dictionaries describing the blocks for which
-                    data is required.
-          labels -- a list of labels that data is required for.
-          binsize -- the aggregation frequency required for the data.
-          detail -- the level of detail required for the data.
-
-        Returns:
-          a tuple containing two dictionaries. The first dictionary describes
-          the time periods where required data was not present in the cache 
-          and therefore must be queried. The second dictionary describes 
-          the blocks that were cached, including the cached data.
-
-        """
-        notcached = {}
-        cached = {}
-
-        if len(blocks) == 0:
-            return notcached, cached
-
-        start = blocks[0]['start']
-        end = blocks[-1]['end']
-
-        for label in labels:
-            # Check which blocks are cached and which are not
-            missing, found = self.cache.search_cached_blocks(blocks, 
-                    binsize, detail, label['labelstring'])
-            
-            cached[label['labelstring']] = found
-            
-            # This skips the active stream filtering if the entire label is
-            # already cached
-            if len(missing) == 0:
-                continue
-            
-            # Add missing blocks to the list of data to be fetched from NNTSC
-            for b in missing:        
-                if b not in notcached:
-                    notcached[b] = {label['labelstring']: label['streams']}
-                else:
-                    notcached[b][label['labelstring']] = label['streams']
-
-        return notcached, cached
-
-    def _fetch_uncached_data(self, col, notcached, binsize, detail):
-        """
-        Queries NNTSC for time series data that was not present in the cache.
-
-        Parameters:
-          col -- the module for the collection that the time series belongs 
-                 to.
-          notcached -- a dictionary describing time periods that need to
-                       be queried and the labels that need to be queried
-                       for those times.
-          binsize -- the aggregation frequency to use when querying.
-          detail -- a string that is used to determine which columns to
-                    query and how to aggregate them.
-
-        Returns:
-          a tuple containing three items.
-          The first item is a dictionary containing the time series data
-          received for each label queried. Each time series is stored in a
-          list.
-          The second item is a dictionary containing the estimated 
-          measurement frequency for each label queried.
-          The third item is a dictionary containing a list of tuples that
-          describe any time periods where the database query failed due
-          to a timeout.
-
-          Will return None if an error occurs while querying the database.
-        """
-
-        fetched = {}
-        frequencies = {}
-        timeouts = {}
-
-        # Query NNTSC for all of the missing blocks
-        for (bstart, bend), labels in notcached.iteritems():
-            hist = col.fetch_history(labels, bstart, bend-1, binsize, detail)
-            if hist is None:
-                log("Error fetching historical data from NNTSC")
-                return None
-            
-            for label, result in hist.iteritems():
-                if label not in fetched:
-                    fetched[label] = []
-                    timeouts[label] = []
-                fetched[label] += result['data']
-                frequencies[label] = result['freq']
-                timeouts[label] += result['timedout']
-        
-        return fetched, frequencies, timeouts
-
-    
     def _query_collections(self):
         """
         Fetches the set of available collections from NNTSC and updates
@@ -1325,101 +1036,6 @@ class Ampy(object):
                 col.update_matrix_groups(s, d, groups, views, self.viewmanager)
 
         return groups, sources, destinations, views
-
-    def _get_collection_history(self, col, groups, start, end, detail, binsize):
-        """
-        Fetches historical data for a set of groups belonging to a provided
-        collection.
-
-        Parameters:
-          col -- the collection module to process the groups with
-          groups -- the groups to fetch historical data for
-          start -- a timestamp describing the start of the historical period
-          end -- a timestamp describing the end of the historical period
-          detail --  the level of detail, e.g. 'full', 'matrix'. This will
-                     determine which data columns are queried and how they
-                     are aggregated.
-          binsize -- the desired aggregation frequency. If None, this will
-                     be automatically calculated based on the time period
-                     that you asked for.
-
-        Returns:
-          a dictionary keyed by label where each value is a list containing
-          the aggregated time series data for the specified time period. 
-          Returns None if an error occurs while fetching the data.
-        """
-
-        alllabels = []
-
-        if binsize is None:
-            binsize = col.calculate_binsize(start, end, detail)
-
-        # Break the time period down into blocks for caching purposes
-        extra = col.extra_blocks(detail)
-        blocks = self.cache.get_caching_blocks(start, end, binsize, extra)
-
-        # Find all labels for this view and their corresponding streams
-        for (gid, descr) in groups:
-            grouplabels = col.group_to_labels(gid, descr, True)
-            if grouplabels is None:
-                log("Unable to convert group %d into stream labels" % (gid))
-                continue
-            alllabels += grouplabels
-
-        # Figure out which blocks are cached and which need to be queried 
-        notcached, cached = self._find_cached_data(col, blocks, alllabels, 
-                binsize, detail)
-
-        # Fetch all uncached data
-        fetched = frequencies = timeouts = {}
-        if len(notcached) != 0:
-            fetch = self._fetch_uncached_data(col, notcached, binsize, detail)
-            if fetch is None:
-                return None
-
-            fetched, frequencies, timeouts = fetch
-
-        # Merge fetched data with cached data to produce complete series
-
-        data = {}
-        for label, dbdata in fetched.iteritems():
-            data[label] = []
-            failed = timeouts[label]
-
-            for b in blocks:
-                blockdata, dbdata = self._next_block(col, b, cached[label], 
-                    dbdata, frequencies[label], binsize)
-                
-                data[label] += blockdata
-
-                # Store this block in our cache for fast lookup next time
-                # If it already is there, we'll reset the cache timeout instead
-                failed = self.cache.store_block(b, blockdata, label, binsize, 
-                        detail, failed)
-
-        
-        # Any labels that were fully cached won't be touched by the previous
-        # bit of code so we need to check the cached dictionary for any
-        # labels that don't appear in the fetched data and process those too
-
-        for label, item in cached.iteritems():
-            
-            # If the label is present in our returned data, we've already
-            # processed it
-            if label in data:
-                continue
-            data[label] = []
-            
-            # Slightly repetitive code but seems silly to create a 10 parameter
-            # function to run these few lines of code
-            for b in blocks:
-                blockdata, ignored = self._next_block(col, b, cached[label], 
-                        [], 0, binsize)
-                data[label] += blockdata
-                ignored = self.cache.store_block(b, blockdata, label, binsize, detail, [])
-
-
-        return data
 
     def _add_legend_item(self, legend, col, gid, descr, nextlineid):
         """
