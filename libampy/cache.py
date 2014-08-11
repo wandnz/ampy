@@ -28,6 +28,10 @@ class AmpyCache(object):
       search_cached_blocks:
         Given a list of blocks for a time series, finds all blocks that
         are present in the cache.
+      search_ippaths:
+        Searches the cache for IP path data for a given label.
+      store_ippaths:
+        Caches the result of an IP path query for a particular label.
       search_recent:
         Searches the cache for recent data for a given label.
       store_recent:
