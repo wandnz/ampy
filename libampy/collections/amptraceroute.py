@@ -45,5 +45,55 @@ class AmpTraceroute(AmpIcmp):
             return 2
         return 0
 
+    def get_collection_history(self, cache, labels, start, end, detail,
+            binsize):
+
+        if detail != "ippaths":
+            return super(AmpTraceroute, self).get_collection_history(cache,
+                    labels, start, end, detail, binsize)
+
+        uncached = {}
+        paths = {}
+        timeouts = []
+
+        for lab in labels:
+            cachelabel = lab['labelstring'] + "_ippaths_" + self.collection_name
+            if len(cachelabel) > 128:
+                log("Warning: ippath cache label %s is too long" % (cachelabel))
+                
+            cachehit = cache.search_ippaths(cachelabel, start, end)
+            if cachehit is not None:
+                paths[lab['labelstring']] = cachehit
+                continue
+
+            if len(lab['streams']) == 0:
+                paths[lab['labelstring']] = []
+            else:
+                uncached[lab['labelstring']] = lab['streams']
+
+        if len(uncached) > 0:
+            result = self._fetch_history(uncached, start, end, end-start, 
+                    detail)
+
+            for label, queryresult in result.iteritems():
+                if len(queryresult['timedout']) != 0:
+                    timeouts.append(label)
+                    paths[label] = []
+                    continue 
+
+                formatted = self.format_list_data(queryresult['data'], 
+                        queryresult['freq'])
+
+                cachelabel = lab['labelstring'] + "_ippaths_" + \
+                        self.collection_name
+                if len(cachelabel) > 128:
+                    log("Warning: ippath cache label %s is too long" % \
+                            (cachelabel))
+                cache.store_ippaths(cachelabel, start, end, formatted)
+                paths[label] = formatted
+
+
+        return paths
+
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :

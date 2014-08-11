@@ -638,7 +638,7 @@ class Collection(object):
 
         """
         recent = {}
-        timeouts = {}
+        timeouts = []
         uncached = {}
         querylabels = {}
         end = int(time.time())
