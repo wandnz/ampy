@@ -28,8 +28,8 @@ class AmpIcmp(Collection):
             aggfuncs = ["avg", "sum", "sum"]
             aggcols = ["median", "loss", "results"]
         else:
-            aggfuncs = ["smokearray", "sum", "sum"]
-            aggcols = ["rtts", "loss", "results"] 
+            aggfuncs = ["avg", "smokearray", "sum", "sum"]
+            aggcols = ["median", "rtts", "loss", "results"] 
     
         return (aggcols, aggfuncs)
 
