@@ -921,8 +921,12 @@ class Collection(object):
         if block['start'] in cached:
             return cached[block['start']], queried
 
-        incrementby = binsize
-        usekey = 'binstart'
+        if freq > binsize:
+            incrementby = freq
+            usekey = 'timestamp'
+        else:
+            incrementby = binsize
+            usekey = 'binstart'
 
         blockdata = []
         ts = block['start']
