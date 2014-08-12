@@ -10,7 +10,7 @@ from libampy.eventmanager import EventManager
 from libnntscclient.logger import *
 
 from libampy.collections.ampicmp import AmpIcmp
-from libampy.collections.amptraceroute import AmpTraceroute
+from libampy.collections.amptraceroute import AmpTraceroute, AmpAsTraceroute
 from libampy.collections.ampdns import AmpDns
 from libampy.collections.amptcpping import AmpTcpping
 from libampy.collections.rrdsmokeping import RRDSmokeping
@@ -293,7 +293,7 @@ class Ampy(object):
         if viewgroups is None:
             log("Failed to fetch historic data")
             return None
-    
+
         for colname, vgs in viewgroups.iteritems():
             col = self._getcol(colname)
             if col is None:
@@ -891,7 +891,9 @@ class Ampy(object):
         colid = self.savedcoldata[collection] 
         if collection == "amp-icmp":
             newcol = AmpIcmp(colid, self.viewmanager, self.nntscconfig)
-        if collection == "amp-traceroute" or collection == "amp-astraceroute":
+        if collection == "amp-astraceroute":
+            newcol = AmpAsTraceroute(colid, self.viewmanager, self.nntscconfig)
+        if collection == "amp-traceroute":
             newcol = AmpTraceroute(colid, self.viewmanager, self.nntscconfig)
         if collection == "amp-dns":
             newcol = AmpDns(colid, self.viewmanager, self.nntscconfig)
@@ -954,7 +956,6 @@ class Ampy(object):
 
         # Otherwise, we'll have to query the views database
         viewgroups = self.viewmanager.get_view_groups(viewstyle, view_id)
-
         if viewgroups is None:
             log("Unable to find groups for view id %d(%s)" % \
                     (view_id, viewstyle))

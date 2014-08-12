@@ -25,12 +25,6 @@ class AmpTraceroute(AmpIcmp):
         if detail == "matrix":
             aggfuncs = ["avg"]
             aggcols = ["length"]
-        elif detail == "hops-full" or detail == "hops-summary":
-            aggfuncs = ["most_array"]
-
-            # TODO Replace with "aspath" when we start getting AS results
-            #aggcols = ["aspath"]
-            aggcols = ["path"]
         elif detail == "ippaths":
             aggfuncs = ["most", "most", "count"]
             aggcols = ["error_type", "error_code", "path"]
@@ -41,7 +35,7 @@ class AmpTraceroute(AmpIcmp):
         return aggcols, aggfuncs
     
     def extra_blocks(self, detail):
-        if detail == "hops-full" or detail == "full":
+        if detail == "full":
             return 2
         return 0
 
@@ -94,6 +88,31 @@ class AmpTraceroute(AmpIcmp):
 
 
         return paths
+
+
+class AmpAsTraceroute(AmpTraceroute):
+    def __init__(self, colid, viewmanager, nntscconf):
+        super(AmpAsTraceroute, self).__init__(colid, viewmanager, nntscconf)
+        self.collection_name = "amp-astraceroute"
+        self.viewstyle = "amp-astraceroute"
+
+    def group_columns(self, detail):
+        return []
+    
+    def detail_columns(self, detail):
+        if detail == "hops-full" or detail == "hops-summary":
+            aggfuncs = ["most_array"]
+            aggcols = ["aspath"]
+        else:
+            aggfuncs = ["smoke"]
+            aggcols = ["length"]
+        
+        return aggcols, aggfuncs
+    
+    def extra_blocks(self, detail):
+        if detail == "hops-full" or detail == "full":
+            return 2
+        return 0
 
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :
