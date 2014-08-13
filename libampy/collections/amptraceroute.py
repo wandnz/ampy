@@ -22,10 +22,7 @@ class AmpTraceroute(AmpIcmp):
         return []
 
     def detail_columns(self, detail):
-        if detail == "matrix":
-            aggfuncs = ["avg"]
-            aggcols = ["length"]
-        elif detail == "ippaths":
+        if detail == "ippaths":
             aggfuncs = ["most", "most", "count"]
             aggcols = ["error_type", "error_code", "path"]
         else:
@@ -100,12 +97,15 @@ class AmpAsTraceroute(AmpTraceroute):
         return []
     
     def detail_columns(self, detail):
-        if detail == "hops-full" or detail == "hops-summary":
+        if detail == "matrix":
+            aggfuncs = ["avg"]
+            aggcols = ["responses"]
+        elif detail == "hops-full" or detail == "hops-summary":
             aggfuncs = ["most_array"]
             aggcols = ["aspath"]
         else:
             aggfuncs = ["smoke"]
-            aggcols = ["length"]
+            aggcols = ["responses"]
         
         return aggcols, aggfuncs
     
