@@ -133,13 +133,15 @@ class Ampy(object):
         """
         return self.savedcoldata.keys()
 
-    def get_meshes(self, endpoint):
+    def get_meshes(self, endpoint, site=None):
         """
         Fetches all source or destination meshes.
 
         Parameters:
           endpoint -- either "source" or "destination", depending on 
                       which meshes are required.
+          site -- optional argument to filter only meshes that this
+                  site is a member of.
 
         Returns:
           a list of dictionaries that describe the available meshes or 
@@ -153,7 +155,7 @@ class Ampy(object):
             description -- a string describing the purpose of the mesh in
                            reasonable detail
         """
-        return self.ampmesh.get_meshes(endpoint)
+        return self.ampmesh.get_meshes(endpoint, site)
 
     def get_matrix_members(self, sourcemesh, destmesh):
         """
