@@ -3,7 +3,7 @@ from libnntscclient.logger import *
 from threading import Lock
 
 class AmpMesh(object):
-    """ 
+    """
     Class for interacting with the AMP meta-data database.
 
     API Functions
@@ -17,17 +17,17 @@ class AmpMesh(object):
     """
 
     def __init__(self, ampdbconfig):
-        """ 
+        """
         Init function for the AmpMesh class.
 
         Parameters:
-            
+
           ampdbconfig -- dictionary containing configuration parameters that
                 describe how to connect to the meta-data database. See
                 the AmpyDatabase class for details on the possible parameters.
         """
-           
-        # Default database name is 'amp2'                        
+
+        # Default database name is 'amp2'
         if 'name' not in ampdbconfig:
             ampdbconfig['name'] = 'amp2'
         self.dbconfig = ampdbconfig
@@ -36,7 +36,7 @@ class AmpMesh(object):
         self.dblock = Lock()
 
     def _meshquery(self, query, params):
-        """ 
+        """
         Performs a basic query for mesh members and returns a list of results.
 
         Parameters:
@@ -99,17 +99,17 @@ class AmpMesh(object):
         Fetches all source or destination meshes.
 
         Parameters:
-          endpoint -- either "source" or "destination", depending on 
+          endpoint -- either "source" or "destination", depending on
                       which meshes are required.
 
         Returns:
-          a list of dictionaries that describe the available meshes or 
+          a list of dictionaries that describe the available meshes or
           None if an error occurs while querying for the meshes.
 
         Mesh dictionary format:
           The returned dictionaries should contain three elements:
             name -- the internal unique identifier string for the mesh
-            longname -- a string containing a mesh name that is more 
+            longname -- a string containing a mesh name that is more
                         suited for public display
             description -- a string describing the purpose of the mesh in
                            reasonable detail
@@ -122,9 +122,9 @@ class AmpMesh(object):
             query += " AND mesh_is_src = true"
         elif endpoint == "destination":
             query += " AND mesh_is_dst = true"
-       
+
         query += " ORDER BY mesh_longname"
-        
+
         # If the endpoint is invalid, we'll currently return all meshes.
         # XXX Is this the correct behaviour?
         self.dblock.acquire()
@@ -148,7 +148,7 @@ class AmpMesh(object):
         Parameters:
           site -- the name of the mesh member to query for
 
-        Returns: 
+        Returns:
           a dictionary containing detailed information about the site.
 
         The resulting dictionary contains the following items:
@@ -176,7 +176,7 @@ class AmpMesh(object):
                     site_active as active FROM site WHERE site_ampname = %s
                 """
         params = (site,)
-        
+
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
             log("Error while querying for site %s" % (site))
@@ -194,6 +194,6 @@ class AmpMesh(object):
         self.db.closecursor()
         self.dblock.release()
         return retdict
-         
+
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :
