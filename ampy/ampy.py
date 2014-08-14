@@ -39,6 +39,10 @@ class Ampy(object):
         Fetches a list of supported collections from the NNTSC database.
     get_meshes:
         Fetches a list of available AMP meshes.
+    get_amp_sources:
+        Fetches a list of available AMP source sites.
+    get_amp_destinations:
+        Fetches a list of available AMP destination sites.
     get_matrix_members:
         Fetches all the sites that are needed to construct a matrix.
     get_amp_site_info:
@@ -170,15 +174,39 @@ class Ampy(object):
           the second is the list of targets.
           Returns None if the query fails.
         """
-        sources = self.ampmesh.get_sources(sourcemesh)
+        sources = self.ampmesh.get_mesh_sources(sourcemesh)
         if sources is None:
             return None
 
-        dests = self.ampmesh.get_destinations(destmesh)
+        dests = self.ampmesh.get_mesh_destinations(destmesh)
         if dests is None:
             return None
 
         return (sources, dests)
+
+    def get_amp_sources(self):
+        """
+        Fetches all known AMP sources.
+
+        Parameters:
+          None
+
+        Returns:
+          a list of all AMP sources
+        """
+        return self.ampmesh.get_sources()
+
+    def get_amp_destinations(self):
+        """
+        Fetches all known AMP destinations.
+
+        Parameters:
+          None
+
+        Returns:
+          a list of all AMP destinations
+        """
+        return self.ampmesh.get_destinations()
 
     def get_amp_site_info(self, sitename):
         """
@@ -1302,12 +1330,12 @@ class Ampy(object):
         sourcemesh = options[0]
         destmesh = options[1]
 
-        sources = self.ampmesh.get_sources(sourcemesh)
+        sources = self.ampmesh.get_mesh_sources(sourcemesh)
         if sources is None:
             log("Error while fetching matrix streams")
             return None
 
-        destinations = self.ampmesh.get_destinations(destmesh)
+        destinations = self.ampmesh.get_mesh_destinations(destmesh)
         if destinations is None:
             log("Error while fetching matrix streams")
             return None

@@ -8,12 +8,16 @@ class AmpMesh(object):
 
     API Functions
     -------------
-    get_sources:
+    get_mesh_sources:
         Returns a list of all sources belonging to a given mesh
-    get_destinations:
+    get_mesh_destinations:
         Returns a list of all destinations / targets belonging to a given mesh
     get_meshes:
         Returns a list of available source or destination meshes
+    get_sources:
+        Returns a list of all available source sites
+    get_destinations:
+        Returns a list of all available destination sites
     """
 
     def __init__(self, ampdbconfig):
@@ -62,7 +66,7 @@ class AmpMesh(object):
         return sites
 
 
-    def get_sources(self, mesh):
+    def get_mesh_sources(self, mesh):
         """
         Fetches all known sources that belong to the given mesh.
 
@@ -78,7 +82,7 @@ class AmpMesh(object):
         params = (mesh,)
         return self._meshquery(query, params)
 
-    def get_destinations(self, mesh):
+    def get_mesh_destinations(self, mesh):
         """
         Fetches all known targets that belong to the given mesh.
 
@@ -157,6 +161,70 @@ class AmpMesh(object):
         self.db.closecursor()
         self.dblock.release()
         return meshes
+
+    def _sitequery(self, query, params):
+        """
+        Performs a basic query for sites and returns a list of results.
+
+        Parameters:
+
+          query -- the query to perform, as a parameterised string
+          params -- a tuple containing parameters to substitute into the query
+
+        Returns:
+          a list of results returned by the query
+        """
+        sites = []
+
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+            log("Error while querying for sites")
+            self.dblock.release()
+            return None
+
+        for row in self.db.cursor.fetchall():
+            sites.append({'ampname':row[0], 'longname':row[1], \
+                    'location':row[2], 'description':row[3]})
+
+        self.db.closecursor()
+        self.dblock.release()
+        return sites
+
+    def get_sources(self):
+        """
+        Fetches all known sources.
+
+        Parameters:
+          None
+
+        Returns:
+          a list of all sources
+        """
+        query = """ SELECT site_ampname AS ampname, site_longname AS longname,
+                    site_location AS location, site_description AS description
+                    FROM site JOIN active_mesh_members ON
+                    site.site_ampname = active_mesh_members.ampname
+                    WHERE mesh_is_src = true """
+
+        return self._sitequery(query, None)
+
+    def get_destinations(self):
+        """
+        Fetches all known destinations.
+
+        Parameters:
+          None
+
+        Returns:
+          a list of all destinations
+        """
+        query = """ SELECT site_ampname AS ampname, site_longname AS longname,
+                    site_location AS location, site_description AS description
+                    FROM site JOIN active_mesh_members ON
+                    site.site_ampname = active_mesh_members.ampname
+                    WHERE mesh_is_dst = true """
+
+        return self._sitequery(query, None)
 
     def get_site_info(self, site):
         """
