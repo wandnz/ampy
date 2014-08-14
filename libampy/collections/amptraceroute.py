@@ -23,8 +23,8 @@ class AmpTraceroute(AmpIcmp):
 
     def detail_columns(self, detail):
         if detail == "ippaths":
-            aggfuncs = ["most", "most", "count"]
-            aggcols = ["error_type", "error_code", "path"]
+            aggfuncs = ["most", "most", "count", "most"]
+            aggcols = ["error_type", "error_code", "path", "path_id"]
         else:
             aggfuncs = ["smoke"]
             aggcols = ["length"]
