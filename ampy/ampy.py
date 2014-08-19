@@ -230,7 +230,24 @@ class Ampy(object):
                     active
         """
         return self.ampmesh.get_site_info(sitename)
-        
+
+    def get_amp_source_schedule(self, sitename):
+        """
+        Fetch all scheduled tests that originate at this site, or from meshes
+        that this site belongs to.
+
+        Parameters:
+          sitename -- the name of the source site to fetch the schedule for
+
+        Returns:
+          a list containing the scheduled tests from this site
+        """
+        return self.ampmesh.get_site_source_schedule(sitename)
+
+    def schedule_new_amp_test(self, src, dst, test, freq, start, end,
+            period, args):
+        return self.ampmesh.schedule_new_test(src, dst, test, freq, start, end,
+                period, args)
 
     def get_recent_data(self, viewstyle, view_id, duration, detail):
         """

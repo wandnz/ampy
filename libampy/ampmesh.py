@@ -282,5 +282,155 @@ class AmpMesh(object):
         self.dblock.release()
         return retdict
 
+    # TODO move schedule stuff into a specific schedule source file?
+    def schedule_new_test(self, src, dst, test, freq, start, end, period, args):
+        query = """ INSERT INTO schedule (schedule_test, schedule_frequency,
+                    schedule_start, schedule_end, schedule_period,
+                    schedule_args) VALUES (%s, %s, %s, %s, %s, %s)
+                    RETURNING schedule_id """
+        # TODO sanity check arguments? make sure test exists etc
+        params = (test, freq, start, end, period, args)
+
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+                log("Error while inserting new view")
+                self.dblock.release()
+                return None
+
+        schedule_id = self.db.cursor.fetchone()['schedule_id']
+        self.db.closecursor()
+        self.dblock.release()
+        print "added schedule with id", schedule_id
+
+        # add the initial set of endpoints for this test
+        self.add_endpoints_to_test(schedule_id, src, dst)
+
+        return schedule_id
+
+    def _is_mesh(self, name):
+        query = """ SELECT COUNT(*) FROM mesh WHERE mesh_name = %s """
+        params = (name,)
+        self.dblock.acquire()
+        print query
+        if self.db.executequery(query, params) == -1:
+                log("Error while querying is_mesh()")
+                self.dblock.release()
+                return None
+
+        count = self.db.cursor.fetchone()['count']
+        print "is_mesh:", name, count
+        self.db.closecursor()
+        self.dblock.release()
+        return count
+
+    def _is_site(self, name):
+        query = """ SELECT COUNT(*) FROM site WHERE site_ampname = %s """
+        params = (name,)
+        self.dblock.acquire()
+        print query
+        if self.db.executequery(query, params) == -1:
+                log("Error while querying is_site()")
+                self.dblock.release()
+                return None
+
+        count = self.db.cursor.fetchone()['count']
+        print "is_site:", name, count
+        self.db.closecursor()
+        self.dblock.release()
+        return count
+
+    def add_endpoints_to_test(self, schedule_id, src, dst):
+        query = """ INSERT INTO endpoint (endpoint_schedule_id,
+                    endpoint_source_mesh, endpoint_source_site,
+                    endpoint_destination_mesh, endpoint_destination_site)
+                    VALUES (%s, %s, %s, %s, %s) """
+
+        print "adding endpoints to test"
+        print src, dst, schedule_id
+
+        print "checking source"
+        if self._is_mesh(src):
+            src_mesh = src
+            src_site = None
+        elif self._is_site(src):
+            src_site = src
+            src_mesh = None
+        else:
+            print "source is neither mesh nor site"
+            return
+
+        print "checking dest"
+        if self._is_mesh(dst):
+            dst_mesh = dst
+            dst_site = None
+        elif self._is_site(dst):
+            dst_site = dst
+            dst_mesh = None
+        else:
+            print "destination is neither mesh nor site"
+            # TODO add it?
+            return
+
+        params = (schedule_id, src_mesh, src_site, dst_mesh, dst_site)
+        print params
+
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+                log("Error while inserting new view")
+                self.dblock.release()
+                return None
+
+        self.db.closecursor()
+        self.dblock.release()
+        return True # XXX
+
+
+    def get_site_source_schedule(self, site):
+        """
+        Fetch all scheduled tests that originate at this site, or from meshes
+        that this site belongs to.
+
+        Parameters:
+          site -- the name of the source site to fetch the schedule for
+
+        Returns:
+          a list containing the scheduled tests from this site
+        """
+        # get all meshes the site belongs to
+        # join together sites and meshes where they match site or its meshes
+        query = """ SELECT schedule_id, schedule_test, schedule_frequency,
+                    schedule_start, schedule_end, schedule_period,
+                    schedule_args,
+                    string_agg(endpoint_destination_mesh, ',') AS dest_mesh,
+                    string_agg(endpoint_destination_site, ',') AS dest_site
+                    FROM endpoint JOIN schedule
+                    ON schedule_id=endpoint_schedule_id
+                    WHERE endpoint_source_site=%s GROUP BY schedule_id """
+
+        schedule = []
+        params = (site,)
+
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+            log("Error while querying for schedule")
+            self.dblock.release()
+            return None
+
+        for row in self.db.cursor.fetchall():
+            #endpoints = []
+            # TODO need to know if source is single or part of a mesh test
+            # TODO add destinations into a list at the end
+            meshes = [] if row[7] is None else row[7].split(",")
+            sites = [] if row[8] is None else row[8].split(",")
+            schedule.append({'id':row[0], 'test':row[1], \
+                    'frequency':row[2], 'start':row[3], \
+                    'end':row[4], 'period':row[5], 'args':row[6],
+                    #'endpoints':endpoints})
+                    'dest_mesh':meshes, 'dest_site':sites})
+
+        self.db.closecursor()
+        self.dblock.release()
+        return schedule
+
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :
