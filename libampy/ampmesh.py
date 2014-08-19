@@ -35,7 +35,7 @@ class AmpMesh(object):
         if 'name' not in ampdbconfig:
             ampdbconfig['name'] = 'amp2'
         self.dbconfig = ampdbconfig
-        self.db = AmpyDatabase(ampdbconfig, False)
+        self.db = AmpyDatabase(ampdbconfig, True)
         self.db.connect(15)
         self.dblock = Lock()
 
