@@ -200,11 +200,12 @@ class AmpMesh(object):
         Returns:
           a list of all sources
         """
-        query = """ SELECT site_ampname AS ampname, site_longname AS longname,
+        query = """ SELECT DISTINCT site_ampname AS ampname,
+                    site_longname AS longname,
                     site_location AS location, site_description AS description
                     FROM site JOIN active_mesh_members ON
                     site.site_ampname = active_mesh_members.ampname
-                    WHERE mesh_is_src = true """
+                    WHERE mesh_is_src = true ORDER BY longname """
 
         return self._sitequery(query, None)
 
@@ -218,11 +219,12 @@ class AmpMesh(object):
         Returns:
           a list of all destinations
         """
-        query = """ SELECT site_ampname AS ampname, site_longname AS longname,
+        query = """ SELECT DISTINCT site_ampname AS ampname,
+                    site_longname AS longname,
                     site_location AS location, site_description AS description
                     FROM site JOIN active_mesh_members ON
                     site.site_ampname = active_mesh_members.ampname
-                    WHERE mesh_is_dst = true """
+                    WHERE mesh_is_dst = true ORDER BY longname """
 
         return self._sitequery(query, None)
 
