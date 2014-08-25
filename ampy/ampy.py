@@ -208,6 +208,19 @@ class Ampy(object):
         """
         return self.ampmesh.get_destinations()
 
+    def get_amp_mesh_destinations(self, mesh):
+        """
+        Fetches all AMP sites that belong to the given mesh and that are
+        valid test destinations.
+
+        Parameters:
+          mesh -- the mesh to which destinations should belong
+
+        Returns:
+          a list of all AMP destinations in the mesh
+        """
+        return self.ampmesh.get_mesh_destinations(mesh)
+
     def get_amp_site_info(self, sitename):
         """
         Fetches details about a particular AMP mesh member.
