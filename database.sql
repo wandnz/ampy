@@ -43,7 +43,8 @@ CREATE TABLE schedule (
     schedule_start INTEGER,
     schedule_end INTEGER,
     schedule_period INTEGER, /* or TEXT? */
-    schedule_args TEXT
+    schedule_args TEXT,
+    schedule_modified INTEGER NOT NULL
 );
 
 CREATE TABLE endpoint (

@@ -286,10 +286,11 @@ class AmpMesh(object):
     def schedule_new_test(self, src, dst, test, freq, start, end, period, args):
         query = """ INSERT INTO schedule (schedule_test, schedule_frequency,
                     schedule_start, schedule_end, schedule_period,
-                    schedule_args) VALUES (%s, %s, %s, %s, %s, %s)
+                    schedule_args, schedule_modified)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
                     RETURNING schedule_id """
         # TODO sanity check arguments? make sure test exists etc
-        params = (test, freq, start, end, period, args)
+        params = (test, freq, start, end, period, args, int(time.time()))
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
@@ -340,6 +341,7 @@ class AmpMesh(object):
         return count
 
     def add_endpoints_to_test(self, schedule_id, src, dst):
+        # TODO avoid duplicate rows - set unique constraint?
         query = """ INSERT INTO endpoint (endpoint_schedule_id,
                     endpoint_source_mesh, endpoint_source_site,
                     endpoint_destination_mesh, endpoint_destination_site)
@@ -376,9 +378,20 @@ class AmpMesh(object):
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
-                log("Error while inserting new view")
+                log("Error while inserting new test endpoints")
                 self.dblock.release()
                 return None
+        self.db.closecursor()
+
+        # update last modified time of schedule
+        query = "UPDATE schedule SET schedule_modified=%s WHERE schedule_id=%s"
+        params = (int(time.time()), schedule_id)
+
+        # XXX can we ROLLBACK if this failed? or does autocommit screw us?
+        if self.db.executequery(query, params) == -1:
+            log("Error updating schedule modification time")
+            self.dblock.release()
+            return None
 
         self.db.closecursor()
         self.dblock.release()
@@ -400,7 +413,7 @@ class AmpMesh(object):
         # join together sites and meshes where they match site or its meshes
         query = """ SELECT schedule_id, schedule_test, schedule_frequency,
                     schedule_start, schedule_end, schedule_period,
-                    schedule_args,
+                    schedule_args, max(schedule_modified) AS schedule_modified,
                     string_agg(endpoint_destination_mesh, ',') AS dest_mesh,
                     string_agg(endpoint_destination_site, ',') AS dest_site
                     FROM endpoint JOIN schedule
@@ -420,11 +433,12 @@ class AmpMesh(object):
             #endpoints = []
             # TODO need to know if source is single or part of a mesh test
             # TODO add destinations into a list at the end
-            meshes = [] if row[7] is None else row[7].split(",")
-            sites = [] if row[8] is None else row[8].split(",")
+            meshes = [] if row[8] is None else row[8].split(",")
+            sites = [] if row[9] is None else row[9].split(",")
             schedule.append({'id':row[0], 'test':row[1], \
                     'frequency':row[2], 'start':row[3], \
                     'end':row[4], 'period':row[5], 'args':row[6],
+                    'modified':row[7],
                     #'endpoints':endpoints})
                     'dest_mesh':meshes, 'dest_site':sites})
 
