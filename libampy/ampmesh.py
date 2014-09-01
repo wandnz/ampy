@@ -340,6 +340,21 @@ class AmpMesh(object):
         self.dblock.release()
         return count
 
+    def _add_basic_site(self, name):
+        query = """ INSERT INTO site (site_ampname, site_longname)
+                    VALUES (%s, %s) """
+        params = (name, name)
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+                log("Error while inserting new site")
+                self.dblock.release()
+                return None
+
+        self.db.closecursor()
+        self.dblock.release()
+        return True
+
+
     def add_endpoints_to_test(self, schedule_id, src, dst):
         # TODO avoid duplicate rows - set unique constraint?
         query = """ INSERT INTO endpoint (endpoint_schedule_id,
@@ -369,9 +384,12 @@ class AmpMesh(object):
             dst_site = dst
             dst_mesh = None
         else:
-            print "destination is neither mesh nor site"
-            # TODO add it?
-            return
+            # assume the destination is a site that was entered with the
+            # text input box, and create it if it doesn't exist
+            dst_site = dst
+            dst_mesh = None
+            if self._add_basic_site(dst) is None:
+                return
 
         params = (schedule_id, src_mesh, src_site, dst_mesh, dst_site)
         print params
