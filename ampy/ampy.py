@@ -262,6 +262,9 @@ class Ampy(object):
         return self.ampmesh.schedule_new_test(src, dst, test, freq, start, end,
                 period, args)
 
+    def delete_amp_test(self, schedule_id):
+        return self.ampmesh.delete_test(schedule_id)
+
     def get_recent_data(self, viewstyle, view_id, duration, detail):
         """
         Fetches summary statistics for each label within a view that

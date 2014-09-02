@@ -308,6 +308,19 @@ class AmpMesh(object):
 
         return schedule_id
 
+    def delete_test(self, schedule_id):
+        query = """ DELETE FROM schedule WHERE schedule_id=%s """
+        params = (schedule_id,)
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+                log("Error while deleting scheduled test")
+                self.dblock.release()
+                return None
+
+        self.db.closecursor()
+        self.dblock.release()
+        return True
+
     def _is_mesh(self, name):
         query = """ SELECT COUNT(*) FROM mesh WHERE mesh_name = %s """
         params = (name,)
