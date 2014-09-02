@@ -416,7 +416,7 @@ class AmpMesh(object):
         return True # XXX
 
 
-    def get_site_source_schedule(self, site):
+    def get_site_source_schedule(self, site, schedule_id=None):
         """
         Fetch all scheduled tests that originate at this site, or from meshes
         that this site belongs to.
@@ -429,6 +429,11 @@ class AmpMesh(object):
         """
         # get all meshes the site belongs to
         # join together sites and meshes where they match site or its meshes
+        where = "endpoint_source_site=%s"
+        params = (site,)
+        if schedule_id is not None:
+            where += " AND schedule_id=%s"
+            params = (site, schedule_id)
         query = """ SELECT schedule_id, schedule_test, schedule_frequency,
                     schedule_start, schedule_end, schedule_period,
                     schedule_args, max(schedule_modified) AS schedule_modified,
@@ -436,10 +441,9 @@ class AmpMesh(object):
                     string_agg(endpoint_destination_site, ',') AS dest_site
                     FROM endpoint JOIN schedule
                     ON schedule_id=endpoint_schedule_id
-                    WHERE endpoint_source_site=%s GROUP BY schedule_id """
+                    WHERE %s GROUP BY schedule_id """ % where
 
         schedule = []
-        params = (site,)
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
@@ -448,9 +452,7 @@ class AmpMesh(object):
             return None
 
         for row in self.db.cursor.fetchall():
-            #endpoints = []
             # TODO need to know if source is single or part of a mesh test
-            # TODO add destinations into a list at the end
             meshes = [] if row[8] is None else row[8].split(",")
             sites = [] if row[9] is None else row[9].split(",")
             schedule.append({'id':row[0], 'test':row[1], \
