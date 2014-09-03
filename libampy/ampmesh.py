@@ -308,6 +308,22 @@ class AmpMesh(object):
 
         return schedule_id
 
+    def update_test(self, schedule_id, test, freq, start, end, period, args):
+        query = """ UPDATE schedule SET schedule_test=%s,
+                    schedule_frequency=%s, schedule_start=%s,
+                    schedule_end=%s, schedule_period=%s, schedule_args=%s,
+                    schedule_modified=%s WHERE schedule_id=%s """
+        params = (test, freq, start, end, period, args, int(time.time()),
+                schedule_id)
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+                log("Error while updating test")
+                self.dblock.release()
+                return None
+        self.db.closecursor()
+        self.dblock.release()
+        return True
+
     def delete_test(self, schedule_id):
         query = """ DELETE FROM schedule WHERE schedule_id=%s """
         params = (schedule_id,)

@@ -262,6 +262,11 @@ class Ampy(object):
         return self.ampmesh.schedule_new_test(src, dst, test, freq, start, end,
                 period, args)
 
+    def update_amp_test(self, schedule_id, test, freq, start, end,
+            period, args):
+        return self.ampmesh.update_test(schedule_id, test, freq, start, end,
+                period, args)
+
     def delete_amp_test(self, schedule_id):
         return self.ampmesh.delete_test(schedule_id)
 
