@@ -294,7 +294,7 @@ class AmpMesh(object):
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
-                log("Error while inserting new view")
+                log("Error while scheduling new test")
                 self.dblock.release()
                 return None
 
@@ -429,7 +429,46 @@ class AmpMesh(object):
                 self.dblock.release()
                 return None
         self.db.closecursor()
+        self._update_last_modified_schedule(schedule_id)
+        self.dblock.release()
+        return True # XXX
 
+    def delete_endpoints(self, schedule_id, src, dst):
+        query = """ DELETE FROM endpoint WHERE endpoint_schedule_id=%s """
+
+        if self._is_mesh(src):
+            query += " AND endpoint_source_mesh=%s"
+        elif self._is_site(src):
+            query += " AND endpoint_source_site=%s"
+        else:
+            print "source is neither mesh nor site"
+            return
+
+        if self._is_mesh(dst):
+            query += " AND endpoint_destination_mesh=%s"
+        elif self._is_site(dst):
+            query += " AND endpoint_destination_site=%s"
+        else:
+            print "source is neither mesh nor site"
+            return
+
+        params = (schedule_id, src, dst)
+        print query % params
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+                log("Error while deleting endpoints")
+                self.dblock.release()
+                return None
+
+        self.db.closecursor()
+        self._update_last_modified_schedule(schedule_id)
+        self.dblock.release()
+
+        return True
+
+    # XXX expects the db lock to be held by caller, so we can update
+    # this at the same time as the modifications get made
+    def _update_last_modified_schedule(self, schedule_id):
         # update last modified time of schedule
         query = "UPDATE schedule SET schedule_modified=%s WHERE schedule_id=%s"
         params = (int(time.time()), schedule_id)
@@ -441,9 +480,7 @@ class AmpMesh(object):
             return None
 
         self.db.closecursor()
-        self.dblock.release()
-        return True # XXX
-
+        return True
 
     def get_site_source_schedule(self, site, schedule_id=None):
         """
