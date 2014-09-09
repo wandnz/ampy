@@ -301,7 +301,6 @@ class AmpMesh(object):
         schedule_id = self.db.cursor.fetchone()['schedule_id']
         self.db.closecursor()
         self.dblock.release()
-        print "added schedule with id", schedule_id
 
         # add the initial set of endpoints for this test
         self.add_endpoints_to_test(schedule_id, src, dst)
@@ -341,14 +340,12 @@ class AmpMesh(object):
         query = """ SELECT COUNT(*) FROM mesh WHERE mesh_name = %s """
         params = (name,)
         self.dblock.acquire()
-        print query
         if self.db.executequery(query, params) == -1:
                 log("Error while querying is_mesh()")
                 self.dblock.release()
                 return None
 
         count = self.db.cursor.fetchone()['count']
-        print "is_mesh:", name, count
         self.db.closecursor()
         self.dblock.release()
         return count
@@ -357,14 +354,12 @@ class AmpMesh(object):
         query = """ SELECT COUNT(*) FROM site WHERE site_ampname = %s """
         params = (name,)
         self.dblock.acquire()
-        print query
         if self.db.executequery(query, params) == -1:
                 log("Error while querying is_site()")
                 self.dblock.release()
                 return None
 
         count = self.db.cursor.fetchone()['count']
-        print "is_site:", name, count
         self.db.closecursor()
         self.dblock.release()
         return count
@@ -390,11 +385,6 @@ class AmpMesh(object):
                     endpoint_source_mesh, endpoint_source_site,
                     endpoint_destination_mesh, endpoint_destination_site)
                     VALUES (%s, %s, %s, %s, %s) """
-
-        print "adding endpoints to test"
-        print src, dst, schedule_id
-
-        print "checking source"
         if self._is_mesh(src):
             src_mesh = src
             src_site = None
@@ -405,7 +395,6 @@ class AmpMesh(object):
             print "source is neither mesh nor site"
             return
 
-        print "checking dest"
         if self._is_mesh(dst):
             dst_mesh = dst
             dst_site = None
@@ -421,7 +410,6 @@ class AmpMesh(object):
                 return
 
         params = (schedule_id, src_mesh, src_site, dst_mesh, dst_site)
-        print params
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
@@ -453,7 +441,6 @@ class AmpMesh(object):
             return
 
         params = (schedule_id, src, dst)
-        print query % params
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
                 log("Error while deleting endpoints")
