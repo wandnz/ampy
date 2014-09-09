@@ -482,24 +482,27 @@ class AmpMesh(object):
         self.db.closecursor()
         return True
 
-    def get_site_source_schedule(self, site, schedule_id=None):
+    def get_source_schedule(self, source, schedule_id=None):
         """
-        Fetch all scheduled tests that originate at this site, or from meshes
-        that this site belongs to.
+        Fetch all scheduled tests that originate at this source
 
         Parameters:
-          site -- the name of the source site to fetch the schedule for
+          source -- the name of the source site/mesh to fetch the schedule for
 
         Returns:
-          a list containing the scheduled tests from this site
+          a list containing the scheduled tests from this source
         """
-        # get all meshes the site belongs to
-        # join together sites and meshes where they match site or its meshes
-        where = "endpoint_source_site=%s"
-        params = (site,)
+        if self._is_mesh(source):
+            where = "endpoint_source_mesh=%s"
+        elif self._is_site(source):
+            where = "endpoint_source_site=%s"
+        else:
+            return None
+
+        params = (source,)
         if schedule_id is not None:
             where += " AND schedule_id=%s"
-            params = (site, schedule_id)
+            params = (source, schedule_id)
         query = """ SELECT schedule_id, schedule_test, schedule_frequency,
                     schedule_start, schedule_end, schedule_period,
                     schedule_args, max(schedule_modified) AS schedule_modified,

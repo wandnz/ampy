@@ -244,18 +244,17 @@ class Ampy(object):
         """
         return self.ampmesh.get_site_info(sitename)
 
-    def get_amp_source_schedule(self, sitename, schedule_id=None):
+    def get_amp_source_schedule(self, source, schedule_id=None):
         """
-        Fetch all scheduled tests that originate at this site, or from meshes
-        that this site belongs to.
+        Fetch all scheduled tests that originate at this source.
 
         Parameters:
-          sitename -- the name of the source site to fetch the schedule for
+          source -- the name of the source site/mesh to fetch the schedule for
 
         Returns:
-          a list containing the scheduled tests from this site
+          a list containing the scheduled tests from this source
         """
-        return self.ampmesh.get_site_source_schedule(sitename, schedule_id)
+        return self.ampmesh.get_source_schedule(source, schedule_id)
 
     def schedule_new_amp_test(self, src, dst, test, freq, start, end,
             period, args):
