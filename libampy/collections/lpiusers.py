@@ -14,7 +14,7 @@ class LPIUsers(Collection):
         self.viewstyle = self.collection_name
 
     def detail_columns(self, detail):
-        return ['users'], ['avg']
+        return ['users'], ['max']
 
     def create_group_description(self, properties):
         for p in self.groupproperties:

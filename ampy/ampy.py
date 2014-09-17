@@ -13,6 +13,7 @@ from libampy.collections.ampicmp import AmpIcmp
 from libampy.collections.amptraceroute import AmpTraceroute, AmpAsTraceroute
 from libampy.collections.ampdns import AmpDns
 from libampy.collections.amptcpping import AmpTcpping
+from libampy.collections.ampthroughput import AmpThroughput
 from libampy.collections.rrdsmokeping import RRDSmokeping
 from libampy.collections.rrdmuninbytes import RRDMuninbytes
 from libampy.collections.lpipackets import LPIPackets
@@ -899,6 +900,8 @@ class Ampy(object):
             newcol = AmpDns(colid, self.viewmanager, self.nntscconfig)
         if collection == "amp-tcpping":
             newcol = AmpTcpping(colid, self.viewmanager, self.nntscconfig)
+        if collection == "amp-throughput":
+            newcol = AmpThroughput(colid, self.viewmanager, self.nntscconfig)
         if collection == "rrd-smokeping":
             newcol = RRDSmokeping(colid, self.viewmanager, self.nntscconfig)
         if collection == "rrd-muninbytes":

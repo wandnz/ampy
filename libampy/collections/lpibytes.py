@@ -10,7 +10,7 @@ class LPIBytes(LPIPackets):
         self.viewstyle = self.collection_name
 
     def detail_columns(self, detail):
-        return ['bytes'], ['avg']
+        return ['bytes'], ['sum']
 
     def format_single_data(self, data, freq):
         if 'bytes' not in data:
