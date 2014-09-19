@@ -14,7 +14,7 @@ class LPIPackets(Collection):
         self.viewstyle = self.collection_name
 
     def detail_columns(self, detail):
-        return ['packets'], ['avg']
+        return ['packets'], ['sum']
 
     def create_group_description(self, properties):
         for p in self.groupproperties:

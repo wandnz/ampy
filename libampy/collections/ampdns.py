@@ -12,6 +12,7 @@ class AmpDns(Collection):
         self.groupproperties = ['source', 'destination', 'query', 
                 'query_type', 'query_class', 'udp_payload_size',
                 'flags', 'aggregation']
+        self.integerproperties = ['udp_payload_size']
         self.collection_name = "amp-dns"
         self.viewstyle = "amp-latency"
         self.integerproperties = ['udp_payload_size']
