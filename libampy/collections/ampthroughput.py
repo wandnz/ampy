@@ -20,6 +20,23 @@ class AmpThroughput(Collection):
 
         return aggcols, aggfuncs
 
+    def calculate_binsize(self, start, end, detail):
+        # Hard to pre-determine a suitable binsize for throughput tests
+        # as the measurement frequency is likely to change from test to test.
+        # Problem is, if we choose a bad binsize we can easily end up in a
+        # situation where we think there's a gap in the data when there 
+        # really isn't
+        if (end - start) / 3600 < 200:
+            return 3600
+
+        if (end - start) / (3600 * 4) < 200:
+            return (3600 * 4)
+
+        if (end - start) / (3600 * 12) < 200:
+            return (3600 * 12)
+
+        return (3600 * 24)
+
     def prepare_stream_for_storage(self, stream):
         if 'remoteaddress' not in stream:
             return stream, {}
