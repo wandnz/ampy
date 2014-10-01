@@ -957,6 +957,7 @@ class Ampy(object):
             self.cache.store_view_groups(view_id, cachedgroups)
             return cachedgroups
 
+
         # Otherwise, we'll have to query the views database
         viewgroups = self.viewmanager.get_view_groups(viewstyle, view_id)
         if viewgroups is None:
@@ -964,9 +965,12 @@ class Ampy(object):
                     (view_id, viewstyle))
             return None
       
+
         # Put these groups in the cache
-        self.cache.store_view_groups(view_id, viewgroups)
+        if len(viewgroups) > 0:
+            self.cache.store_view_groups(view_id, viewgroups)
         
+
         return viewgroups
 
     def _get_matrix_groups(self, col, options):

@@ -648,7 +648,7 @@ class Collection(object):
             # Check if we have recent data cached for this label
             # Attach the collection to the cache label to avoid matching
             # cache keys for both latency and hop count matrix cells
-            cachelabel = lab['labelstring'] + "_" + self.collection_name
+            cachelabel = "mtx_" + lab['labelstring'] + "_" + self.collection_name
             if len(cachelabel) > 128:
                 log("Warning: matrix cache label %s is too long for memcache" % (cachelabel))
 
