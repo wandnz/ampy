@@ -14,6 +14,9 @@ mesh | google | Google | Google Services | f | t
 mesh | nzamp | New Zealand Amplets | Deployed Amplets | f | t
  
 site | prophet | Prophet | Hamilton | Prophet Test Amplet | amptest
+site | wheezy-amplet.cms.wand.net.nz | Wheezy Test Amplet (UoW) | Hamilton | | amptest
+site | wheezy-amplet.sdn.wand.net.nz | Wheezy Test Amplet (SDN) | Hamilton | | amptest
+site | shane-amplet | Shane's Test Amplet (SDN) | Hamilton | | amptest
 site | centos.vagrant.quarterpounder | Centos Test Amplet | Hamilton | | amptest
 site | waikato-dell.amp.wand.net.nz | Waikato Development Amplet | Hamilton | | amptest
 
@@ -46,7 +49,7 @@ site | www.fx.net.nz | FX Networks  | | FX Networks | nzisp
 site | www.vocus.co.nz | Vocus NZ  | | Vocus NZ | nzisp
 site | www.lightwire.co.nz | Lightwire  | | Lightwire | nzisp
 site | www.vodafone.co.nz | Vodafone NZ  | | Vodafone NZ | nzisp
-site | www.telecom.co.nz | Telecom NZ  | | Telecom NZ | nzisp
+site | www.spark.co.nz | Spark NZ  | | Spark NZ | nzisp
 site | www.2talk.co.nz | 2talk  | | 2talk | nzisp
 site | www.chorus.co.nz | Chorus  | | Chorus | nzisp
 site | www.enable.net.nz | Enable  | | Enable | nzisp
@@ -64,6 +67,7 @@ site | www.quickflix.co.nz | QuickFlix | | QuickFlix | nzweb
 site | www.tv3.co.nz | TV3 | | TV3 | nzweb
 site | www.tvnz.co.nz | TVNZ | | TVNZ | nzweb
 site | www.xero.com | Xero | | Xero | nzweb
+site | www.xero.co.nz | Xero | | Xero | nzweb
 site | www.wand.net.nz | WAND | | WAND | nzweb
 
 site | afrinic.net | AFRINIC | | AFRINIC | rir
@@ -115,6 +119,9 @@ site | www.apple.com | Apple | | | intweb
 site | www.wikipedia.org | Wikipedia | | | intweb
 site | www.youtube.com | YouTube | | | intweb | google
 site | www.amazon.com | Amazon | | | intweb 
+site | www.microsoft.com | Microsoft | | | intweb 
+site | www.espncricinfo.com | ESPNCricinfo | | | intweb 
+site | www.bbc.co.uk | BBC UK | | | intweb 
 
 site | imap.gmail.com | Gmail | | | google
 
