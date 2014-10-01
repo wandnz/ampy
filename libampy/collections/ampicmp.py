@@ -17,6 +17,7 @@ class AmpIcmp(Collection):
                 "IPV4":"IPv4",
                 "IPV6":"IPv6"}
         self.default_packet_size = "84"
+        self.default_aggregation = "FAMILY"
         self.viewstyle = "amp-latency"
        
     def detail_columns(self, detail):
@@ -167,7 +168,7 @@ class AmpIcmp(Collection):
             return
 
         cellgroup = self.create_group_from_list([source, dest, 
-                self.default_packet_size, 'FAMILY'])
+                self.default_packet_size, self.default_aggregation])
         if cellgroup is None:
             log("Failed to create group for %s matrix cell" % \
                     (self.collection_name))

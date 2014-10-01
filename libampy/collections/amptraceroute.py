@@ -14,6 +14,7 @@ class AmpTraceroute(AmpIcmp):
                 'aggregation']
         self.collection_name = "amp-traceroute"
         self.default_packet_size = "60"
+        self.default_aggregation = "FAMILY"
         self.viewstyle = "amp-traceroute"
 
     def group_columns(self, detail):
@@ -92,6 +93,7 @@ class AmpAsTraceroute(AmpTraceroute):
         super(AmpAsTraceroute, self).__init__(colid, viewmanager, nntscconf)
         self.collection_name = "amp-astraceroute"
         self.viewstyle = "amp-astraceroute"
+        self.default_aggregation = "IPV4"
 
     def group_columns(self, detail):
         return []
