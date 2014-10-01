@@ -424,7 +424,7 @@ class Ampy(object):
             return None
 
         # The collection module does most of the work here
-        options = col.get_selections(seldict)
+        options = col.get_selections(seldict, False)
         return options       
 
     
