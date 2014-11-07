@@ -14,7 +14,9 @@ mesh | google | Google | Google Services | f | t
 mesh | nzamp | New Zealand Amplets | Deployed Amplets | f | t
  
 site | prophet | Prophet | Hamilton | Prophet Test Amplet | amptest
-site | wheezy-amplet.cms.wand.net.nz | Wheezy Test Amplet (UoW) | Hamilton | | amptest
+site | centos-amplet.cms.waikato.ac.nz | Centos Test Amplet (UoW) | Hamilton | | amptest
+site | centos-amplet.sdn.wand.net.nz | Centos Test Amplet (SDN) | Hamilton | | amptest
+site | wheezy-amplet.cms.waikato.ac.nz | Wheezy Test Amplet (UoW) | Hamilton | | amptest
 site | wheezy-amplet.sdn.wand.net.nz | Wheezy Test Amplet (SDN) | Hamilton | | amptest
 site | shane-amplet | Shane's Test Amplet (SDN) | Hamilton | | amptest
 site | centos.vagrant.quarterpounder | Centos Test Amplet | Hamilton | | amptest
