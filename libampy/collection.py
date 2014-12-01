@@ -210,7 +210,7 @@ class Collection(object):
             return None
 
         if len(options) > len(proplist):
-            log("Cannot convert list of properties -- too many properties")
+            log("Cannot convert list of properties for %s -- too many properties" % (self.collection_name))
             return None
 
         props = {}
