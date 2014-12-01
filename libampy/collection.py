@@ -672,6 +672,9 @@ class Collection(object):
             # query
             result = self._fetch_history(querylabels, start, end, duration,
                     detail)
+            if result is None:
+                log("Error fetching history for matrix")
+                return None
 
             for label, queryresult in result.iteritems():
                 formatted = self.format_list_data(queryresult['data'], queryresult['freq'])
