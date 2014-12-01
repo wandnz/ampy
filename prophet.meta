@@ -14,8 +14,13 @@ mesh | google | Google | Google Services | f | t
 mesh | nzamp | New Zealand Amplets | Deployed Amplets | f | t
  
 site | prophet | Prophet | Hamilton | Prophet Test Amplet | amptest
-site | centos.vagrant.quarterpounder | Centos Test Amplet | Hamilton | | amptest
-site | waikato-dell.amp.wand.net.nz | Waikato Development Amplet | Hamilton | | amptest
+site | centos-amplet.cms.waikato.ac.nz | Centos Test Amplet (UoW) | Hamilton | | amptest
+site | centos-amplet.sdn.wand.net.nz | Centos Test Amplet (SDN) | Hamilton | | amptest
+site | lenny-amplet.cms.waikato.ac.nz | Lenny Test Amplet (UoW) | Hamilton | | amptest
+site | lenny-amplet.sdn.wand.net.nz | Lenny Test Amplet (SDN) | Hamilton | | amptest
+site | wheezy-amplet.cms.waikato.ac.nz | Wheezy Test Amplet (UoW) | Hamilton | | amptest
+site | wheezy-amplet.sdn.wand.net.nz | Wheezy Test Amplet (SDN) | Hamilton | | amptest
+site | shane-amplet | Shane's Test Amplet (SDN) | Hamilton | | amptest
 
 site | ps01-akl.reannz.co.nz | Auckland REANNZ perfSONAR node | Auckland | | reannz-ps | amptest
 site | ps02-wlg.reannz.co.nz | Wellington REANNZ perfSONAR node | Wellington | | reannz-ps | amptest
@@ -41,17 +46,17 @@ site | ns4.trademe.co.nz | Trademe Name Server 4 | | | trademedns | alldns
 site | www.callplus.co.nz | CallPlus  | | CallPlus | nzisp
 site | www.orcon.net.nz | Orcon  | | Orcon | nzisp
 site | www.snap.net.nz | Snap  | | Snap | nzisp
-site | www.reannz.net.nz | REANNZ  | | REANNZ | nzisp
+site | www.reannz.co.nz | REANNZ  | | REANNZ | nzisp
 site | www.fx.net.nz | FX Networks  | | FX Networks | nzisp
 site | www.vocus.co.nz | Vocus NZ  | | Vocus NZ | nzisp
 site | www.lightwire.co.nz | Lightwire  | | Lightwire | nzisp
 site | www.vodafone.co.nz | Vodafone NZ  | | Vodafone NZ | nzisp
-site | www.telecom.co.nz | Telecom NZ  | | Telecom NZ | nzisp
-site | www.2talk.co.nz | 2talk  | | 2talk | nzisp
+site | www.spark.co.nz | Spark NZ  | | Spark NZ | nzisp
+site | 2talk.co.nz | 2talk  | | 2talk | nzisp
 site | www.chorus.co.nz | Chorus  | | Chorus | nzisp
 site | www.enable.net.nz | Enable  | | Enable | nzisp
 site | www.ultrafastfibre.co.nz | UFF  | | Ultrafast Fibre | nzisp
-site | www.northpower.co.nz | Northpower  | | Northpower | nzisp
+site | www.northpowerfibre.co.nz | Northpower  | | Northpower | nzisp
 site | www.voyager.co.nz | Voyager  | | Voyager | nzisp
 site | www.iconz.net.nz | ICONZ-Webvisions  | | ICONZ-Webvisions | nzisp
 
@@ -64,6 +69,7 @@ site | www.quickflix.co.nz | QuickFlix | | QuickFlix | nzweb
 site | www.tv3.co.nz | TV3 | | TV3 | nzweb
 site | www.tvnz.co.nz | TVNZ | | TVNZ | nzweb
 site | www.xero.com | Xero | | Xero | nzweb
+site | www.xero.co.nz | Xero | | Xero | nzweb
 site | www.wand.net.nz | WAND | | WAND | nzweb
 
 site | afrinic.net | AFRINIC | | AFRINIC | rir
@@ -115,6 +121,9 @@ site | www.apple.com | Apple | | | intweb
 site | www.wikipedia.org | Wikipedia | | | intweb
 site | www.youtube.com | YouTube | | | intweb | google
 site | www.amazon.com | Amazon | | | intweb 
+site | www.microsoft.com | Microsoft | | | intweb 
+site | www.espncricinfo.com | ESPNCricinfo | | | intweb 
+site | www.bbc.co.uk | BBC UK | | | intweb 
 
 site | imap.gmail.com | Gmail | | | google
 

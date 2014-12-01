@@ -12,25 +12,25 @@ class AmpIcmp(Collection):
                 'aggregation']
         self.collection_name = "amp-icmp"
         self.splits = {
-                "NONE":"by address", 
                 "FAMILY":"IPv4/IPv6", 
-                "ADDRESS":"to",
+                "FULL":"All Addresses",
                 "IPV4":"IPv4",
                 "IPV6":"IPv6"}
         self.default_packet_size = "84"
+        self.default_aggregation = "FAMILY"
         self.viewstyle = "amp-latency"
        
     def detail_columns(self, detail):
         # the matrix view expects both the mean and stddev for the latency
         if detail == "matrix":
-            aggfuncs = ["avg", "stddev", "count", "avg", "count"]
-            aggcols = ["rtt", "rtt", "rtt", "loss", "loss"]
+            aggfuncs = ["avg", "stddev", "count", "sum", "sum"]
+            aggcols = ["median", "median", "median", "loss", "results"]
         elif detail == "basic":
-            aggfuncs = ["avg", "avg"]
-            aggcols = ["rtt", "loss"]
+            aggfuncs = ["avg", "sum", "sum"]
+            aggcols = ["median", "loss", "results"]
         else:
-            aggfuncs = ["smoke", "avg"]
-            aggcols = ["rtt", "loss"] 
+            aggfuncs = ["avg", "smokearray", "sum", "sum"]
+            aggcols = ["median", "rtts", "loss", "results"] 
     
         return (aggcols, aggfuncs)
 
@@ -40,17 +40,6 @@ class AmpIcmp(Collection):
 
         return super(AmpIcmp, self).calculate_binsize(start, end, detail)
         
-    def prepare_stream_for_storage(self, stream):
-        # Need to add a 'family' property so that we can group streams easily
-        if 'address' not in stream:
-            return stream, {} 
-
-        stream['family'] = self._address_to_family(stream['address'])
-        # We need the address for NONE aggregation, so we need to store that
-        # along with the stream id
-
-        return stream, {'address':stream['address']}
-    
     def get_legend_label(self, description):
         groupparams = self.parse_group_description(description)
         if groupparams is None:
@@ -61,8 +50,6 @@ class AmpIcmp(Collection):
                 groupparams['destination'], 
                 self.splits[groupparams['aggregation']])
 
-        if 'address' in groupparams:
-            label += " %s" % (groupparams['address'])
         return label        
 
     def _generate_label(self, baselabel, search, family, lookup):
@@ -81,9 +68,6 @@ class AmpIcmp(Collection):
                         (key, self.collection_name))
                 return None
 
-            # Just return the list of stream ids, as the addresses don't
-            # matter for the aggregation methods that will call this function
-            streams = [item[0] for item in streams]
         else:
             streams = []
 
@@ -123,24 +107,6 @@ class AmpIcmp(Collection):
                 return None
             labels.append(nextlab)
 
-        if groupparams['aggregation'] == "NONE":
-            # Unfortunately, we have to do a lookup regardless here to 
-            # determine suitable short labels for each line
-            streams = self.streammanager.find_streams(search)
-            if streams is None:
-                log("Failed to find streams for %s, %s" % \
-                        (baselabel, self.collection_name))
-                return None
-
-            for sid, store in streams:
-                if 'address' not in store:
-                    log("Error: no address stored with stream id %s" % (sid))
-                    return None
-                address = store['address']
-                nextlab = {'labelstring':baselabel + "_" + address,
-                        'streams':[sid], 'shortlabel':address}
-                labels.append(nextlab)
-
         return sorted(labels, key=itemgetter('shortlabel'))
 
     def create_group_description(self, properties):
@@ -150,9 +116,6 @@ class AmpIcmp(Collection):
         # aggregation method.
         if 'family' in properties:
             properties['aggregation'] = properties['family'].upper()
-
-        if 'address' not in properties:
-            properties['address'] = ''
 
         for p in self.groupproperties:
             if p not in properties:
@@ -168,7 +131,7 @@ class AmpIcmp(Collection):
         regex =  "FROM (?P<source>[.a-zA-Z0-9-]+) "
         regex += "TO (?P<destination>[.a-zA-Z0-9-]+) "
         regex += "OPTION (?P<option>[a-zA-Z0-9]+) "
-        regex += "(?P<split>[A-Z0-9]+)[ ]*(?P<address>[0-9.:a-zA-Z]*)"
+        regex += "(?P<split>[A-Z0-9]+)"
 
         parts = self._apply_group_regex(regex, description)
 
@@ -188,9 +151,6 @@ class AmpIcmp(Collection):
             "aggregation": parts.group("split")
         }
 
-        if parts.group("address") is not None:
-            keydict["address"] = parts.group("address")
-
         return keydict
    
     def update_matrix_groups(self, source, dest, groups, views, viewmanager):
@@ -208,7 +168,7 @@ class AmpIcmp(Collection):
             return
 
         cellgroup = self.create_group_from_list([source, dest, 
-                self.default_packet_size, 'FAMILY'])
+                self.default_packet_size, self.default_aggregation])
         if cellgroup is None:
             log("Failed to create group for %s matrix cell" % \
                     (self.collection_name))
@@ -268,9 +228,6 @@ class AmpIcmp(Collection):
         newprops['aggregation'] = agg
         newprops['packet_size'] = packetsize
 
-        if 'address' in groupprops:
-            newprops['address'] = groupprops['address']
-
         return self.create_group_description(newprops)
 
     def _matrix_group_streams(self, baseprops, family, groups):
@@ -281,8 +238,6 @@ class AmpIcmp(Collection):
         streams = self.streammanager.find_streams(baseprops)
 
         if len(streams) > 0:
-            # Remove the addresses, we just need the stream ids
-            streams = [item[0] for item in streams]
             groups.append({'labelstring':label, 'streams':streams})
         
         return len(streams)

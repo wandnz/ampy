@@ -20,8 +20,8 @@ class AmpDns(Collection):
     
     def detail_columns(self, detail):
         if detail == "matrix":
-            aggfuncs = ["avg", "stddev", "count"]
-            aggcols = ["rtt", "rtt", "rtt"]
+            aggfuncs = ["avg", "stddev", "count", "count"]
+            aggcols = ["rtt", "rtt", "rtt", "timestamp"]
         elif detail == "full" or detail == "summary":
             aggfuncs = ["smoke"]
             aggcols = ["rtt"]

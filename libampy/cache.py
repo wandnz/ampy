@@ -28,6 +28,10 @@ class AmpyCache(object):
       search_cached_blocks:
         Given a list of blocks for a time series, finds all blocks that
         are present in the cache.
+      search_ippaths:
+        Searches the cache for IP path data for a given label.
+      store_ippaths:
+        Caches the result of an IP path query for a particular label.
       search_recent:
         Searches the cache for recent data for a given label.
       store_recent:
@@ -245,6 +249,43 @@ class AmpyCache(object):
 
         return uncached, cached
 
+    def search_ippaths(self, label, start, end):
+        """
+        Searches the cache for the result of a IP Path query
+        for a given label.
+
+        Parameters:
+          label -- the label for which recent data is required.
+          start -- the start of the time period covered by the paths.
+          end -- the end of the time period covered by the paths.
+
+        Returns:
+          a list of cached data points if the required data was in the
+          cache, or None if the required data could not be found in the
+          cache.
+        """
+        cachekey = self._ippath_cache_key(start, end, label)
+        return self._cachefetch(cachekey, "IP paths")
+
+    def store_ippaths(self, label, start, end, data):
+        """
+        Caches the result of a 'recent data' query for a label.
+
+        Parameters:
+          label -- the label which the recent data belongs to.
+          start -- the start of the time period covered by the paths.
+          end -- the end of the time period covered by the paths.
+          data -- the result of the query.
+
+        Returns:
+          None
+        """
+        cachetime = 3 * 60 * 60
+        cachekey = self._ippath_cache_key(start, end, label)
+
+        self._cachestore(cachekey, data, cachetime,
+                "IP paths")
+
     def search_recent(self, label, duration, detail):
         """
         Searches the cache for the result of a 'recent data' query
@@ -421,6 +462,9 @@ class AmpyCache(object):
 
     def _block_cache_key(self, start, binsize, detail, label):
         return str("_".join([label, str(binsize), str(start), str(detail)]))
+
+    def _ippath_cache_key(self, start, end, label):
+        return str("_".join([label, str(start), str(end)]))
 
     def _recent_cache_key(self, label, duration, detail):
         return str("_".join([label, "recent", str(duration), detail])) 

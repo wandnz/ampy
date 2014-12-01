@@ -11,6 +11,7 @@ class AmpThroughput(Collection):
         self.groupproperties = self.streamproperties
         self.integerproperties = ['duration', 'writesize']
         self.collection_name = "amp-throughput"
+        self.viewstyle = "amp-throughput"
 
     def detail_columns(self, detail):
 
@@ -35,7 +36,6 @@ class AmpThroughput(Collection):
             return (3600 * 12)
 
         return (3600 * 24)
-
 
     def prepare_stream_for_storage(self, stream):
         if 'remoteaddress' not in stream:
