@@ -323,6 +323,40 @@ class AmpyCache(object):
         self._cachestore(cachekey, data, cachetime,
                 "recent data")
 
+    def search_asname(self, aslabel):
+        """ 
+        Searches the cache for the AS name for a given AS number.
+    
+        Parameters:
+          aslabel -- a string describing the ASN to search for.
+
+        Returns:
+          a string describing the AS name / owner if the required data
+          is present in the cache, or None if the requested ASN could
+          not be found.
+        """
+        cachekey = self._asn_cache_key(aslabel)
+        return self._cachefetch(cachekey, "AS name")
+
+    def store_asname(self, aslabel, asname):
+        """
+        Caches the AS name for an AS number.
+
+        Parameters:
+          aslabel -- a label describing the AS number.
+          asname -- the textual name for the AS that will be cached.
+
+        Returns:
+          None
+        """
+        # These mappings aren't likely to change (and there shouldn't be too
+        # many to store) so we can cache for a very long time.
+        # XXX consider caching forever?
+        cachetime = 60 * 60 * 24 * 30
+        cachekey = self._asn_cache_key(aslabel)
+        self._cachestore(cachekey, asname, cachetime, "AS name")
+
+
     def store_stream_view(self, streamid, viewid):
         """
         Caches the view ID that best matches a single stream ID.
@@ -459,6 +493,9 @@ class AmpyCache(object):
 
     def _stream_view_cache_key(self, streamid):
         return "streamview_%s" % (str(streamid))
+
+    def _asn_cache_key(self, aslabel):
+        return str("_".join(["asname", aslabel]))
 
     def _block_cache_key(self, start, binsize, detail, label):
         return str("_".join([label, str(binsize), str(start), str(detail)]))
