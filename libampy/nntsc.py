@@ -67,11 +67,25 @@ class NNTSCConnection(object):
             log("Failed to create socket: %s" % (msg[1]))
             return None
 
-        try:
-            s.connect((self.host, self.port))
-        except socket.error, msg:
-            log("Failed to connect to %s:%d -- %s" % (
-                    self.host, self.port, msg[1]))
+        attempts = 0
+        connected = False
+
+        # XXX Retry forever or die after a certain number of attempts?
+        while connected == False:
+            if attempts > 0:
+                log("Retrying in 30 seconds (attempt %d)" % (attempts + 1))
+                time.sleep(30)
+        
+            try:
+                s.connect((self.host, self.port))
+                connected = True
+            except socket.error, msg:
+                log("Failed to connect to %s:%d -- %s" % (
+                        self.host, self.port, msg[1]))
+                attempts += 1
+
+        if not connected:
+            log("Unable to connect to NNTSC after numerous attempts")
             return None
 
         self.client = NNTSCClient(s)
