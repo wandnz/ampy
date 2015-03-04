@@ -219,9 +219,12 @@ class Collection(object):
             if sp in self.integerproperties:
                 props[sp] = int(options[i])
             else:
-                props[sp] = options[i]
+                props[sp] = self.convert_property(sp, options[i])
 
         return props
+
+    def convert_property(self, streamprop, value):
+        return value
 
     def translate_group(self, groupprops):
         """

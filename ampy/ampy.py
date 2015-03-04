@@ -12,6 +12,7 @@ from libnntscclient.logger import *
 from libampy.collections.ampicmp import AmpIcmp
 from libampy.collections.amptraceroute import AmpTraceroute, AmpAsTraceroute
 from libampy.collections.ampdns import AmpDns
+from libampy.collections.amphttp import AmpHttp
 from libampy.collections.amptcpping import AmpTcpping
 from libampy.collections.ampthroughput import AmpThroughput
 from libampy.collections.rrdsmokeping import RRDSmokeping
@@ -898,6 +899,8 @@ class Ampy(object):
             newcol = AmpTraceroute(colid, self.viewmanager, self.nntscconfig)
         if collection == "amp-dns":
             newcol = AmpDns(colid, self.viewmanager, self.nntscconfig)
+        if collection == "amp-http":
+            newcol = AmpHttp(colid, self.viewmanager, self.nntscconfig)
         if collection == "amp-tcpping":
             newcol = AmpTcpping(colid, self.viewmanager, self.nntscconfig)
         if collection == "amp-throughput":
