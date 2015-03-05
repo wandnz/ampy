@@ -70,7 +70,7 @@ class AmpDns(Collection):
                 flags, agg)
         return label
    
-    def _lookup_streams(self, search, lookup):
+    def _lookup_streams(self, search, lookup, baselabel):
         streams = []
     
         if lookup:
@@ -134,7 +134,7 @@ class AmpDns(Collection):
        
 
         if groupparams['aggregation'] == "FULL":
-            streams = self._lookup_streams(search, lookup)
+            streams = self._lookup_streams(search, lookup, baselabel)
             if streams is None:
                 return None
             
@@ -156,7 +156,7 @@ class AmpDns(Collection):
             labels.append(nextlab)
 
         else:
-            streams = self._lookup_streams(search, True)
+            streams = self._lookup_streams(search, True, baselabel)
             if streams is None:
                 return None
 

@@ -275,7 +275,7 @@ class NNTSCConnection(object):
         if self.client == None:
             log("Unable to connect to NNTSC exporter to request historical data")
             return None
-        
+       
         result = self.client.request_aggregate(colid, labels, start, end, \
                 aggregators[0], binsize, groupcols, aggregators[1])
         if result == -1:
