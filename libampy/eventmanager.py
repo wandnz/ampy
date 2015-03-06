@@ -61,47 +61,44 @@ class EventManager(object):
           Returns None if a major error occurs.
         """
 
-        query = """SELECT * FROM full_event_group_view 
-                   WHERE timestamp >= %s AND timestamp <= %s AND stream_id IN (
-                """
-
-        first = True
-        streamslist = []
-        
-        # Construct our query by adding every stream id in the labels dict
-        # to our IN clause
+        events = []
+        self.dblock.acquire()
         for lab in labels:
             if 'streams' not in lab:
                 log("Error while fetching events: label has no associated streams")
                 return None
-
+          
             for s in lab['streams']:
-                # Don't put a comma in front of the first stream id!
-                if first:
-                    query += "%s"
-                    first = False
-                else:
-                    query += ", %s"
-                streamslist.append(s)
+                
+                query = "SELECT count(*) FROM eventing.group_membership WHERE"
+                query += " stream = %s"
+                params = (s,)
 
-        if first:
-            # No streams were added to our query
-            log("Warning: requested events for a set of labels with no associated streams")
-            return []
-        
-        query += ")"
-        params = tuple([start, end] + streamslist)
-        
-        self.dblock.acquire()
-        if self.db.executequery(query, params) == -1:
-            log("Error while querying for events")
-            self.dblock.release()
-            return None
-        
-        events = []
-        for row in self.db.cursor.fetchall():
-            events.append(dict(row))
-        self.db.closecursor() 
+                if self.db.executequery(query, params) == -1:
+                    log("Error while querying for events")
+                    self.dblock.release()
+                    return None
+               
+                if self.db.cursor.fetchone()[0] == 0:
+                    continue 
+                
+                stable = "eventing.events_str%s" % (s)
+                query = "SELECT * FROM " + stable
+                query += " WHERE ts_started >= %s AND ts_started <= %s"
+                
+                params = (start, end) 
+
+                if self.db.executequery(query, params) == -1:
+                    log("Error while querying for events")
+                    self.dblock.release()
+                    return None
+
+                for row in self.db.cursor.fetchall():
+                    events.append(dict(row))
+                    events[-1]['stream'] = s
+
+                self.db.closecursor()
+
         self.dblock.release()
         return events
 
@@ -122,13 +119,13 @@ class EventManager(object):
           the event database.
         """
 
-        start_dt = datetime.datetime.fromtimestamp(start)
-        end_dt = datetime.datetime.fromtimestamp(end)
+        #start_dt = datetime.datetime.fromtimestamp(start)
+        #end_dt = datetime.datetime.fromtimestamp(end)
 
-        query = """SELECT * FROM event_group WHERE group_start_time >= %s
-                   AND group_end_time <= %s ORDER BY group_start_time
+        query = """SELECT * FROM eventing.groups WHERE ts_started >= %s
+                   AND ts_ended <= %s ORDER BY ts_started
                 """
-        params = (start_dt, end_dt)
+        params = (start, end)
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
             log("Error while querying event groups")
@@ -157,22 +154,45 @@ class EventManager(object):
           a list of events or None if there was an error while querying the
           event database.
         """
-        query = """SELECT * FROM full_event_group_view
-                   WHERE group_id=%s ORDER BY timestamp
+        query = """SELECT * FROM eventing.group_membership
+                   WHERE group_id=%s
                 """
 
         params = (str(groupid), )
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
-            log("Error while querying event group members")
+            log("Error while querying event group membership")
             self.dblock.release()
             return None
 
         events = []
-        for row in self.db.cursor.fetchall():
-            events.append(dict(row))
+        members = self.db.cursor.fetchall()
+        self.db.closecursor()
+
+        for row in members:
+            # Now fetch the events within that group
+            stream = row[2]
+            evid = row[1]
+            colname = row[3]
+
+            query = "SELECT * from eventing.events_str%s" % (str(stream))
+            query += " WHERE event_id=%s"
+            params = (str(evid),) 
+            
+            if self.db.executequery(query, params) == -1:
+                log("Error while querying for event group member (%s,%s)" % \
+                        (str(stream), str(evid)))
+                self.dblock.release()
+                return None
+
+            evrow = self.db.cursor.fetchone()
+            events.append(dict(evrow))
+            events[-1]['stream'] = stream
+            events[-1]['collection'] = colname
+
         self.db.closecursor() 
         self.dblock.release()
-        return events
+        return sorted(events, key=lambda s: s['ts_started'])
+
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :

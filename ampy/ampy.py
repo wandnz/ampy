@@ -594,6 +594,23 @@ class Ampy(object):
 
         return tabview
 
+    def get_stream_properties(self, collection, stream):
+        
+        col = self._getcol(collection)
+        if col == None:
+            log("Error while fetching stream properties")
+            return None
+        
+        # Find the stream in our stream hierarchy
+        streamprops = col.find_stream(stream)
+        if streamprops is None:
+            log("Error while fetching stream properties")
+            log("Stream %s does not exist for collection %s" % \
+                    (stream, collection))
+            return None
+
+        return streamprops
+
     def get_event_view(self, collection, stream):
         """
         Given a stream that an event was detected on by netevmon, generates
@@ -831,7 +848,9 @@ class Ampy(object):
           a list of events or None if there was an error while querying 
           the event database.
         """
-        return self.eventmanager.fetch_event_group_members(eventgroupid)
+        members = self.eventmanager.fetch_event_group_members(eventgroupid)
+        return members
+
 
     def _query_collections(self):
         """
