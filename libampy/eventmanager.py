@@ -35,7 +35,7 @@ class EventManager(object):
             eventdbconfig['name'] = "netevmon"
 
         self.dbconfig = eventdbconfig
-        self.db = AmpyDatabase(eventdbconfig, False)
+        self.db = AmpyDatabase(eventdbconfig, True)
         self.db.connect(15)
         self.dblock = Lock()
 
