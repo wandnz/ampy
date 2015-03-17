@@ -814,6 +814,8 @@ class Ampy(object):
                     log("Unable to convert group %d into stream labels" % (gid))
                     continue
 
+                for gl in grouplabels:
+                    gl['groupid'] = gid
                 alllabels += grouplabels
 
         return self.eventmanager.fetch_events(alllabels, start, end)

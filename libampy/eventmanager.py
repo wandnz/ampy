@@ -97,6 +97,12 @@ class EventManager(object):
                     events.append(dict(row))
                     events[-1]['stream'] = s
 
+                    if 'groupid' in lab:
+                        events[-1]['groupid'] = lab['groupid']
+                    else:
+                        events[-1]['groupid'] = None
+
+
                 self.db.closecursor()
 
         self.dblock.release()
