@@ -27,8 +27,12 @@ class AmpHttp(Collection):
         return value
 
     def detail_columns(self, detail):
-        cols = ['server_count', 'object_count', 'duration', 'bytes']
-        aggs = ['max', 'max', 'max', 'max']
+        if detail == "matrix":
+            aggs = ['avg']
+            cols = ['duration']
+        else:
+            cols = ['server_count', 'object_count', 'duration', 'bytes']
+            aggs = ['max', 'max', 'max', 'max']
 
         return cols, aggs
 
@@ -50,6 +54,21 @@ class AmpHttp(Collection):
                 log("Required group property '%s' not present in %s group" % \
                         (p, self.collection_name))
                 return None
+
+            if p == 'persist' and properties[p] == True:
+                properties[p] = "PERSIST"
+            elif p == 'persist' and properties[p] == False:
+                properties[p] = "NOPERSIST"
+
+            if p == 'pipelining' and properties[p] == True:
+                properties[p] = "PIPELINING"
+            elif p == 'pipelining' and properties[p] == False:
+                properties[p] = "NOPIPELINING"
+            
+            if p == 'caching' and properties[p] == True:
+                properties[p] = "CACHING"
+            elif p == 'caching' and properties[p] == False:
+                properties[p] = "NOCACHING"
 
         return "FROM %s FETCH %s MC %s %s %s %s %s %s %s" % \
                 (properties['source'], properties['destination'], 
@@ -78,10 +97,10 @@ class AmpHttp(Collection):
         keydict = {
             'source': parts.group('source'),
             'destination': parts.group('destination'),
-            'max_connections': parts.group('maxconn'),
-            'max_connections_per_server': parts.group('maxconnserver'),
-            'max_persistent_connections_per_server': parts.group('maxpersistconn'),
-            'pipelining_max_requests': parts.group('maxpipeline'),
+            'max_connections': int(parts.group('maxconn')),
+            'max_connections_per_server': int(parts.group('maxconnserver')),
+            'max_persistent_connections_per_server': int(parts.group('maxpersistconn')),
+            'pipelining_max_requests': int(parts.group('maxpipeline')),
             'persist': False,
             'caching': False,
             'pipelining': False
@@ -145,5 +164,37 @@ class AmpHttp(Collection):
                 'shortlabel': '%s' % (gps['destination'])})
 
         return labels 
+
+    def update_matrix_groups(self, source, dest, groups, views, viewmanager):
+        groupprops = { 'source': source, 'destination': dest }
+
+        label = "%s_%s_ipv4" % (source, dest)
+        streams = self.streammanager.find_streams(groupprops)
+
+        if len(streams) == 0:
+            views[(source, dest)] = -1
+            return
+
+        groups.append({'labelstring':label, 'streams':streams})
+
+        cgs = []
+        for s in streams:
+            props = self.streammanager.find_stream_properties(s)
+
+            proplist = [ props[x] for x in self.groupproperties]
+            cellgroup = self.create_group_from_list(proplist) 
+
+            if cellgroup is None:
+                log("Failed to create group for %s matrix cell" % \
+                        (self.collection_name))
+                break
+            cgs.append(cellgroup)
+
+        viewid = viewmanager.add_groups_to_view(self.viewstyle,
+                self.collection_name, 0, cgs)
+        if viewid is None:
+            views[(source, dest)] = -1
+        else:
+            views[(source, dest)] = viewid
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :
