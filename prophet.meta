@@ -12,6 +12,8 @@ mesh | rootdns | Root DNS | Root DNS Servers | f | t
 mesh | pubdns | Open DNS | Open DNS Servers | f | t
 mesh | google | Google | Google Services | f | t
 mesh | nzamp | New Zealand Amplets | Deployed Amplets | f | t
+
+mesh | httptest | Test HTTP |  Test HTTP Sites | f | t
  
 site | prophet | Prophet | Hamilton | Prophet Test Amplet | amptest
 site | centos-amplet.cms.waikato.ac.nz | Centos Test Amplet (UoW) | Hamilton | | amptest
@@ -147,4 +149,16 @@ site | snap-akl.amp.wand.net.nz | Snap | Auckland, NZ | | nzamp
 site | vocus.amp.wand.net.nz | Vocus | Auckland, NZ | | nzamp
 site | waikato.amp.wand.net.nz | University of Waikato | Hamilton, NZ | | nzamp
 site | wxc-akl.amp.wand.net.nz | WorldxChange Communications | Auckland, NZ | | nzamp
+
+site | http://wand.net.nz/ | WAND | Hamilton, NZ | | httptest
+site | http://www.amazon.com | Amazon | | | httptest
+site | http://www.apple.com/ | Apple | | | httptest
+site | http://www.bing.com/ | Bing | | | httptest
+site | http://www.facebook.com/ | Facebook | | | httptest
+site | http://www.google.co.nz | Google NZ | | | httptest
+site | http://www.metservice.com/national/home/ | MetService NZ | | | httptest
+site | http://www.nzherald.co.nz | New Zealand Herald | | | httptest
+site | http://www.stuff.co.nz | Stuff News | | | httptest
+site | http://www.trademe.co.nz | Trademe | | | httptest
+site | http://www.wikipedia.org/ | Wikipedia | | | httptest
 
