@@ -98,11 +98,11 @@ class AmpThroughput(Collection):
         dest = gps['destination']
 
         if gps['family'] == "IPV4":
-            family = "IPv4"
+            family = " IPv4"
         elif gps['family'] == "IPV6":
-            family = "IPv6"
+            family = " IPv6"
         elif gps['family'] == "BOTH":
-            family = "IPv4/IPv6"
+            family = " IPv4/IPv6"
         else:
             family = ""
         
@@ -110,8 +110,15 @@ class AmpThroughput(Collection):
         kilobytes = gps['writesize'] / 1024.0
 
 
-        label = "%s : %s for %.1f secs, %.1f kB writes %s %s" % (source, dest,
-                durationsecs, kilobytes, gps['direction'], family)
+        if gps['direction'] == "BOTH":
+            dirstr = ""
+        elif gps['direction'] == "IN":
+            dirstr = " Download"
+        else:
+            dirstr = " Upload"
+    
+        label = "%s : %s for %.1f secs, %.1f kB writes%s%s" % (source, dest,
+                durationsecs, kilobytes, dirstr, family)
 
         return label 
 
@@ -158,7 +165,11 @@ class AmpThroughput(Collection):
             lookup):
         key = baselabel + "_" + direction
         search['direction'] =  direction
-        shortlabel = direction
+
+        if direction == "in":
+            shortlabel = "Download"
+        else:
+            shortlabel = "Upload"
 
         labels = []
 
@@ -199,7 +210,10 @@ class AmpThroughput(Collection):
     def _generate_family_label(self, baselabel, search, family, lookup):
         key = baselabel + "_" + family
         search['family'] = family.lower()
-        shortlabel = family + " " + search['direction']
+        if search['direction'] == "in":
+            shortlabel = family + " Download"
+        else:
+            shortlabel = family + " Upload"
 
         if lookup:
             streams = self.streammanager.find_streams(search)
