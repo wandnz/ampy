@@ -14,6 +14,7 @@ mesh | google | Google | Google Services | f | t
 mesh | nzamp | New Zealand Amplets | Deployed Amplets | f | t
 
 mesh | httptest | Test HTTP |  Test HTTP Sites | f | t
+mesh | tputtest | Test Throughput | Test Throughput Sites | f | t
  
 site | prophet | Prophet | Hamilton | Prophet Test Amplet | amptest
 site | centos-amplet.cms.waikato.ac.nz | Centos Test Amplet (UoW) | Hamilton | | amptest
@@ -24,7 +25,7 @@ site | wheezy-amplet.cms.waikato.ac.nz | Wheezy Test Amplet (UoW) | Hamilton | |
 site | wheezy-amplet.sdn.wand.net.nz | Wheezy Test Amplet (SDN) | Hamilton | | amptest
 site | shane-amplet | Shane's Test Amplet (SDN) | Hamilton | | amptest
 
-site | ps01-akl.reannz.co.nz | Auckland REANNZ perfSONAR node | Auckland | | reannz-ps | amptest
+site | ps01-akl.reannz.co.nz | Auckland REANNZ perfSONAR node | Auckland | | reannz-ps | amptest | tputtest
 site | ps02-wlg.reannz.co.nz | Wellington REANNZ perfSONAR node | Wellington | | reannz-ps | amptest
 site | ps03-chc.reannz.co.nz | Christchurch REANNZ perfSONAR node | Christchurch | | reannz-ps | amptest
 site | ps04-dud.reannz.co.nz | Dunedin REANNZ perfSONAR node | Dunedin | | reannz-ps | amptest
