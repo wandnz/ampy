@@ -13,6 +13,9 @@ class AmpThroughput(Collection):
         self.collection_name = "amp-throughput"
         self.viewstyle = "amp-throughput"
 
+        self.default_duration = 10000
+        self.default_writesize = 131072
+
     def detail_columns(self, detail):
 
         aggfuncs = ["sum", "sum", "sum"]
@@ -95,11 +98,11 @@ class AmpThroughput(Collection):
         dest = gps['destination']
 
         if gps['family'] == "IPV4":
-            family = "IPv4"
+            family = " IPv4"
         elif gps['family'] == "IPV6":
-            family = "IPv6"
+            family = " IPv6"
         elif gps['family'] == "BOTH":
-            family = "IPv4/IPv6"
+            family = " IPv4/IPv6"
         else:
             family = ""
         
@@ -107,8 +110,15 @@ class AmpThroughput(Collection):
         kilobytes = gps['writesize'] / 1024.0
 
 
-        label = "%s : %s for %.1f secs, %.1f kB writes %s %s" % (source, dest,
-                durationsecs, kilobytes, gps['direction'], family)
+        if gps['direction'] == "BOTH":
+            dirstr = ""
+        elif gps['direction'] == "IN":
+            dirstr = " Download"
+        else:
+            dirstr = " Upload"
+    
+        label = "%s : %s for %.1f secs, %.1f kB writes%s%s" % (source, dest,
+                durationsecs, kilobytes, dirstr, family)
 
         return label 
 
@@ -155,7 +165,11 @@ class AmpThroughput(Collection):
             lookup):
         key = baselabel + "_" + direction
         search['direction'] =  direction
-        shortlabel = direction
+
+        if direction == "in":
+            shortlabel = "Download"
+        else:
+            shortlabel = "Upload"
 
         labels = []
 
@@ -196,7 +210,10 @@ class AmpThroughput(Collection):
     def _generate_family_label(self, baselabel, search, family, lookup):
         key = baselabel + "_" + family
         search['family'] = family.lower()
-        shortlabel = family + " " + search['direction']
+        if search['direction'] == "in":
+            shortlabel = family + " Download"
+        else:
+            shortlabel = family + " Upload"
 
         if lookup:
             streams = self.streammanager.find_streams(search)
@@ -242,5 +259,77 @@ class AmpThroughput(Collection):
             labels += lab
 
         return sorted(labels, key=itemgetter('shortlabel'))
+
+    def update_matrix_groups(self, source, dest, groups, views, viewmanager):
+        groupprops = {'source': source, 'destination': dest, 
+                'duration':self.default_duration, 
+                'writesize': self.default_writesize, 'tcpreused': False,
+                }
+
+        tputin4 = self._matrix_group_streams(groupprops, "in", "ipv4", groups)
+        tputout4 = self._matrix_group_streams(groupprops, "out", "ipv4", groups)
+        tputin6 = self._matrix_group_streams(groupprops, "in", "ipv6", groups)
+        tputout6 = self._matrix_group_streams(groupprops, "out", "ipv6", groups)
+
+
+        if tputin4 == 0 and tputout4 == 0:
+            views[(source, dest, "ipv4")] = -1
+
+        if tputin6 == 0 and tputout6 == 0:
+            views[(source, dest, "ipv6")] = -1
+
+        if tputin4 + tputin6 + tputout4 + tputout6 == 0:
+            return
+
+
+        if tputin4 != 0 or tputout4 != 0:
+            # XXX this could become a function
+            cg = self.create_group_from_list([source, dest, 
+                    self.default_duration,
+                    self.default_writesize, False, "BOTH", "IPV4"])
+            if cg is None:
+                log("Failed to create group for %s matrix cell" % \
+                        (self.collection_name))
+                return None
+
+            viewid = viewmanager.add_groups_to_view(self.viewstyle,
+                    self.collection_name, 0, [cg])
+
+            if viewid is None:
+                views[(source, dest, "ipv4")] = -1
+            else:
+                views[(source, dest, "ipv4")] = viewid
+
+        if tputin6 != 0 or tputout6 != 0:
+            cg = self.create_group_from_list([source, dest, 
+                    self.default_duration,
+                    self.default_writesize, False, "BOTH", "IPV6"])
+            if cg is None:
+                log("Failed to create group for %s matrix cell" % \
+                        (self.collection_name))
+                return None
+
+            viewid = viewmanager.add_groups_to_view(self.viewstyle,
+                    self.collection_name, 0, [cg])
+
+            if viewid is None:
+                views[(source, dest, "ipv6")] = -1
+            else:
+                views[(source, dest, "ipv6")] = viewid
+
+
+    def _matrix_group_streams(self, baseprops, direction, family, groups):
+
+        baseprops['direction'] = direction
+        baseprops['family'] = family
+        label = "%s_%s_%s_%s" % (baseprops['source'], baseprops['destination'],
+                direction, family)
+        streams = self.streammanager.find_streams(baseprops)
+
+        if len(streams) > 0:
+            groups.append({'labelstring':label, 'streams': [x[0] for x in streams]})
+
+        return len(streams)
+
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :
