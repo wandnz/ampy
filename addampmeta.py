@@ -3,7 +3,7 @@ import psycopg2.extras
 import argparse, sys
 
 def insert_mesh(db, params):
-    assert(len(params) == 5)
+    assert(len(params) == 6)
 
     for i in range(3, 5):
         if params[i] == "f" or params[i] == "F":
@@ -15,7 +15,7 @@ def insert_mesh(db, params):
             return None
 
     query = "INSERT into mesh VALUES (%s, %s, %s, %s, %s, True)"
-    paramstup = tuple(params)
+    paramstup = tuple(params[0:5])
 
     try:
         cursor = db.cursor(cursor_factory=psycopg2.extras.DictCursor)
@@ -27,9 +27,28 @@ def insert_mesh(db, params):
         cursor.execute(query, paramstup)
     except psycopg2.IntegrityError as e:
         print "Attempted to insert duplicate mesh %s" % (params[0])
+        db.rollback()
+        cursor.close()
+        return None
     except psycopg2.Error as e:
         print "Failed to insert mesh", e
         return None
+
+    supportedtests = params[5].split(',')
+    
+    for st in supportedtests:
+        st = st.strip()
+        query = "INSERT into meshtests VALUES (%s, %s)"
+        paramstup = (params[0], st)
+
+        try:
+            cursor.execute(query, paramstup)
+        except psycopg2.IntegrityError as e:
+            print "Attempted to insert duplicate mesh type %s %s" % paramstup
+            db.rollback()
+        except psycopg2.Error as e:
+            print "Failed to insert mesh type", e
+            return None
 
     db.commit()
     cursor.close()

@@ -1,20 +1,20 @@
-mesh | nzdns | NZ DNS | New Zealand DNS Servers | f | t
-mesh | trademedns | Trademe DNS | Trademe DNS Servers | f | t
-mesh | amptest | Test Amplets | AMP Test Network | t | f
-mesh | nzweb | NZ Web | New Zealand Websites | f | t
-mesh | rir | RIR | Regional Internet Registries | f | t
-mesh | alldns | DNS | All DNS Servers | f | t
-mesh | reannz-ps | REANNZ PerfSonar | REANNZ PerfSonar Monitors | t | f
-mesh | nzisp | NZ ISPs | New Zealand ISP s | f | t
-mesh | cdn | CDNs | Content Distribution Networks | f | t
-mesh | intweb | International Web | International Websites | f | t
-mesh | rootdns | Root DNS | Root DNS Servers | f | t
-mesh | pubdns | Open DNS | Open DNS Servers | f | t
-mesh | google | Google | Google Services | f | t
-mesh | nzamp | New Zealand Amplets | Deployed Amplets | f | t
+mesh | nzdns | NZ DNS | New Zealand DNS Servers | f | t | latency,hops,dns
+mesh | trademedns | Trademe DNS | Trademe DNS Servers | f | t | dns,latency
+mesh | amptest | Test Amplets | AMP Test Network | t | f | latency,hops
+mesh | nzweb | NZ Web | New Zealand Websites | f | t | latency,hops
+mesh | rir | RIR | Regional Internet Registries | f | t | latency,hops
+mesh | alldns | DNS | All DNS Servers | f | t | latency,hops,dns
+mesh | reannz-ps | REANNZ PerfSonar | REANNZ PerfSonar Monitors | t | f | latency,hops
+mesh | nzisp | NZ ISPs | New Zealand ISP s | f | t | latency,hops
+mesh | cdn | CDNs | Content Distribution Networks | f | t | latency,hops
+mesh | intweb | International Web | International Websites | f | t | latency,hops
+mesh | rootdns | Root DNS | Root DNS Servers | f | t | latency,hops,dns
+mesh | pubdns | Open DNS | Open DNS Servers | f | t | latency,hops,dns
+mesh | google | Google | Google Services | f | t | latency,hops
+mesh | nzamp | New Zealand Amplets | Deployed Amplets | f | t | latency,hops
 
-mesh | httptest | Test HTTP |  Test HTTP Sites | f | t
-mesh | tputtest | Test Throughput | Test Throughput Sites | f | t
+mesh | httptest | Test HTTP |  Test HTTP Sites | f | t | http
+mesh | tputtest | Test Throughput | Test Throughput Sites | f | t | tput
  
 site | prophet | Prophet | Hamilton | Prophet Test Amplet | amptest
 site | centos-amplet.cms.waikato.ac.nz | Centos Test Amplet (UoW) | Hamilton | | amptest
