@@ -969,7 +969,7 @@ class Ampy(object):
         # Otherwise, we'll have to query the views database
         viewgroups = self.viewmanager.get_view_groups(viewstyle, view_id)
         if viewgroups is None:
-            log("Unable to find groups for view id %d(%s)" % \
+            log("Unable to find groups for view id %s (%s)" % \
                     (view_id, viewstyle))
             return None
       

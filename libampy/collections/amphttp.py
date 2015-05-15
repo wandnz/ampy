@@ -27,7 +27,7 @@ class AmpHttp(Collection):
         return value
 
     def detail_columns(self, detail):
-        if detail == "matrix":
+        if detail == "matrix" or detail == "basic":
             aggs = ['avg']
             cols = ['duration']
         else:
