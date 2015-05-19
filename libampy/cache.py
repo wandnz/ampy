@@ -155,7 +155,13 @@ class AmpyCache(object):
         at the given binsize (including any 'extra' blocks).
         """
         blocks = []
-        blocksize = binsize * self.blocksize
+        # negative binsize means this is a raw data fetch with no binning so
+        # pick an arbitrary size for our blocks - currently set to 2 hours
+        # (60 * 12 the default blocksize)
+        if binsize < 0:
+            blocksize = 60 * self.blocksize
+        else:
+            blocksize = binsize * self.blocksize
 
         # Include 'extra' additional blocks either side when fetching data.
         # This is often used to ensure there will be data present if a

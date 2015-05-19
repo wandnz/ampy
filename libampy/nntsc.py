@@ -275,9 +275,16 @@ class NNTSCConnection(object):
         if self.client == None:
             log("Unable to connect to NNTSC exporter to request historical data")
             return None
-       
-        result = self.client.request_aggregate(colid, labels, start, end, \
-                aggregators[0], binsize, groupcols, aggregators[1])
+
+        # binsize < 0 means we want raw data so subscribe directly to the
+        # streams, don't aggregate it or anything like that
+        if binsize < 0:
+            result = self.client.subscribe_streams(colid, aggregators[0],
+                    labels, start, end, [])
+        else:
+            result = self.client.request_aggregate(colid, labels, start, end,
+                    aggregators[0], binsize, groupcols, aggregators[1])
+
         if result == -1:
             log("Failed to request aggregate data for collection %d" % (colid))
             self._disconnect()      

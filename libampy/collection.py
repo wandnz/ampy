@@ -934,7 +934,13 @@ class Collection(object):
             incrementby = binsize
             usekey = 'binstart'
 
+        # there won't be a valid increment value if we asked for raw data
+        # and there is no data in this time period
+        if incrementby < 1:
+            return [], queried
+
         blockdata = []
+        datum = {}
         ts = block['start']
 
         while ts < block['end']:

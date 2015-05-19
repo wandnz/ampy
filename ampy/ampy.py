@@ -290,6 +290,7 @@ class Ampy(object):
 
         """
         history = {}
+        description = {}
 
         viewgroups = self._view_to_groups(viewstyle, view_id)
         if viewgroups is None:
@@ -301,6 +302,11 @@ class Ampy(object):
             if col is None:
                 log("Failed to create collection module %s" % (colname))
                 return None
+
+            # save the description so we can pass it back with the raw data
+            if binsize is not None and binsize < 0:
+                for gid, descr in vgs:
+                    description[gid] = col.parse_group_description(descr)
 
             # Find all labels for this view and their corresponding streams
             alllabels = []
@@ -319,6 +325,11 @@ class Ampy(object):
                 return None
 
             history.update(colhist)
+
+        # if binsize is -1 then this is a raw data fetch and we need to
+        # return some better descriptions of the groups
+        if binsize is not None and binsize < 0:
+            return description, history
         return history
 
     def get_view_legend(self, viewstyle, view_id):
