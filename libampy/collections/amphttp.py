@@ -6,16 +6,16 @@ class AmpHttp(Collection):
     def __init__(self, colid, viewmanager, nntscconf):
         super(AmpHttp, self).__init__(colid, viewmanager, nntscconf)
         self.streamproperties = ['source', 'destination', 'max_connections',
-                'max_connections_per_server', 'persist', 
+                'max_connections_per_server', 'persist',
                 'max_persistent_connections_per_server', 'pipelining',
                 'pipelining_max_requests', 'caching']
         self.groupproperties = ['source', 'destination', 'max_connections',
-                'max_connections_per_server', 'persist', 
+                'max_connections_per_server', 'persist',
                 'max_persistent_connections_per_server', 'pipelining',
                 'pipelining_max_requests', 'caching']
-        
+
         self.integerproperties = ['max_connections', 'pipelining_max_requests',
-                'max_persistent_connections_per_server', 
+                'max_persistent_connections_per_server',
                 'max_connections_per_server']
 
         self.collection_name = "amp-http"
@@ -64,19 +64,19 @@ class AmpHttp(Collection):
                 properties[p] = "PIPELINING"
             elif p == 'pipelining' and properties[p] == False:
                 properties[p] = "NOPIPELINING"
-            
+
             if p == 'caching' and properties[p] == True:
                 properties[p] = "CACHING"
             elif p == 'caching' and properties[p] == False:
                 properties[p] = "NOCACHING"
 
         return "FROM %s FETCH %s MC %s %s %s %s %s %s %s" % \
-                (properties['source'], properties['destination'], 
-                    properties['max_connections'], 
+                (properties['source'], properties['destination'],
+                    properties['max_connections'],
                     properties['max_connections_per_server'],
                     properties['persist'],
                     properties['max_persistent_connections_per_server'],
-                    properties['pipelining'], 
+                    properties['pipelining'],
                     properties['pipelining_max_requests'],
                     properties['caching'])
 
@@ -120,7 +120,7 @@ class AmpHttp(Collection):
         if gps is None:
             log("Failed to parse group description to generate legend label")
             return None
-        
+
         if gps["caching"] == True:
             cachelab = "+cached "
         else:
@@ -134,7 +134,7 @@ class AmpHttp(Collection):
         label = "%s from %s %s%s" % (gps['destination'], gps['source'], \
                 pipelab, cachelab)
         return label
-    
+
 
     def group_to_labels(self, groupid, description, lookup=True):
         labels = []
@@ -160,10 +160,10 @@ class AmpHttp(Collection):
         else:
             streams = []
 
-        labels.append({'labelstring':baselabel, 'streams':streams, 
+        labels.append({'labelstring':baselabel, 'streams':streams,
                 'shortlabel': '%s' % (gps['destination'])})
 
-        return labels 
+        return labels
 
     def update_matrix_groups(self, source, dest, groups, views, viewmanager):
         groupprops = { 'source': source, 'destination': dest }
@@ -182,7 +182,7 @@ class AmpHttp(Collection):
             props = self.streammanager.find_stream_properties(s)
 
             proplist = [ props[x] for x in self.groupproperties]
-            cellgroup = self.create_group_from_list(proplist) 
+            cellgroup = self.create_group_from_list(proplist)
 
             if cellgroup is None:
                 log("Failed to create group for %s matrix cell" % \
