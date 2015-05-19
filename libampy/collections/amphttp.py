@@ -37,16 +37,16 @@ class AmpHttp(Collection):
         return cols, aggs
 
     def calculate_binsize(self, start, end, detail):
-        if (end - start) / 3600 < 200:
-            return 3600
+        if (end - start) / 900 < 200:
+            return 900
 
-        if (end - start) / (3600 * 4) < 200:
-            return (3600 * 4)
+        if (end - start) / (900 * 4) < 200:
+            return (900 * 4)
 
-        if (end - start) / (3600 * 12) < 200:
-            return (3600 * 12)
+        if (end - start) / (900 * 12) < 200:
+            return (900 * 12)
 
-        return (3600 * 24)
+        return (900 * 24)
 
     def create_group_description(self, properties):
         for p in self.groupproperties:
