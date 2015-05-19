@@ -18,11 +18,11 @@ class Collection(object):
 
     In some cases, this class will provide a basic method that works
     for most collections but can be overridden if a collection requires
-    something different, e.g. format_single_data. There are also 
+    something different, e.g. format_single_data. There are also
     abstract functions that must be implemented by each collection, such as
     parse_group_description.
 
-    API Functions 
+    API Functions
     -------------
     extra_blocks:
         Determines how many extra blocks should be fetched when making
@@ -36,7 +36,7 @@ class Collection(object):
     translate_group:
         Converts the properties that describe a group from another
         collection into a string describing an equivalent group for this
-        collection. 
+        collection.
     parse_group_description:
         Converts a group description string into a dictionary mapping
         group properties to their values.
@@ -44,7 +44,7 @@ class Collection(object):
         Converts a dictionary of stream or group properties into a string
         describing the group.
     detail_columns:
-        Determines which data table columns should be queried and how they 
+        Determines which data table columns should be queried and how they
         should be aggregated, given the amount of detail required by the
         user.
     get_legend_label:
@@ -68,7 +68,7 @@ class Collection(object):
         including the stream ids of the group members.
     update_streams:
         Queries NNTSC for any new streams that have appeared since we last
-        updated our local stream manager. 
+        updated our local stream manager.
     get_selections:
         Given a set of known stream properties, finds the next possible
         decision point and returns the set of available options at that
@@ -93,7 +93,7 @@ class Collection(object):
         self.lastnewstream = 0
         self.collock = Lock()
         self.integerproperties = []
-        
+
         # These members MUST be overridden by the child collection's init
         # function
         self.collection_name = "basecollection"
@@ -105,7 +105,7 @@ class Collection(object):
         Determines how many extra blocks are required either side of the
         requested time period, based on the requested level of detail.
 
-        Queries for the detailed graph should fetch extra blocks. 
+        Queries for the detailed graph should fetch extra blocks.
         Queries for the summary graph, tooltips or other non-scrolling
         graphs should not fetch any extra blocks.
 
@@ -117,7 +117,7 @@ class Collection(object):
           detail -- the level of detail requested for the data
 
         Returns:
-          the number of extra blocks to add to each side of the 
+          the number of extra blocks to add to each side of the
           requested time period.
         """
         if detail == "full":
@@ -127,15 +127,15 @@ class Collection(object):
 
     def calculate_binsize(self, start, end, detail):
         """
-        Determines an appropriate binsize for a graph covering the 
-        specified time period. 
+        Determines an appropriate binsize for a graph covering the
+        specified time period.
 
         The default minimum binsize is 5 minutes. The default maximum
         binsize is 4 hours.
 
         Child collections should implement this if the default binsize
         algorithm is inappropriate for the typical stream for that
-        collection. In particular, collections that measure more 
+        collection. In particular, collections that measure more
         frequently than every 5 minutes should override this to provide
         a binsize closer to the measurement frequency.
 
@@ -152,7 +152,7 @@ class Collection(object):
         minbin = int(((end - start)) / 200)
 
         # Most collections measure at 5 min intervals so use this
-        # as a minimum binsize    
+        # as a minimum binsize
         if minbin <= 300:
             binsize = 300
         elif minbin <= 600:
@@ -184,15 +184,15 @@ class Collection(object):
           a string describing the group or None if no string can be formed
           using the provided property list
         """
-        
+
         props = self.create_properties_from_list(options, self.groupproperties)
         if props is None:
             return None
-        return self.create_group_description(props) 
+        return self.create_group_description(props)
 
     def create_properties_from_list(self, options, proplist):
         """
-        Converts an ordered list of group properties into a dictionary 
+        Converts an ordered list of group properties into a dictionary
         with the property names as keys.
 
         Parameters:
@@ -200,9 +200,9 @@ class Collection(object):
                      properties MUST be in the same order as they are
                      listed in proplist.
           proplist -- the list of group properties, in order.
-        
+
         Returns:
-          a dictionary describing the group or None if no dictionary 
+          a dictionary describing the group or None if no dictionary
           can be formed using the provided property list
         """
         if proplist is None:
@@ -228,7 +228,7 @@ class Collection(object):
 
     def translate_group(self, groupprops):
         """
-        Attempts to create a group description string based on a set of 
+        Attempts to create a group description string based on a set of
         properties describing a group from another collection.
 
         This is used by the graphs to generate tabs that link to graphs
@@ -237,7 +237,7 @@ class Collection(object):
         traceroute for that path.
 
         All child collections MUST implement this function unless the
-        collection is not related to any other collections. 
+        collection is not related to any other collections.
 
         Parameters:
           groupprops -- a dictionary describing the properties of the
@@ -292,7 +292,7 @@ class Collection(object):
         """
         Given a requested level of detail, returns the columns that should
         be grouped during a database query.
-        
+
         Only child collections that require grouping should implement this
         function.
 
@@ -315,7 +315,7 @@ class Collection(object):
         """
         Given a requested level of detail, returns the columns that should
         be queried from a collection's data table.
-        
+
         All child collections MUST implement this function.
 
         Common levels of detail are:
@@ -345,8 +345,8 @@ class Collection(object):
 
         Returns:
           the legend label for the group, as a string
-        """  
-         
+        """
+
         return "No label"
 
     def group_to_labels(self, groupid, description, lookup=True):
@@ -355,7 +355,7 @@ class Collection(object):
         on a graph for a group.
 
         All child collections MUST implement this function.
-        
+
         Each label is a dictionary with three elements:
           labelstring: a unique string identifying this label
           streams: a list of stream ids belonging to the label. May be empty
@@ -366,13 +366,13 @@ class Collection(object):
         Parameters:
           groupid -- the unique ID number for the group
           description -- the string describing the group
-          lookup -- if False, the function will not lookup the streams 
+          lookup -- if False, the function will not lookup the streams
                     for the group unless required for labelling purposes.
                     Otherwise, each label will include a list of stream
                     ids belonging to that label.
 
         Returns:
-          a list of labels belonging to the group. 
+          a list of labels belonging to the group.
         """
 
         return []
@@ -398,14 +398,14 @@ class Collection(object):
 
     def format_list_data(self, datalist, freq):
         """
-        Modifies a list of data points into a suitable format for display on 
+        Modifies a list of data points into a suitable format for display on
         a graph or a matrix.
 
         Child collections should implement this function if the data needs
         additional formatting beyond what is stored in the database.
 
         Parameters:
-          datalist -- a list of dictionaries containing the data points to 
+          datalist -- a list of dictionaries containing the data points to
                       be formatted
           freq -- the frequency that the measurements were collected at
 
@@ -415,7 +415,7 @@ class Collection(object):
 
         # For many collections, no formatting is required
         return datalist
-        
+
     def find_stream(self, streamid):
         """
         Finds the stream that matches the provided stream id
@@ -448,9 +448,9 @@ class Collection(object):
           views -- a dictionary mapping matrix cells to view ids
 
         Returns:
-          Nothing, but the groups dictionary is updated to contain the groups 
-          required for the source/destination cell. Each added group will 
-          contain a list of labels belonging to that group and each label will 
+          Nothing, but the groups dictionary is updated to contain the groups
+          required for the source/destination cell. Each added group will
+          contain a list of labels belonging to that group and each label will
           include a list of stream ids to query for that label.
 
           The views dictionary is also updated. In this case, an entry is
@@ -458,7 +458,7 @@ class Collection(object):
           the graph to show if the matrix cell is clicked on.
 
         """
-        
+
         return
 
     def update_streams(self):
@@ -484,7 +484,7 @@ class Collection(object):
 
             # Account for time taken querying for streams
             self.lastchecked = time.time()
-        
+
         self.collock.release()
         return now
 
@@ -496,7 +496,7 @@ class Collection(object):
         possible choice are also returned.
 
         Child collections should NOT override this function.
-        
+
 
         Parameters:
           selected -- a dictionary of stream properties with known values
@@ -507,7 +507,7 @@ class Collection(object):
         Returns:
           a dictionary where the key is a stream property and the value is
           a list of possible choices for that stream property, given the
-          properties already chosen in the 'selected' dictionary. 
+          properties already chosen in the 'selected' dictionary.
 
         This function is best explained with an example. Consider amp-icmp,
         where there are 4 stream properties: source, dest, packetsize and
@@ -519,20 +519,20 @@ class Collection(object):
         If selected contains an entry for 'source' but no 'dest', the
         function instead returns something like:
             {'dest': [ <all destinations for the given source> ]}
-         
+
         If selected contains both a 'source' and a 'dest', the result is:
             {'packetsize': [ <all packet sizes for the given source/dest pair ]}
 
         In the last case, imagine there is only one packet size available for
         the source/dest pair. In this case, this function adds the packet size
-        to the result but will then automatically descend to the next level of 
+        to the result but will then automatically descend to the next level of
         the stream hierarchy, assuming that the only packet size was chosen,
         and include the options at that level in the result as well.
-        
+
         Descending through the hierarchy will continue until a stream property
         provides more than one possible choice or the bottom of the hierarchy
         is reached. In the packet size case, the result is something like:
-            {'packetsize':[ one size ], 
+            {'packetsize':[ one size ],
              'family': [ all possible families for source/dest/size ]
             }
 
@@ -569,7 +569,7 @@ class Collection(object):
             else:
                 repeat = False
 
-    
+
         return result
 
     def prepare_stream_for_storage(self, stream):
@@ -584,9 +584,9 @@ class Collection(object):
         streams include an address but we often group streams by address
         family so need to add a 'family' field to the stream.
 
-        Some collections require the target IP address to be stored with the 
+        Some collections require the target IP address to be stored with the
         stream so that we can easily label graphs where we plot one line per
-        observed IP address. Therefore, we allow collections to store 
+        observed IP address. Therefore, we allow collections to store
         additional data alongside the stream ID.
 
         Child collections are not required to implement this, but should do
@@ -594,7 +594,7 @@ class Collection(object):
         the collection streams table in NNTSC.
 
         Parameters:
-          stream -- a dictionary describing the stream that is about to be 
+          stream -- a dictionary describing the stream that is about to be
                     inserted into the stream hierarchy
 
         Returns:
@@ -605,10 +605,10 @@ class Collection(object):
         """
 
         # None is a special value for storage -- streams with None storage
-        # will be stored as a single ID value rather than a tuple of 
+        # will be stored as a single ID value rather than a tuple of
         # (ID, storage data).
         return stream, None
-  
+
     def get_collection_recent(self, cache, labels, duration, detail):
         """
         Function for querying NNTSC for 'recent' data, i.e. summary
@@ -625,7 +625,7 @@ class Collection(object):
           detail --  the level of detail, e.g. 'full', 'matrix'. This will
                      determine which data columns are queried and how they
                      are aggregated.
-        
+
         Returns:
             a tuple containing two elements. The first is a dictionary
             mapping label identifier strings to a list containing the
@@ -633,9 +633,9 @@ class Collection(object):
             labels which failed to fetch recent data due to a database query
             timeout.
             Returns None if an error is encountered while fetching the data.
-        
+
         A label in the alllabels dictionary must be a dictionary containing
-        at least two elements: 
+        at least two elements:
             labelstring -- an unique string identifying the label
             streams -- a list of stream IDs that belong to the label.
 
@@ -696,9 +696,9 @@ class Collection(object):
 
         return recent, timeouts
 
-        
- 
-    def get_collection_history(self, cache, labels, start, end, detail, 
+
+
+    def get_collection_history(self, cache, labels, start, end, detail,
             binsize):
 
         """
@@ -719,7 +719,7 @@ class Collection(object):
 
         Returns:
           a dictionary keyed by label where each value is a list containing
-          the aggregated time series data for the specified time period. 
+          the aggregated time series data for the specified time period.
           Returns None if an error occurs while fetching the data.
         """
 
@@ -730,10 +730,10 @@ class Collection(object):
         extra = self.extra_blocks(detail)
         blocks = cache.get_caching_blocks(start, end, binsize, extra)
 
-        # Figure out which blocks are cached and which need to be queried 
-        notcached, cached = self._find_cached_data(cache, blocks, labels, 
+        # Figure out which blocks are cached and which need to be queried
+        notcached, cached = self._find_cached_data(cache, blocks, labels,
                 binsize, detail)
-    
+
         # Fetch all uncached data
         fetched = frequencies = timeouts = {}
         if len(notcached) != 0:
@@ -752,14 +752,13 @@ class Collection(object):
             for b in blocks:
                 blockdata, dbdata = self._next_block(b, cached[label],
                     dbdata, frequencies[label], binsize)
-
                 data[label] += blockdata
 
                 # Store this block in our cache for fast lookup next time
                 # If it already is there, we'll reset the cache timeout instead
                 failed = cache.store_block(b, blockdata, label, binsize,
                         detail, failed)
-        
+
         # Any labels that were fully cached won't be touched by the previous
         # bit of code so we need to check the cached dictionary for any
         # labels that don't appear in the fetched data and process those too
@@ -777,7 +776,7 @@ class Collection(object):
                 blockdata, ignored = self._next_block(b, cached[label],
                         [], 0, binsize)
                 data[label] += blockdata
-                ignored = cache.store_block(b, blockdata, label, binsize, 
+                ignored = cache.store_block(b, blockdata, label, binsize,
                         detail, [])
 
         return data
@@ -799,7 +798,7 @@ class Collection(object):
           The first item is a dictionary containing the time series data
           received for each label queried. Each time series is stored in a
           list.
-          The second item is a dictionary containing the estimated 
+          The second item is a dictionary containing the estimated
           measurement frequency for each label queried.
           The third item is a dictionary containing a list of tuples that
           describe any time periods where the database query failed due
@@ -831,11 +830,11 @@ class Collection(object):
 
     def _find_cached_data(self, cache, blocks, labels, binsize, detail):
         """
-        Determines which data blocks for a set of labels are cached and 
+        Determines which data blocks for a set of labels are cached and
         which blocks need to be queried.
 
         Parameters:
-          cache -- the cache to search 
+          cache -- the cache to search
           blocks -- a list of dictionaries describing the blocks for which
                     data is required.
           labels -- a list of labels that data is required for.
@@ -844,8 +843,8 @@ class Collection(object):
 
         Returns:
           a tuple containing two dictionaries. The first dictionary describes
-          the time periods where required data was not present in the cache 
-          and therefore must be queried. The second dictionary describes 
+          the time periods where required data was not present in the cache
+          and therefore must be queried. The second dictionary describes
           the blocks that were cached, including the cached data.
 
         """
@@ -891,7 +890,7 @@ class Collection(object):
         due to a couple of factors:
          1. the measurement frequency may be larger than the requested binsize
             (which we use for sizing our blocks), so no aggregation has
-            occured. 
+            occured.
          2. measurements are not guaranteed to happen at exactly the timestamp
             you expect; they may be delayed by several seconds, especially
             some AMP tests.
@@ -910,7 +909,7 @@ class Collection(object):
                    is to be populated.
           cached -- a dictionary containing cached blocks for this label.
           queried -- a list of data points for this label fetched from NNTSC.
-          freq -- the measurement frequency for this label as reported by 
+          freq -- the measurement frequency for this label as reported by
                   NNTSC.
           binsize -- the requested aggregation frequency when querying NNTSC.
 
@@ -922,7 +921,7 @@ class Collection(object):
           been removed.
 
         """
-    
+
         # If this block is cached, we can return the cached data right away
         if block['start'] in cached:
             return cached[block['start']], queried
@@ -962,7 +961,7 @@ class Collection(object):
                 # We should only have one measurement per timestamp, but
                 # it is unfortunately possible for us to end up with more
                 # than one under very certain cases (usually freq > binsize
-                # and measurements getting severely delayed, e.g. 
+                # and measurements getting severely delayed, e.g.
                 # prophet->afrinic ipv6)
                 #
                 # Trying to aggregate the multiple measurements is difficult
@@ -975,7 +974,7 @@ class Collection(object):
                     continue
 
                 if nextdata < maxts:
-                    # The next available queried data point fits in the 
+                    # The next available queried data point fits in the
                     # bin we were expecting, so format it nicely and
                     # add it to our block
                     datum = self.format_single_data(queried[0], freq)
@@ -1009,11 +1008,11 @@ class Collection(object):
           start -- the start of the time period to get data for
           end -- the end of the time period to get data for
           binsize -- the frequency at which data should be aggregated
-          detail -- a string describing the level of detail to use when 
+          detail -- a string describing the level of detail to use when
                     querying
 
         Returns:
-          a dictionary containing the results of the query. The dictionary 
+          a dictionary containing the results of the query. The dictionary
           format is explained below.
 
         Label dictionary format:
@@ -1031,8 +1030,8 @@ class Collection(object):
           The key is a string matching the label.
           The value is a dictionary containing the query results for that
           label. The value dictionary contains three elements of interest:
-                'data': 
-                    a list of data points. Each data point is itself a 
+                'data':
+                    a list of data points. Each data point is itself a
                     dictionary representing a row from the query result.
                 'freq':
                     an integer that is an estimate of the measurement frequency
@@ -1056,7 +1055,7 @@ class Collection(object):
             return None
 
         nntsc = NNTSCConnection(self.nntscconf)
-        history = nntsc.request_history(self.colid, labels, start, end, 
+        history = nntsc.request_history(self.colid, labels, start, end,
                 binsize, aggregators, groupcols)
         if history is None:
             log("Failed to fetch history for collection %s" % (self.collection_name))

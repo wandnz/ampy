@@ -17,7 +17,7 @@ class NNTSCConnection(object):
         as a list of dictionaries where each dictionary describes a
         stream,
     request_history:
-        Queries NNTSC for aggregated historical data for a given 
+        Queries NNTSC for aggregated historical data for a given
         time period and set of labels, binned according to the provided
         binsize. Returns a dictionary, keyed by the label.
 
@@ -51,12 +51,12 @@ class NNTSCConnection(object):
             self.port = 61234
 
     def _connect(self):
-        """ 
+        """
         Attempts to establish a connection with the NNTSC database.
 
         Returns None if the connection fails, otherwise it will return
         the newly created NNTSCClient object.
-        
+
         """
         # If we've already got a connection, just use that
         if self.client is not None:
@@ -75,7 +75,7 @@ class NNTSCConnection(object):
             if attempts > 0:
                 log("Retrying in 30 seconds (attempt %d)" % (attempts + 1))
                 time.sleep(30)
-        
+
             try:
                 s.connect((self.host, self.port))
                 connected = True
@@ -97,18 +97,18 @@ class NNTSCConnection(object):
         self.client = None
 
     def _get_nntsc_message(self):
-        """ 
+        """
         Waits for NNTSC to send a response to a query. Will block until
         a complete message arrives.
 
         Returns None if an error occurs, otherwise will return a tuple
         representing the NNTSC message. The first element of the tuple
-        is the message type and the second element is a dictionary 
+        is the message type and the second element is a dictionary
         containing the message contents.
         """
         if self.client == None:
             return None
-        
+
         while 1:
             msg = self.client.parse_message()
 
@@ -123,7 +123,7 @@ class NNTSCConnection(object):
             return msg
 
     def request_collections(self):
-        """ 
+        """
         Requests a list of collections from the NNTSC database.
 
         Returns None if the request fails, otherwise will return a list
@@ -131,7 +131,7 @@ class NNTSCConnection(object):
         """
         if self.client == None:
             self._connect()
-               
+
         if self.client == None:
             log("Unable to connect to NNTSC exporter to request collections")
             return None
@@ -156,9 +156,9 @@ class NNTSCConnection(object):
 
 
     def request_streams(self, colid, reqtype, boundary):
-        """ 
+        """
         Requests a list of streams from the NNTSC database.
-        
+
         Parameters:
             colid -- The id number of the collection which is being
                      queried
@@ -167,8 +167,8 @@ class NNTSCConnection(object):
                        streams are required
             boundary -- If asking for active streams, this field is a
                         timestamp. Only streams that were last updated since
-                        this timestamp will be returned. 
-                        Otherwise, this parameter is a stream id. Only 
+                        this timestamp will be returned.
+                        Otherwise, this parameter is a stream id. Only
                         streams that were first observed after this stream
                         was created will be returned.
                         In either case, set this to zero to receive all
@@ -178,10 +178,10 @@ class NNTSCConnection(object):
         dictionaries where each dictionary represents a single stream.
         """
         streams = []
-        
+
         if self.client == None:
             self._connect()
-               
+
         if self.client == None:
             log("Unable to connect to NNTSC exporter to request streams")
             return None
@@ -225,29 +225,29 @@ class NNTSCConnection(object):
 
         self._disconnect()
         return streams
-        
+
     def request_history(self, colid, labels, start, end, binsize, aggregators,
             groupcols):
-        """ 
+        """
         Requests historical time series data from a NNTSC database.
 
         Parameters:
             colid -- The id number of the collection which is being
                      queried
             labels -- A dictionary describing the streams to be queried.
-                      The keys are the label names and the values are a 
+                      The keys are the label names and the values are a
                       list of stream ids to be combined to form the time
                       series for that label.
             start -- the start of the time period to query for
             end -- the end of the time period to query for
-            binsize -- the bin size (in seconds) to use when aggregating 
-                       the time series data, i.e. a binsize of 600 will 
+            binsize -- the bin size (in seconds) to use when aggregating
+                       the time series data, i.e. a binsize of 600 will
                        produce one data point every 10 minutes. A binsize
                        of zero is a special case that will aggregate the
                        data into a single data point.
             aggregators -- a tuple consisting of two lists. The first list
                            contains the columns to query in the NNTSC
-                           database. The second list describes the 
+                           database. The second list describes the
                            aggregation functions that should be applied to
                            each of the columns in the first list. Both
                            lists need to be the same length and the
@@ -258,7 +258,7 @@ class NNTSCConnection(object):
                          result should be reported for each unique set of
                          values for those columns.
 
-        Returns None if the request fails, otherwise will return a 
+        Returns None if the request fails, otherwise will return a
         dictionary keyed by the label name. The dict values are also
         dictionaries containing the following items:
             freq -- the expected time gap between each returned value
@@ -266,12 +266,11 @@ class NNTSCConnection(object):
             timedout -- a list of tuples describing time periods where
                         the request was not completed due to a query
                         timeout
-        """        
-                
-                
+        """
+
         if self.client == None:
             self._connect()
-               
+
         if self.client == None:
             log("Unable to connect to NNTSC exporter to request historical data")
             return None
@@ -287,7 +286,7 @@ class NNTSCConnection(object):
 
         if result == -1:
             log("Failed to request aggregate data for collection %d" % (colid))
-            self._disconnect()      
+            self._disconnect()
             return None
 
         data = {}
@@ -329,7 +328,7 @@ class NNTSCConnection(object):
                         if "freq" not in data[lab]:
                             data[lab]["freq"] = binsize
                         count += 1
-            
+
             if msg[0] == NNTSC_HISTORY:
                 # Sanity checks
                 if msg[1]['collection'] != colid:
@@ -351,5 +350,5 @@ class NNTSCConnection(object):
         self._disconnect()
         return data
 
-        
+
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :
