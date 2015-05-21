@@ -135,13 +135,18 @@ class Ampy(object):
         """
         return self.savedcoldata.keys()
 
-    def get_meshes(self, endpoint):
+    def get_meshes(self, endpoint, amptest=None):
         """
         Fetches all source or destination meshes.
 
         Parameters:
           endpoint -- either "source" or "destination", depending on
                       which meshes are required.
+          amptest -- limit results to meshes that are targets for a given test.
+                     If None, no filtering of meshes is performed. This 
+                     parameter is ignored if querying for source meshes.
+                     Possible values include 'latency', 'hops', 'dns', 'http'
+                     and 'tput'.
 
         Returns:
           a list of dictionaries that describe the available meshes or
@@ -155,7 +160,7 @@ class Ampy(object):
             description -- a string describing the purpose of the mesh in
                            reasonable detail
         """
-        return self.ampmesh.get_meshes(endpoint)
+        return self.ampmesh.get_meshes(endpoint, amptest)
 
     def get_matrix_members(self, sourcemesh, destmesh):
         """
@@ -975,7 +980,7 @@ class Ampy(object):
         # Otherwise, we'll have to query the views database
         viewgroups = self.viewmanager.get_view_groups(viewstyle, view_id)
         if viewgroups is None:
-            log("Unable to find groups for view id %d(%s)" % \
+            log("Unable to find groups for view id %s (%s)" % \
                     (view_id, viewstyle))
             return None
 

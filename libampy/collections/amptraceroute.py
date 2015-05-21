@@ -90,14 +90,17 @@ class AmpTraceroute(AmpIcmp):
 
         return paths
 
-    def format_list_data(self, datalist, freq):
+    def format_list_data(self, datalist, freq, detail):
         reslist = []
         for d in datalist:
-            reslist.append(self.format_single_data(d, freq))
+            reslist.append(self.format_single_data(d, freq, detail))
         return reslist
 
-    def format_single_data(self, data, freq):
+    def format_single_data(self, data, freq, detail):
         if 'aspath' not in data:
+            return data
+
+        if detail in ['matrix', 'basic']:
             return data
  
         pathlen = 0
@@ -211,15 +214,15 @@ class AmpAsTraceroute(AmpTraceroute):
         super(AmpAsTraceroute, self).__init__(colid, viewmanager, nntscconf)
         self.collection_name = "amp-astraceroute"
         self.viewstyle = "amp-astraceroute"
-        self.default_aggregation = "IPV4"
+        self.default_aggregation = "FAMILY"
 
     def group_columns(self, detail):
         return []
     
     def detail_columns(self, detail):
-        if detail == "matrix":
-            aggfuncs = ["avg"]
-            aggcols = ["responses"]
+        if detail == "matrix" or detail == "basic":
+            aggfuncs = ["avg", "most_array"]
+            aggcols = ["responses", "aspath"]
         elif detail == "hops-full" or detail == "hops-summary":
             aggfuncs = ["most_array"]
             aggcols = ["aspath"]
@@ -228,6 +231,21 @@ class AmpAsTraceroute(AmpTraceroute):
             aggcols = ["responses"]
         
         return aggcols, aggfuncs
+   
+    def get_legend_label(self, description):
+        groupparams = self.parse_group_description(description)
+        if groupparams is None:
+            log("Failed to parse group description to generate legend label")
+            return None
+
+        # We can only show one family on a graph at a time
+        if groupparams['aggregation'] == "FAMILY":
+            groupparams['aggregation'] = "IPV4"
+
+        label = "%s to %s %s" % (groupparams['source'],
+                groupparams['destination'],
+                self.splits[groupparams['aggregation']])
+        return label
     
     def extra_blocks(self, detail):
         if detail == "hops-full" or detail == "full":
