@@ -725,7 +725,15 @@ class Ampy(object):
             col = self._getcol(collection, False)
             if col == None:
                 return None
-            newgroup = col.create_group_from_list(options)
+            # Allow options to be specified as a list or a dictionary. The
+            # list format requires knowledge of special formatting for some
+            # fields (e.g. DNS flags) that other code doesn't know about.
+            # Using create_group_description() lets the collection specific
+            # code do all the formatting work for us.
+            if isinstance(options, dict):
+                newgroup = col.create_group_description(options)
+            else:
+                newgroup = col.create_group_from_list(options)
             if newgroup is None:
                 return view_id
             return self.viewmanager.add_groups_to_view(col.viewstyle,
