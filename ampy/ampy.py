@@ -400,6 +400,22 @@ class Ampy(object):
 
         return legend
 
+    def get_full_selection_options(self, collection):
+        """
+        Return a list of all the stream properties for a collection.
+
+        Parameters:
+          collection -- the name of the collection to fetch properties for.
+
+        Returns:
+            a list of all the stream properties for the given collection
+        """
+        col = self._getcol(collection)
+        if col == None:
+            log("Error while fetching selection options")
+            return None
+
+        return col.streamproperties
 
     def get_selection_options(self, collection, selected):
         """
