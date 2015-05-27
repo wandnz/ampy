@@ -307,6 +307,7 @@ class Ampy(object):
             if binsize is not None and binsize < 0:
                 for gid, descr in vgs:
                     description[gid] = col.parse_group_description(descr)
+                    description[gid]["collection"] = colname
 
             # Find all labels for this view and their corresponding streams
             alllabels = []
