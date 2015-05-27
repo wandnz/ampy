@@ -377,7 +377,7 @@ class Collection(object):
 
         return []
 
-    def format_single_data(self, data, freq):
+    def format_single_data(self, data, freq, detail):
         """
         Modifies a single data point into a suitable format for display on
         a graph or a matrix.
@@ -388,6 +388,7 @@ class Collection(object):
         Parameters:
           data -- a dictionary containing the data point to be formatted
           freq -- the frequency that the measurements were collected at
+          detail -- the level of detail required
 
         Returns:
           the updated data point dictionary
@@ -396,7 +397,7 @@ class Collection(object):
         # For many collections, no formatting is required
         return data
 
-    def format_list_data(self, datalist, freq):
+    def format_list_data(self, datalist, freq, detail):
         """
         Modifies a list of data points into a suitable format for display on
         a graph or a matrix.
@@ -408,6 +409,7 @@ class Collection(object):
           datalist -- a list of dictionaries containing the data points to
                       be formatted
           freq -- the frequency that the measurements were collected at
+          detail -- the level of detail required
 
         Returns:
           the updated data point dictionary
@@ -680,7 +682,7 @@ class Collection(object):
                 return None
 
             for label, queryresult in result.iteritems():
-                formatted = self.format_list_data(queryresult['data'], queryresult['freq'])
+                formatted = self.format_list_data(queryresult['data'], queryresult['freq'], detail)
                 # Cache the result
                 cachelabel = label + "_" + self.collection_name
                 if len(cachelabel) > 128:
@@ -751,7 +753,7 @@ class Collection(object):
 
             for b in blocks:
                 blockdata, dbdata = self._next_block(b, cached[label],
-                    dbdata, frequencies[label], binsize)
+                    dbdata, frequencies[label], binsize, detail)
                 data[label] += blockdata
 
                 # Store this block in our cache for fast lookup next time
@@ -774,7 +776,7 @@ class Collection(object):
             # function to run these few lines of code
             for b in blocks:
                 blockdata, ignored = self._next_block(b, cached[label],
-                        [], 0, binsize)
+                        [], 0, binsize, detail)
                 data[label] += blockdata
                 ignored = cache.store_block(b, blockdata, label, binsize,
                         detail, [])
@@ -878,7 +880,7 @@ class Collection(object):
 
         return notcached, cached
 
-    def _next_block(self, block, cached, queried, freq, binsize):
+    def _next_block(self, block, cached, queried, freq, binsize, detail):
         """
         Internal function for populating a time series block with the correct
         datapoints from a NNTSC query result for a particular label.
@@ -977,7 +979,7 @@ class Collection(object):
                     # The next available queried data point fits in the
                     # bin we were expecting, so format it nicely and
                     # add it to our block
-                    datum = self.format_single_data(queried[0], freq)
+                    datum = self.format_single_data(queried[0], freq, detail)
                     queried = queried[1:]
                     if freq > binsize:
                         datum['binstart'] = ts

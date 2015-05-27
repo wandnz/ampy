@@ -94,7 +94,7 @@ class AmpMesh(object):
         params = (mesh,)
         return self._meshquery(query, params)
 
-    def get_meshes(self, endpoint):
+    def get_meshes(self, endpoint, amptest):
         """
         Fetches all source or destination meshes.
 
@@ -114,21 +114,26 @@ class AmpMesh(object):
             description -- a string describing the purpose of the mesh in
                            reasonable detail
         """
-        query = """ SELECT mesh_name, mesh_longname, mesh_description
-                        FROM mesh WHERE mesh_active = true
+        query = """ SELECT meshname, mesh_longname, mesh_description
+                        FROM full_mesh_details WHERE mesh_active = true
                     """
 
         if endpoint == "source":
             query += " AND mesh_is_src = true"
+            qps = None
+        elif endpoint == "destination" and amptest is not None:
+            query += " AND mesh_is_dst = true AND meshtests_test = %s"
+            qps = (amptest,)
         elif endpoint == "destination":
             query += " AND mesh_is_dst = true"
+            qps = None
        
-        query += " ORDER BY mesh_longname"
-        
+        query += " GROUP BY meshname, mesh_longname, mesh_description ORDER BY mesh_longname"
+
         # If the endpoint is invalid, we'll currently return all meshes.
         # XXX Is this the correct behaviour?
         self.dblock.acquire()
-        if self.db.executequery(query, None) == -1:
+        if self.db.executequery(query, qps) == -1:
             log("Error while querying %s meshes" % (endpoint))
             self.dblock.release()
             return None
