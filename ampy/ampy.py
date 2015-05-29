@@ -321,10 +321,7 @@ class Ampy(object):
                 if grouplabels is None:
                     log("Unable to convert group %d into stream labels" % (gid))
                     continue
-                for grouplabel in grouplabels:
-                    # don't add groups with no streams!
-                    if len(grouplabel["streams"]) > 0:
-                        alllabels.append(grouplabel)
+                alllabels += grouplabels
 
             colhist = col.get_collection_history(self.cache, alllabels, start,
                     end, detail, binsize)
