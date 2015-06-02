@@ -12,14 +12,14 @@ class AmpIcmp(Collection):
                 'aggregation']
         self.collection_name = "amp-icmp"
         self.splits = {
-                "FAMILY":"IPv4/IPv6", 
+                "FAMILY":"IPv4/IPv6",
                 "FULL":"All Addresses",
                 "IPV4":"IPv4",
                 "IPV6":"IPv6"}
         self.default_packet_size = "84"
         self.default_aggregation = "FAMILY"
         self.viewstyle = "amp-latency"
-       
+
     def detail_columns(self, detail):
         # the matrix view expects both the mean and stddev for the latency
         if detail == "matrix":
@@ -30,8 +30,8 @@ class AmpIcmp(Collection):
             aggcols = ["median", "loss", "results"]
         else:
             aggfuncs = ["avg", "smokearray", "sum", "sum"]
-            aggcols = ["median", "rtts", "loss", "results"] 
-    
+            aggcols = ["median", "rtts", "loss", "results"]
+
         return (aggcols, aggfuncs)
 
     def calculate_binsize(self, start, end, detail):
@@ -39,18 +39,18 @@ class AmpIcmp(Collection):
             return 60
 
         return super(AmpIcmp, self).calculate_binsize(start, end, detail)
-        
+
     def get_legend_label(self, description):
         groupparams = self.parse_group_description(description)
         if groupparams is None:
             log("Failed to parse group description to generate legend label")
             return None
 
-        label = "%s to %s %s" % (groupparams['source'], 
-                groupparams['destination'], 
+        label = "%s to %s %s" % (groupparams['source'],
+                groupparams['destination'],
                 self.splits[groupparams['aggregation']])
 
-        return label        
+        return label
 
     def _generate_label(self, baselabel, search, family, lookup):
         if family is None:
@@ -60,7 +60,7 @@ class AmpIcmp(Collection):
             key = baselabel + "_" + family
             search['family'] = family.lower()
             shortlabel = family
-        
+
         if lookup:
             streams = self.streammanager.find_streams(search)
             if streams is None:
@@ -73,14 +73,14 @@ class AmpIcmp(Collection):
 
         return {'labelstring':key, 'streams':streams, 'shortlabel':shortlabel}
 
-    def _group_to_search(self, groupparams):            
-        return {'source':groupparams['source'], 
+    def _group_to_search(self, groupparams):
+        return {'source':groupparams['source'],
                 'destination':groupparams['destination'],
                 'packet_size':groupparams['packet_size']}
 
     def group_to_labels(self, groupid, description, lookup=True):
         labels = []
-        
+
         groupparams = self.parse_group_description(description)
         if groupparams is None:
             log("Failed to parse group description to generate labels")
@@ -122,7 +122,7 @@ class AmpIcmp(Collection):
                 log("Required group property '%s' not present in %s group" % \
                     (p, self.collection_name))
                 return None
-        
+
         return "FROM %s TO %s OPTION %s %s" % ( \
                 properties['source'], properties['destination'],
                 properties['packet_size'], properties['aggregation'].upper())
@@ -137,7 +137,7 @@ class AmpIcmp(Collection):
 
         if parts is None:
             return None
-        
+
         if parts.group("split") not in self.splits:
             log("%s group description has no aggregation method" % \
                     (self.collection_name))
@@ -152,11 +152,11 @@ class AmpIcmp(Collection):
         }
 
         return keydict
-   
+
     def update_matrix_groups(self, source, dest, groups, views, viewmanager):
-        
+
         groupprops = {
-            'source':source, 'destination':dest, 
+            'source':source, 'destination':dest,
                     'packet_size':self.default_packet_size
         }
 
@@ -167,21 +167,21 @@ class AmpIcmp(Collection):
             views[(source, dest)] = -1
             return
 
-        cellgroup = self.create_group_from_list([source, dest, 
+        cellgroup = self.create_group_from_list([source, dest,
                 self.default_packet_size, self.default_aggregation])
         if cellgroup is None:
             log("Failed to create group for %s matrix cell" % \
                     (self.collection_name))
             return None
 
-        viewid = viewmanager.add_groups_to_view(self.viewstyle, 
+        viewid = viewmanager.add_groups_to_view(self.viewstyle,
                 self.collection_name, 0, [cellgroup])
         if viewid is None:
             views[(source, dest)] = -1
         else:
-            views[(source, dest)] = viewid 
+            views[(source, dest)] = viewid
 
-        
+
 
 
     def translate_group(self, groupprops):
@@ -231,17 +231,17 @@ class AmpIcmp(Collection):
         return self.create_group_description(newprops)
 
     def _matrix_group_streams(self, baseprops, family, groups):
-        
+
         baseprops['family'] = family
-        label = "%s_%s_%s" % (baseprops['source'], baseprops['destination'], 
+        label = "%s_%s_%s" % (baseprops['source'], baseprops['destination'],
                 family)
         streams = self.streammanager.find_streams(baseprops)
 
         if len(streams) > 0:
             groups.append({'labelstring':label, 'streams':streams})
-        
+
         return len(streams)
-        
+
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :
 

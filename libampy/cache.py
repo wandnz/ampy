@@ -14,7 +14,7 @@ class AmpyCache(object):
     cache at a block level to avoid filling up our cache with entries for
     specific data points while still being flexible enough that the cached
     data can be reused if a user pans or zooms the graph slightly.
-    
+
     Blocks work well because a user will seldom want just a single data
     point in isolation; multiple consecutive data points are needed to plot
     a time series graph, for instance.
@@ -45,9 +45,9 @@ class AmpyCache(object):
       search_view_groups:
         Searches the cache for the list of groups that that belong to a given
         view ID.
-   
-   
-    """ 
+
+
+    """
     def __init__(self, blocksize):
         """
         Init function for the AmpyCache class.
@@ -113,7 +113,7 @@ class AmpyCache(object):
             if nextfail[0] > end:
                 break
 
-            # If this block starts after the next timeout, that 
+            # If this block starts after the next timeout, that
             # failure is no longer useful. Pop it and check the next one
             if nextfail[1] < start:
                 failed = failed[1:]
@@ -127,8 +127,8 @@ class AmpyCache(object):
 
         if not cacheblock:
             return failed
-        
-        # Cache the block  
+
+        # Cache the block
         key = self._block_cache_key(start, binsize, detail, label)
         self._cachestore(key, blockdata, cachetime,
                 "data block")
@@ -136,8 +136,8 @@ class AmpyCache(object):
         return failed
 
     def get_caching_blocks(self, start, end, binsize, extra):
-        """ 
-        Divides a time period into fixed size blocks suitable for 
+        """
+        Divides a time period into fixed size blocks suitable for
         caching.
 
         Parameters:
@@ -149,13 +149,19 @@ class AmpyCache(object):
 
         For the purposes of caching, a block consists of N data
         points where N is the blocksize given when initialising the
-        AmpyCache object. 
+        AmpyCache object.
 
         Returns the list of blocks covering the specified time period
         at the given binsize (including any 'extra' blocks).
         """
         blocks = []
-        blocksize = binsize * self.blocksize
+        # negative binsize means this is a raw data fetch with no binning so
+        # pick an arbitrary size for our blocks - currently set to 2 hours
+        # (60 * 12 the default blocksize)
+        if binsize < 0:
+            blocksize = 60 * self.blocksize
+        else:
+            blocksize = binsize * self.blocksize
 
         # Include 'extra' additional blocks either side when fetching data.
         # This is often used to ensure there will be data present if a
@@ -192,7 +198,7 @@ class AmpyCache(object):
         list.
 
         Parameters:
-          blocks -- a list of dictionaries describing the blocks for which 
+          blocks -- a list of dictionaries describing the blocks for which
                     data is required.
           binsize -- the aggregation frequency for the time series.
           detail -- the level of detail required, e.g. 'full' vs 'matrix'.
@@ -228,7 +234,7 @@ class AmpyCache(object):
                 # If true, this is the first block we've missed
                 nextblock['start'] = b['start']
                 nextblock['end'] = b['end']
-                continue 
+                continue
 
             if b['start'] == nextblock['end']:
                 # This block is contiguous with the last uncached block.
@@ -242,7 +248,7 @@ class AmpyCache(object):
             nextblock['start'] = b['start']
             nextblock['end'] = b['end']
 
-        # If we were still working on a uncached block, make sure we add it 
+        # If we were still working on a uncached block, make sure we add it
         # to the list
         if missing > 0:
             uncached.append((nextblock['start'], nextblock['end']))
@@ -324,9 +330,9 @@ class AmpyCache(object):
                 "recent data")
 
     def search_asname(self, aslabel):
-        """ 
+        """
         Searches the cache for the AS name for a given AS number.
-    
+
         Parameters:
           aslabel -- a string describing the ASN to search for.
 
@@ -361,14 +367,14 @@ class AmpyCache(object):
         """
         Caches the view ID that best matches a single stream ID.
 
-        Stream to view mappings are useful for creating links to graphs 
+        Stream to view mappings are useful for creating links to graphs
         that show netevmon events, which do not have any concept of views
         or groups. Instead, we work out the most appropriate group for
         showing the series which the event detector used and create a view
         containing just that group.
-        
+
         Rather than figuring out appropriate groups and views every time
-        someone clicks on an event, we can cache the view ID for a given 
+        someone clicks on an event, we can cache the view ID for a given
         stream the first time someone clicks on an event for that stream.
 
         Parameters:
@@ -379,7 +385,7 @@ class AmpyCache(object):
           None.
         """
         cachekey = self._stream_view_cache_key(streamid)
-        
+
         self._cachestore(cachekey, viewid, self.streamview_cachetime,
                 "stream view")
 
@@ -400,7 +406,7 @@ class AmpyCache(object):
         cachekey = self._stream_view_cache_key(streamid)
         return self._cachefetch(cachekey, "stream view")
 
-    
+
     def store_view_groups(self, viewid, groups):
         """
         Caches the dictionary of groups that belong to a particular view.
@@ -414,7 +420,7 @@ class AmpyCache(object):
           None
         """
         cachekey = self._view_groups_cache_key(viewid)
-        self._cachestore(cachekey, groups, self.viewgroups_cachetime, 
+        self._cachestore(cachekey, groups, self.viewgroups_cachetime,
                 "view groups")
 
     def search_view_groups(self, viewid):
@@ -428,7 +434,7 @@ class AmpyCache(object):
           a dictionary of groups if there is a cache entry for the given view
           ID, None otherwise.
 
-        The returned dictionary matches the format returned by the 
+        The returned dictionary matches the format returned by the
         get_view_groups() function in the ViewManager class.
         """
         cachekey = self._view_groups_cache_key(viewid)
@@ -470,7 +476,7 @@ class AmpyCache(object):
           None if no cache entry is found, otherwise the data stored using
           the given key.
 
-        If an error occurs while searching the cache, a warning will be 
+        If an error occurs while searching the cache, a warning will be
         printed and None will be returned.
         """
 
@@ -504,7 +510,7 @@ class AmpyCache(object):
         return str("_".join([label, str(start), str(end)]))
 
     def _recent_cache_key(self, label, duration, detail):
-        return str("_".join([label, "recent", str(duration), detail])) 
+        return str("_".join([label, "recent", str(duration), detail]))
 
     def _recent_cache_timeout(self, duration):
         """
