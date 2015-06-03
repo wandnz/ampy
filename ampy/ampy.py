@@ -6,6 +6,7 @@ from libampy.collection import Collection
 from libampy.nntsc import NNTSCConnection
 from libampy.cache import AmpyCache
 from libampy.eventmanager import EventManager
+from libampy.asnnames import queryASNames
 
 from libnntscclient.logger import *
 
@@ -75,6 +76,8 @@ class Ampy(object):
         Fetches all event groups for a specified time period.
     get_event_group_members:
         Fetches all events that belong to a specified event group.
+    get_asn_names:
+        Translates a list of ASNs into their corresponding names.
     """
 
     def __init__(self, ampdbconf, viewconf, nntscconf, eventconf):
@@ -852,6 +855,46 @@ class Ampy(object):
         """
         members = self.eventmanager.fetch_event_group_members(eventgroupid)
         return members
+
+
+    def get_asn_names(self, asns):
+        """
+        Looks up the names for a list of ASNs.
+
+        Parameters:
+          asns -- a list of AS numbers to find names for.
+
+        Returns:
+          a dictionary where the key is the ASN and the value is the
+          name for the AS (according to Team Cymru) or None if the lookup
+          fails.
+        """
+        result = {}
+        toquery = set()
+        for a in asns:
+            if a == "-2":
+                aslabel = asname = "RFC 1918"
+            elif a == "-1":
+                aslabel = asname = "No response"
+            elif a == "0":
+                aslabel = asname = "Unknown"
+            else:
+                aslabel = "AS" + a
+                asname = self.cache.search_asname(aslabel)
+                if asname == None:
+                    toquery.add(aslabel)
+
+            if asname is not None:
+                result[a] = asname 
+
+        queried = queryASNames(toquery, self.cache)
+
+        if queried is None:
+            return None
+
+        for a, n in queried.iteritems():
+            result[a] = n
+        return result
 
 
     def _query_collections(self):
