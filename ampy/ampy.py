@@ -30,7 +30,7 @@ class Ampy(object):
     the NNTSC database.
 
     This class implements all of the external API methods required by the
-    Cuz website. The website should only need to import this module to 
+    Cuz website. The website should only need to import this module to
     access all of the ampy functionality.
 
     API Functions
@@ -47,20 +47,20 @@ class Ampy(object):
     get_amp_site_info:
         Fetches detailed information about an AMP mesh member.
     get_recent_data:
-        Fetches aggregated values for a time period starting at now and 
+        Fetches aggregated values for a time period starting at now and
         going back a specified duration, i.e. the most recent measurements.
     get_historic_data:
         Fetches aggregated time series data for a specified time period.
     get_view_legend:
-        Constructs suitable legend labels for each group present in a view. 
+        Constructs suitable legend labels for each group present in a view.
     get_selection_options:
         Given a set of chosen group properties, returns a set of possible
         options for the next group property.
     test_graphtab_view:
-        Given an existing view for another collection, checks if there is 
+        Given an existing view for another collection, checks if there is
         a valid equivalent view for a collection.
     create_graphtab_view:
-        Given an existing view for another collection, creates an 
+        Given an existing view for another collection, creates an
         equivalent view for a collection.
     get_event_view:
         Given a stream id that an event was detected on, creates a suitable
@@ -70,7 +70,7 @@ class Ampy(object):
     get_matrix_data:
         Fetches all data to populate a matrix constructed from AMP meshes.
     get_view_events:
-        Fetches all events for streams belonging to a given view that 
+        Fetches all events for streams belonging to a given view that
         occurred over a certain time period.
     get_event_groups:
         Fetches all event groups for a specified time period.
@@ -90,10 +90,10 @@ class Ampy(object):
           nntscconf -- config for connecting to the NNTSC exporter.
           eventconf -- config for connecting to the Events database.
 
-        Refer to the AmpyDatabase class for more details on the 
+        Refer to the AmpyDatabase class for more details on the
         configuration required for connecting to databases via ampy.
 
-        Refer to the NNTSCConnection class for more details on the 
+        Refer to the NNTSCConnection class for more details on the
         configuration required for connecting to a NNTSC exporter.
         """
         self.ampmesh = AmpMesh(ampdbconf)
@@ -108,11 +108,11 @@ class Ampy(object):
 
     def start(self):
         """
-        Ensures ampy is ready for subsequent API calls by populating the 
+        Ensures ampy is ready for subsequent API calls by populating the
         internal list of available collections.
 
         Must be called once the Ampy instance is instantiated, i.e. before
-        making any other API calls. start() only needs to be called once 
+        making any other API calls. start() only needs to be called once
         per Ampy instance.
 
         Returns:
@@ -138,27 +138,32 @@ class Ampy(object):
         """
         return self.savedcoldata.keys()
 
-    def get_meshes(self, endpoint):
+    def get_meshes(self, endpoint, amptest=None):
         """
         Fetches all source or destination meshes.
 
         Parameters:
-          endpoint -- either "source" or "destination", depending on 
+          endpoint -- either "source" or "destination", depending on
                       which meshes are required.
+          amptest -- limit results to meshes that are targets for a given test.
+                     If None, no filtering of meshes is performed. This 
+                     parameter is ignored if querying for source meshes.
+                     Possible values include 'latency', 'hops', 'dns', 'http'
+                     and 'tput'.
 
         Returns:
-          a list of dictionaries that describe the available meshes or 
+          a list of dictionaries that describe the available meshes or
           None if an error occurs while querying for the meshes.
 
         Mesh dictionary format:
           The returned dictionaries should contain three elements:
             name -- the internal unique identifier string for the mesh
-            longname -- a string containing a mesh name that is more 
+            longname -- a string containing a mesh name that is more
                         suited for public display
             description -- a string describing the purpose of the mesh in
                            reasonable detail
         """
-        return self.ampmesh.get_meshes(endpoint)
+        return self.ampmesh.get_meshes(endpoint, amptest)
 
     def get_matrix_members(self, sourcemesh, destmesh):
         """
@@ -190,7 +195,7 @@ class Ampy(object):
         Parameters:
           sitename -- the name of the mesh member to query for
 
-        Returns: 
+        Returns:
           a dictionary containing detailed information about the site.
 
         The resulting dictionary contains the following items:
@@ -205,7 +210,7 @@ class Ampy(object):
                     active
         """
         return self.ampmesh.get_site_info(sitename)
-        
+
 
     def get_recent_data(self, viewstyle, view_id, duration, detail):
         """
@@ -214,7 +219,7 @@ class Ampy(object):
 
         The resulting data will be aggregated into a single value for the
         entire time period, making this function best suited for summary
-        statistics (e.g. matrix tooltips) rather than drawing time series 
+        statistics (e.g. matrix tooltips) rather than drawing time series
         graphs.
 
         See get_historic_data if you need time series data.
@@ -223,7 +228,7 @@ class Ampy(object):
           viewstyle -- the name of the collection that the view belongs to.
           view_id -- the view to fetch recent data for.
           duration -- the length of the time period to fetch data for, in
-                      seconds. 
+                      seconds.
           detail --  the level of detail, e.g. 'full', 'matrix'. This will
                      determine which data columns are queried and how they
                      are aggregated.
@@ -260,7 +265,7 @@ class Ampy(object):
                     continue
                 alllabels += grouplabels
 
-            rec, tim = col.get_collection_recent(self.cache, alllabels, 
+            rec, tim = col.get_collection_recent(self.cache, alllabels,
                     duration, detail)
 
             recentdata.update(rec)
@@ -269,7 +274,7 @@ class Ampy(object):
         return recentdata, timeouts
 
 
-    def get_historic_data(self, viewstyle, view_id, start, end, 
+    def get_historic_data(self, viewstyle, view_id, start, end,
             detail, binsize = None):
         """
         Fetches aggregated time series data for each label within a view.
@@ -288,11 +293,12 @@ class Ampy(object):
 
         Returns:
           a dictionary keyed by label where each value is a list containing
-          the aggregated time series data for the specified time period. 
+          the aggregated time series data for the specified time period.
           Returns None if an error occurs while fetching the data.
 
         """
         history = {}
+        description = {}
 
         viewgroups = self._view_to_groups(viewstyle, view_id)
         if viewgroups is None:
@@ -305,6 +311,12 @@ class Ampy(object):
                 log("Failed to create collection module %s" % (colname))
                 return None
 
+            # save the description so we can pass it back with the raw data
+            if binsize is not None and binsize < 0:
+                for gid, descr in vgs:
+                    description[gid] = col.parse_group_description(descr)
+                    description[gid]["collection"] = colname
+
             # Find all labels for this view and their corresponding streams
             alllabels = []
             for (gid, descr) in vgs:
@@ -312,9 +324,9 @@ class Ampy(object):
                 if grouplabels is None:
                     log("Unable to convert group %d into stream labels" % (gid))
                     continue
-                alllabels += grouplabels 
+                alllabels += grouplabels
 
-            colhist = col.get_collection_history(self.cache, alllabels, start, 
+            colhist = col.get_collection_history(self.cache, alllabels, start,
                     end, detail, binsize)
 
             if colhist is None:
@@ -322,6 +334,11 @@ class Ampy(object):
                 return None
 
             history.update(colhist)
+
+        # if binsize is -1 then this is a raw data fetch and we need to
+        # return some better descriptions of the groups
+        if binsize is not None and binsize < 0:
+            return description, history
         return history
 
     def get_view_legend(self, viewstyle, view_id):
@@ -332,24 +349,24 @@ class Ampy(object):
         Parameters:
           viewstyle -- the name of the collection that the view belongs to.
           view_id -- the view to generate legend labels for.
-        
+
         Returns:
           a list of dictionaries, where each dictionary describes a group.
           Returns None if an error occurs.
-          
+
         Group dictionary format:
           A group dictionary contains three elements:
-            group_id -- a unique string identifying the group 
+            group_id -- a unique string identifying the group
             label -- the text to display on the legend for the group
-            lines -- a list of 'lines' that will be drawn on the graph for 
+            lines -- a list of 'lines' that will be drawn on the graph for
                      the group
 
           A line is a tuple, containing the following three elements:
             * a unique string identifying the line (includes the group id)
-            * text to display if the line is moused over on the graph or 
+            * text to display if the line is moused over on the graph or
               legend
-            * a unique integer index that indicates which colour should be 
-              used to draw the line on a graph. Indexes start at zero for 
+            * a unique integer index that indicates which colour should be
+              used to draw the line on a graph. Indexes start at zero for
               the first line and increment from there.
 
         """
@@ -364,7 +381,7 @@ class Ampy(object):
         # A set of 'legend' entries, one per group
         # For each entry, we also need a set of 'lines', one per group member
         nextlineid = 0
-        
+
         # Sort the groups in the view by collection then description.
         # This ensures that A) the legend will be in a consistent order
         # and B) the ordering is more obvious to the user (i.e. alphabetical
@@ -388,13 +405,29 @@ class Ampy(object):
 
         return legend
 
+    def get_full_selection_options(self, collection):
+        """
+        Return a list of all the stream properties for a collection.
+
+        Parameters:
+          collection -- the name of the collection to fetch properties for.
+
+        Returns:
+            a list of all the stream properties for the given collection
+        """
+        col = self._getcol(collection)
+        if col == None:
+            log("Error while fetching selection options")
+            return None
+
+        return col.streamproperties
 
     def get_selection_options(self, collection, selected):
         """
-        Given a set of known stream properties, finds the next unknown 
-        stream property where there is more than one choice available 
-        and returns a list of available options for that property. Any 
-        stream properties along the way that have only one possible choice 
+        Given a set of known stream properties, finds the next unknown
+        stream property where there is more than one choice available
+        and returns a list of available options for that property. Any
+        stream properties along the way that have only one possible choice
         are also returned.
 
         This is primarily used to populate dropdown lists on the modal
@@ -403,16 +436,16 @@ class Ampy(object):
         Parameters:
           collection -- the name of the collection to use to interpret
                         the options.
-          selected -- a list containing the stream properties that 
-                      have already been selected, e.g. the choices already 
+          selected -- a list containing the stream properties that
+                      have already been selected, e.g. the choices already
                       made on the modal dialog, in order.
 
         Returns:
           a dictionary where the key is a stream property and the value is
           a list of possible choices for that stream property, given the
           properties already chosen in the 'selected' dictionary.
-          
-          Returns None if an error occurs while fetching the selection 
+
+          Returns None if an error occurs while fetching the selection
           options.
         """
 
@@ -421,7 +454,7 @@ class Ampy(object):
             log("Error while fetching selection options")
             return None
 
-        seldict = col.create_properties_from_list(selected, 
+        seldict = col.create_properties_from_list(selected,
                 col.streamproperties)
         if seldict is None:
             log("Unable to understand selected options")
@@ -429,9 +462,9 @@ class Ampy(object):
 
         # The collection module does most of the work here
         options = col.get_selections(seldict, False)
-        return options       
+        return options
 
-    
+
 
     def test_graphtab_view(self, viewstyle, tabcollection, view_id):
         """
@@ -441,39 +474,39 @@ class Ampy(object):
         Used to determine which 'related' collections should be included
         in the quick-switch tabs on the right of a graph.
 
-        Essentially, this function attempts to convert the group 
-        descriptions from the original view into group descriptions for 
-        the current collection. 
-        
-        If any view group is successfully translated to the new collection, 
-        this is considered a success even if other groups cannot be 
+        Essentially, this function attempts to convert the group
+        descriptions from the original view into group descriptions for
+        the current collection.
+
+        If any view group is successfully translated to the new collection,
+        this is considered a success even if other groups cannot be
         translated.
-        
+
         Parameters:
           viewstyle -- the name of the collection that the original view
                         belongs to.
-          tabcollection -- the name of the collection that the view is to 
+          tabcollection -- the name of the collection that the view is to
                            be translated to.
           view_id -- the ID number of the view that is to be translated.
 
         Returns:
-          True if the view can be translated to the new collection. 
-          False if the view cannot be translated. 
+          True if the view can be translated to the new collection.
+          False if the view cannot be translated.
           None if an error occurs while evaluating the translation.
 
         Note:
-          If viewstyle and tabcollection are the same, this function 
+          If viewstyle and tabcollection are the same, this function
           should ALWAYS return True.
         """
-       
+
         if viewstyle == tabcollection:
             return True
-        
-        groups = self._view_to_groups(viewstyle, view_id)   
+
+        groups = self._view_to_groups(viewstyle, view_id)
         if groups == None:
             log("Error while constructing tabview")
             return None
-        
+
         # Make sure our target collection is also up-to-date
         tabcol = self._getcol(tabcollection)
         if tabcol == None:
@@ -499,7 +532,7 @@ class Ampy(object):
                     # We can bail as soon as we get one group with a stream
                     if len(lab['streams']) > 0:
                         return True
-            
+
         # If we get here, none of the translated groups would match any
         # streams in the database
         return False
@@ -512,15 +545,15 @@ class Ampy(object):
         This is used to construct the view to be displayed if a user
         clicks on a 'related' graph tab while looking at a graph.
 
-        Essentially, this function converts the group descriptions from the 
-        original view into group descriptions for the current collection. 
+        Essentially, this function converts the group descriptions from the
+        original view into group descriptions for the current collection.
         If a group cannot be converted, it will not be included on the
         new graph.
-        
+
         Parameters:
           viewstyle -- the name of the collection that the original view
                         belongs to.
-          tabcollection -- the name of the collection that the view is to 
+          tabcollection -- the name of the collection that the view is to
                            be translated to.
           view_id -- the ID number of the view that is to be translated.
 
@@ -537,11 +570,11 @@ class Ampy(object):
         if viewstyle == tabcollection:
             return view_id
 
-        groups = self._view_to_groups(viewstyle, view_id)   
+        groups = self._view_to_groups(viewstyle, view_id)
         if groups == None:
             log("Error while constructing tabview")
             return None
-        
+
         # Make sure our target collection is also up-to-date
         tabcol = self._getcol(tabcollection)
         if tabcol == None:
@@ -574,7 +607,7 @@ class Ampy(object):
         # bail as we have nothing to draw on the graph.
         # Normally, this wouldn't happen as someone should have called
         # test_graphtab_view before drawing the tab that would trigger this
-        # function call but you can never predict how people will abuse 
+        # function call but you can never predict how people will abuse
         # this API in the future
         if len(tabgroups) == 0:
             log("Unable to create tabview %s to %s for view %s" % \
@@ -621,13 +654,13 @@ class Ampy(object):
 
         This is used to create links to graphs from events shown on the
         dashboard. Events have no concept of views or view groups; instead
-        we only have the ID of *one* of the streams that contributed to the 
-        time series that the event was detected on. Therefore, we need to 
+        we only have the ID of *one* of the streams that contributed to the
+        time series that the event was detected on. Therefore, we need to
         be able to convert the single stream into a group that covers all
         of the streams that contributed to the event time series.
 
         Parameters:
-          collection -- the name of the collection that the stream 
+          collection -- the name of the collection that the stream
                         belongs to.
           stream -- the ID of the stream that the event was detected on.
 
@@ -647,7 +680,7 @@ class Ampy(object):
         if col == None:
             log("Error while creating event view")
             return None
-        
+
         # Find the stream in our stream hierarchy
         streamprops = col.find_stream(stream)
         if streamprops is None:
@@ -678,7 +711,7 @@ class Ampy(object):
         Adds or removes a group from an existing view.
 
         Parameters:
-          collection -- if adding groups, this is the name of the 
+          collection -- if adding groups, this is the name of the
                         collection that the new groups belong to. If
                         removing a group, this is the style of the view
                         that is being removed from.
@@ -690,7 +723,7 @@ class Ampy(object):
                      be removed.
 
         Returns:
-          the ID of the resulting modified view. 
+          the ID of the resulting modified view.
           If the view is unchanged, the original view ID will be returned.
           None if an error occurs while creating the new view.
 
@@ -698,14 +731,14 @@ class Ampy(object):
         adding a group, the options list should be a complete list of group
         properties in the order that they appear in the collection's group
         properties list. For example, adding an amp-icmp group would require
-        options to be a list containing a source, a destination, a packet 
-        size and an address family (in that order). 
+        options to be a list containing a source, a destination, a packet
+        size and an address family (in that order).
 
         In the case of removing a group, the list should contain only one
-        item: the group ID of the group to be removed. 
-          
+        item: the group ID of the group to be removed.
+
         """
-          
+
         if len(options) == 0:
             return view_id
 
@@ -714,10 +747,18 @@ class Ampy(object):
             col = self._getcol(collection, False)
             if col == None:
                 return None
-            newgroup = col.create_group_from_list(options)
+            # Allow options to be specified as a list or a dictionary. The
+            # list format requires knowledge of special formatting for some
+            # fields (e.g. DNS flags) that other code doesn't know about.
+            # Using create_group_description() lets the collection specific
+            # code do all the formatting work for us.
+            if isinstance(options, dict):
+                newgroup = col.create_group_description(options)
+            else:
+                newgroup = col.create_group_from_list(options)
             if newgroup is None:
                 return view_id
-            return self.viewmanager.add_groups_to_view(col.viewstyle, 
+            return self.viewmanager.add_groups_to_view(col.viewstyle,
                     collection, view_id, [newgroup])
         elif action == "del":
             # XXX In theory, we could support removing more than one group?
@@ -732,7 +773,7 @@ class Ampy(object):
         Fetches all of the data required to populate an AMP matrix.
 
         Parameters:
-          collection -- the name of the collection that the matrix 
+          collection -- the name of the collection that the matrix
                         belongs to.
           options -- an ordered list describing which meshes should appear
                      in the matrix.
@@ -749,28 +790,28 @@ class Ampy(object):
           containing the view ids for the graphs that each matrix cell
           will link to.
 
-          Returns None if an error occurs while determining the matrix 
+          Returns None if an error occurs while determining the matrix
           groups or querying for the matrix data.
 
-        The options parameter must contain at least two items: the source 
-        and destination meshes for the matrix. Any subsequent items are 
+        The options parameter must contain at least two items: the source
+        and destination meshes for the matrix. Any subsequent items are
         ignored.
-        
+
         """
 
         col = self._getcol(collection)
         if col == None:
             log("Error while fetching matrix data")
             return None
-        
-        # Work out which groups are required for this matrix 
+
+        # Work out which groups are required for this matrix
         matrixgroups = self._get_matrix_groups(col, options)
         if matrixgroups is None:
             return None
 
         groups, sources, destinations, views = matrixgroups
 
-        fetcheddata = col.get_collection_recent(self.cache, groups, duration, 
+        fetcheddata = col.get_collection_recent(self.cache, groups, duration,
                 "matrix")
         if fetcheddata is None:
             return None
@@ -784,33 +825,33 @@ class Ampy(object):
         Parameters:
           viewstyle -- the name of the collection that the view belongs to.
           view_id -- the ID of the view that is being shown on the graph.
-          start -- the timestamp at the start of the time period shown on 
+          start -- the timestamp at the start of the time period shown on
                    the graph.
-          end -- the timestamp at the end of the time period shown on the 
+          end -- the timestamp at the end of the time period shown on the
                  graph.
 
         Returns:
-          A list of events that were detected between 'start' and 'end' 
+          A list of events that were detected between 'start' and 'end'
           for all streams that are part of the view being displayed.
           Returns None if an error occurs while fetching the events.
         """
 
-        groups = self._view_to_groups(viewstyle, view_id)   
+        groups = self._view_to_groups(viewstyle, view_id)
         if groups == None:
             log("Error while fetching events for a view")
             return None
-      
+
         # Convert our view groups into a set of stream labels. In particular,
         # we will need the list of streams for each label as the events are
         # associated with stream IDs, not labels or groups or views.
-        alllabels = [] 
-        
+        alllabels = []
+
         for colname, vgs in groups.iteritems():
             col = self._getcol(colname)
             if col is None:
                 log("Error while creating module for collection %s" % (colname))
                 return None
-        
+
             for gid, descr in vgs:
                 grouplabels = col.group_to_labels(gid, descr, True)
                 if grouplabels is None:
@@ -825,16 +866,16 @@ class Ampy(object):
 
     def get_event_groups(self, start, end):
         """
-        Finds all of the event groups that occured within a given time 
+        Finds all of the event groups that occured within a given time
         period.
 
         Parameters:
-          start -- the timestamp at the start of the time period of 
+          start -- the timestamp at the start of the time period of
                    interest.
           end -- the timestamp at the end of the time period of interest.
 
         Returns:
-          a list of event groups or None if an error occurs while querying 
+          a list of event groups or None if an error occurs while querying
           the event database.
         """
         return self.eventmanager.fetch_groups(start, end)
@@ -850,7 +891,7 @@ class Ampy(object):
           groupid -- the unique id of the event group
 
         Returns:
-          a list of events or None if there was an error while querying 
+          a list of events or None if there was an error while querying
           the event database.
         """
         members = self.eventmanager.fetch_event_group_members(eventgroupid)
@@ -925,7 +966,7 @@ class Ampy(object):
         name. If this Ampy instance does not have an instance of that
         collection module, one is created.
 
-        When adding new collection modules, this function needs to be 
+        When adding new collection modules, this function needs to be
         updated to ensure that Ampy will be able to utilise the new module.
 
         Parameters:
@@ -953,8 +994,8 @@ class Ampy(object):
             log("Collection type %s does not exist in NNTSC database" % \
                     (collection))
             return None
-   
-        colid = self.savedcoldata[collection] 
+
+        colid = self.savedcoldata[collection]
         if collection == "amp-icmp":
             newcol = AmpIcmp(colid, self.viewmanager, self.nntscconfig)
         if collection == "amp-astraceroute":
@@ -998,21 +1039,21 @@ class Ampy(object):
 
     def _view_to_groups(self, viewstyle, view_id):
         """
-        Internal utility function that finds the set of view groups for 
-        a given view. 
+        Internal utility function that finds the set of view groups for
+        a given view.
 
         Used as a first step by many of the API functions.
 
         Parameters:
           viewstyle -- a string with the name of the 'collection' that the
-                        view belongs to. 
+                        view belongs to.
           view_id -- the ID number of the view.
 
         Returns:
           A dictionary of groups for the view, keyed by the collection
           that the group belongs to. The values are a tuple containing
           the group ID and the string describing the group.
-        
+
           Returns None if any of the steps undertaken during this
           function fails.
         """
@@ -1028,15 +1069,15 @@ class Ampy(object):
         # Otherwise, we'll have to query the views database
         viewgroups = self.viewmanager.get_view_groups(viewstyle, view_id)
         if viewgroups is None:
-            log("Unable to find groups for view id %d(%s)" % \
+            log("Unable to find groups for view id %s (%s)" % \
                     (view_id, viewstyle))
             return None
-      
+
 
         # Put these groups in the cache
         if len(viewgroups) > 0:
             self.cache.store_view_groups(view_id, viewgroups)
-        
+
 
         return viewgroups
 
@@ -1051,8 +1092,8 @@ class Ampy(object):
 
         Returns:
           a tuple containing three items:
-            1. a list of dictionaries describing each of the groups that 
-               should be present in the matrix. 
+            1. a list of dictionaries describing each of the groups that
+               should be present in the matrix.
             2. a list of sites belonging to the source mesh.
             3. a list of sites belonging to the destination mesh.
 
@@ -1065,13 +1106,13 @@ class Ampy(object):
         the options list should be a packet size. If provided, this would
         limit the matrix cells to only include streams that matched the
         given packet size.
-       
+
         The returned group dictionaries contain at least two items:
           labelstring -- a unique string identifying that group
           streams -- a list of stream IDs that belong to the group
-        
+
         """
-         
+
         if len(options) < 2:
             log("Invalid options for fetching matrix streams")
             return None
@@ -1081,7 +1122,7 @@ class Ampy(object):
         if col.update_streams() is None:
             log("Error while fetching matrix streams")
             return None
-        
+
         # First two options must be the source and destination meshes
         sourcemesh = options[0]
         destmesh = options[1]
@@ -1143,7 +1184,7 @@ class Ampy(object):
         # then anyone implementing a collection has to make sure they
         # remember to do it. Also these ids are only needed for legends,
         # but group_to_labels is also used for other purposes so it
-        # is cleaner to do it here even if it means an extra iteration 
+        # is cleaner to do it here even if it means an extra iteration
         # over the grouplabels list.
         for gl in grouplabels:
             lines.append((gl['labelstring'], gl['shortlabel'], nextlineid))
@@ -1153,6 +1194,6 @@ class Ampy(object):
         legend.append({'group_id':gid, 'label':legendtext, 'lines':lines,
                 'collection':col.collection_name})
         return added
-        
+
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :
