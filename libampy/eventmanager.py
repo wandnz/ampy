@@ -31,6 +31,12 @@ class EventManager(object):
         """
     
         # Default database name is netevmon
+        if eventdbconfig is None:
+            self.disabled = True
+            return
+        else:
+            self.disabled = False
+        
         if 'name' not in eventdbconfig:
             eventdbconfig['name'] = "netevmon"
 
@@ -62,6 +68,8 @@ class EventManager(object):
         """
 
         events = []
+        if self.disabled:
+            return events
         self.dblock.acquire()
         for lab in labels:
             if 'streams' not in lab:
@@ -127,6 +135,8 @@ class EventManager(object):
 
         #start_dt = datetime.datetime.fromtimestamp(start)
         #end_dt = datetime.datetime.fromtimestamp(end)
+        if self.disabled:
+            return []
 
         query = """SELECT * FROM eventing.groups WHERE ts_started >= %s
                    AND ts_ended <= %s ORDER BY ts_started
@@ -160,6 +170,10 @@ class EventManager(object):
           a list of events or None if there was an error while querying the
           event database.
         """
+
+        if self.disabled:
+            return []
+
         query = """SELECT * FROM eventing.group_membership
                    WHERE group_id=%s
                 """
