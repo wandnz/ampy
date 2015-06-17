@@ -460,7 +460,7 @@ class AmpyCache(object):
             try:
                 mc.set(key, data, cachetime)
             except pylibmc.SomeErrors as e:
-                log("Warning: pylibmc error while storing %s" % (errorstr))
+                log("Warning: pylibmc error while storing %s: %s" % (key, errorstr))
                 log(e)
 
     def _cachefetch(self, key, errorstr):
@@ -486,7 +486,7 @@ class AmpyCache(object):
                 if key in mc:
                     result = mc.get(key)
             except pylibmc.SomeErrors as e:
-                log("Warning: pylibmc error when searching for %s" % (errorstr))
+                log("Warning: pylibmc error when searching for %s: %s" % (key, errorstr))
                 log(e)
 
         return result
