@@ -12,6 +12,7 @@ mesh | rootdns | Root DNS | Root DNS Servers | f | t | latency,hops,dns
 mesh | pubdns | Open DNS | Open DNS Servers | f | t | latency,hops,dns
 mesh | google | Google | Google Services | f | t | latency,hops
 mesh | nzamp | New Zealand Amplets | Deployed Amplets | f | t | latency,hops
+mesh | ausweb | Australia Web | Australian Websites | f | t | latency
 
 mesh | httptest | Test HTTP |  Test HTTP Sites | f | t | http
 mesh | tputtest | Test Throughput | Test Throughput Sites | f | t | tput
@@ -80,6 +81,18 @@ site | apnic.net | APNIC | | APNIC | rir
 site | arin.net | ARIN | | ARIN | rir
 site | lacnic.net | LACNIC | | LACNIC | rir
 site | pri.authdns.ripe.net | RIPE | | RIPE | rir
+
+site | www.commbank.com.au | Commonwealth Bank | | Commonwealth Bank | ausweb
+site | www.optus.com.au | Optus Australia | | Optus Australia | ausweb
+site | www.telstra.com.au | Telstra Australia | | Telstra Australia | ausweb
+site | www.whirlpool.net.au | Whirlpool | | Whirlpool | ausweb
+site | www.westpac.com.au | Westpac Australia | | Westpac Australia | ausweb
+site | www.nab.com.au | NAB | | NAB | ausweb
+site | www.abc.net.au | ABC | | Australia Broadcasting Corporation | ausweb
+site | www.gumtree.com.au | Gumtree | | Gumtree | ausweb
+site | www.iinet.com.au | iiNet | | iiNet | ausweb
+site | www.smh.com.au | Sydney Morning Herald | | Sydney Morning Herald | ausweb
+site | www.9news.com.au | 9 News | | 9 News | ausweb
 
 site | a.root-servers.net | A Root Server | | A Root Server | rootdns | alldns
 site | b.root-servers.net | B Root Server | | B Root Server | rootdns | alldns
