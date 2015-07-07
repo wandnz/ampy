@@ -78,7 +78,7 @@ class AmpTraceroute(AmpIcmp):
                     continue 
 
                 formatted = self.format_list_data(queryresult['data'], 
-                        queryresult['freq'])
+                        queryresult['freq'], detail)
 
                 cachelabel = lab['labelstring'] + "_ippaths_" + \
                         self.collection_name
