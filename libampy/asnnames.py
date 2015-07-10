@@ -11,7 +11,7 @@ def queryASNames(toquery, localcache=None):
     try:
         s.connect(('whois.cymru.com', 43))
     except socket.error, msg:
-        log("Failed to connect to whois.cymru.com:43, %s" % (msg[1]))
+        log("Failed to connect to whois.cymru.com:43, %s" % (msg))
         s.close()
         return {}
 
