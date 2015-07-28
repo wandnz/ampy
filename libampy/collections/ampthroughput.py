@@ -41,19 +41,16 @@ class AmpThroughput(Collection):
         return (3600 * 24)
 
     def prepare_stream_for_storage(self, stream):
-        if 'remoteaddress' not in stream:
+        if 'address' not in stream:
             return stream, {}
 
         # XXX Can local and remote addresses be different families?
-        if self._address_to_family(stream['remoteaddress']) == "ipv4":
-            stream['family'] = "ipv4"
-        elif self._address_to_family(stream['localaddress']) == "ipv4":
+        if self._address_to_family(stream['address']) == "ipv4":
             stream['family'] = "ipv4"
         else:
             stream['family'] = "ipv6"
 
-        return stream, {'local':stream['localaddress'], 
-                'remote':stream['remoteaddress']}
+        return stream, {'address':stream['address']}
 
     def create_group_description(self, properties):
         if 'tcpreused' in properties:
@@ -64,9 +61,9 @@ class AmpThroughput(Collection):
         
         if 'direction' not in properties:
             properties['direction'] = "BOTH"
-        if 'family' not in properties and 'remoteaddress' in properties:
+        if 'family' not in properties and 'address' in properties:
             properties['family'] = \
-                    self._address_to_family(properties['remoteaddress'])
+                    self._address_to_family(properties['address'])
 
         for p in self.groupproperties:
             if p not in properties:
