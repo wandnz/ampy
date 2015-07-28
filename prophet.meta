@@ -127,6 +127,8 @@ site | www.cloudflare.com | CloudFlare | | | cdn
 site | www.google-analytics.com | Google Analytics | | | cdn | google
 site | www.googleapis.com | Google APIs | | | cdn | google
 site | store.steampowered.com | Steam | | | cdn
+site | appldnld.apple.com | Apple CDN | | | cdn
+site | secure-appldnld.apple.com | Apple CDN | | | cdn
 
 site | www.bing.com | Bing | | | intweb
 site | www.facebook.com | Facebook | | | intweb
