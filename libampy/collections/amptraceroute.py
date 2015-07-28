@@ -1,6 +1,7 @@
 from libnntscclient.logger import *
 from libampy.collection import Collection
 from libampy.collections.ampicmp import AmpIcmp
+from libampy.asnnames import queryASNames
 import re, socket
 from operator import itemgetter
 
@@ -77,7 +78,7 @@ class AmpTraceroute(AmpIcmp):
                     continue 
 
                 formatted = self.format_list_data(queryresult['data'], 
-                        queryresult['freq'])
+                        queryresult['freq'], detail)
 
                 cachelabel = lab['labelstring'] + "_ippaths_" + \
                         self.collection_name
@@ -137,7 +138,7 @@ class AmpTraceroute(AmpIcmp):
             data['aspath'] = aspath
             return data
 
-        queried = self._query_asnames(toquery)
+        queried = queryASNames(toquery, self.localcache)
         if queried is None:
             log("Unable to query AS names")
             data['aspath'] = aspath
@@ -150,63 +151,6 @@ class AmpTraceroute(AmpIcmp):
         
         data['aspath'] = aspath
         return data
-
-    def _query_asnames(self, toquery):
-        if len(toquery) == 0:
-            return {}
-
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(2)
-
-        try:
-            s.connect(('whois.cymru.com', 43))
-        except socket.error, msg:
-            log("Failed to connect to whois.cymru.com:43, %s" % (msg[1]))
-            s.close()
-            return {}
-
-        msg = "begin\n"
-        for q in toquery:
-            msg += q + "\n"
-        msg += "end\n"
-
-        totalsent = 0
-        while totalsent < len(msg):
-            sent = s.send(msg[totalsent:])
-            if sent == 0:
-                log("Error while sending query to whois.cymru.com")
-                s.close()
-                return {}
-            totalsent += sent
-
-        # Receive all our responses
-        responded = 0
-        recvbuf = ""
-        asnames = {}
-
-        inds = list(toquery)
-        while responded < len(toquery):
-            chunk = s.recv(2048)
-            if chunk == '':
-                break
-            recvbuf += chunk
-
-            if '\n' not in recvbuf:
-                continue
-
-            lines = recvbuf.splitlines(True)
-            consumed = 0
-            for l in lines:
-                if l[-1] == "\n":
-                    if "Bulk mode" not in l:
-                        asnames[inds[responded]] = l.strip()
-                        self.localcache.store_asname(inds[responded], l.strip())
-                        responded += 1
-                    consumed += len(l)
-            recvbuf = recvbuf[consumed:]
-        s.close()
-
-        return asnames
 
 
 class AmpAsTraceroute(AmpTraceroute):

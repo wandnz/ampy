@@ -6,6 +6,7 @@ from libampy.collection import Collection
 from libampy.nntsc import NNTSCConnection
 from libampy.cache import AmpyCache
 from libampy.eventmanager import EventManager
+from libampy.asnnames import queryASNames
 
 from libnntscclient.logger import *
 
@@ -75,6 +76,8 @@ class Ampy(object):
         Fetches all event groups for a specified time period.
     get_event_group_members:
         Fetches all events that belong to a specified event group.
+    get_asn_names:
+        Translates a list of ASNs into their corresponding names.
     """
 
     def __init__(self, ampdbconf, viewconf, nntscconf, eventconf):
@@ -627,6 +630,23 @@ class Ampy(object):
 
         return tabview
 
+    def get_stream_properties(self, collection, stream):
+        
+        col = self._getcol(collection)
+        if col == None:
+            log("Error while fetching stream properties")
+            return None
+        
+        # Find the stream in our stream hierarchy
+        streamprops = col.find_stream(stream)
+        if streamprops is None:
+            log("Error while fetching stream properties")
+            log("Stream %s does not exist for collection %s" % \
+                    (stream, collection))
+            return None
+
+        return streamprops
+
     def get_event_view(self, collection, stream):
         """
         Given a stream that an event was detected on by netevmon, generates
@@ -838,6 +858,8 @@ class Ampy(object):
                     log("Unable to convert group %d into stream labels" % (gid))
                     continue
 
+                for gl in grouplabels:
+                    gl['groupid'] = gid
                 alllabels += grouplabels
 
         return self.eventmanager.fetch_events(alllabels, start, end)
@@ -872,7 +894,49 @@ class Ampy(object):
           a list of events or None if there was an error while querying
           the event database.
         """
-        return self.eventmanager.fetch_event_group_members(eventgroupid)
+        members = self.eventmanager.fetch_event_group_members(eventgroupid)
+        return members
+
+
+    def get_asn_names(self, asns):
+        """
+        Looks up the names for a list of ASNs.
+
+        Parameters:
+          asns -- a list of AS numbers to find names for.
+
+        Returns:
+          a dictionary where the key is the ASN and the value is the
+          name for the AS (according to Team Cymru) or None if the lookup
+          fails.
+        """
+        result = {}
+        toquery = set()
+        for a in asns:
+            if a == "-2":
+                aslabel = asname = "RFC 1918"
+            elif a == "-1":
+                aslabel = asname = "No response"
+            elif a == "0":
+                aslabel = asname = "Unknown"
+            else:
+                aslabel = "AS" + a
+                asname = self.cache.search_asname(aslabel)
+                if asname == None:
+                    toquery.add(aslabel)
+
+            if asname is not None:
+                result[a] = asname 
+
+        queried = queryASNames(toquery, self.cache)
+
+        if queried is None:
+            return None
+
+        for a, n in queried.iteritems():
+            result[a] = n
+        return result
+
 
     def _query_collections(self):
         """
