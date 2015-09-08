@@ -10,6 +10,9 @@ Homepage: http://wand.net.nz/projects/details/storage-network-monitoring-and-mea
 
 Package: ampy
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}
+# XXX temporarily remove python dependencies, as Debian doesn't package most
+# of the ones that we use
+#Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}, python
 Description: Interface between amp-web and nntsc data storage.
  Interface between amp-web and nntsc data storage.
