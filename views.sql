@@ -19,6 +19,6 @@ CREATE TABLE groups (
 CREATE INDEX idx_group_collection ON groups (collection);
 CREATE INDEX idx_view_collection ON views (collection);
 
-
-
-
+/* TODO ampweb package should probably grant these permissions */
+GRANT ALL ON ALL TABLES IN SCHEMA public to "www-data";
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public to "www-data";
