@@ -1,3 +1,15 @@
+ampy (2.1-1) unstable; urgency=low
+
+  * Added parsers for all the existing tests.
+  * Smarter database queries for better performance.
+  * Better caching of data to avoid database queries.
+  * Improved robustness when losing database connections.
+  * Added view groups to fetch and display multiple time series at once.
+  * New metadata database with information about sources and destinations.
+  * Database selection is now configurable via config files.
+
+ -- Brendon Jones <brendonj@waikato.ac.nz>  Tue,  8 Sep 2015 16:17:18 +1200
+
 ampy (0.0-1) unstable; urgency=low
 
   * Initial release

@@ -10,9 +10,9 @@ class LPIBytes(LPIPackets):
         self.viewstyle = self.collection_name
 
     def detail_columns(self, detail):
-        return ['bytes'], ['avg']
+        return ['bytes'], ['sum']
 
-    def format_single_data(self, data, freq):
+    def format_single_data(self, data, freq, detail):
         if 'bytes' not in data:
             return data
 
@@ -23,9 +23,9 @@ class LPIBytes(LPIPackets):
         
         return data
 
-    def format_list_data(self, datalist, freq):
+    def format_list_data(self, datalist, freq, detail):
         for d in datalist:
-            self.format_single_data(d, freq)
+            self.format_single_data(d, freq, detail)
         return datalist
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :

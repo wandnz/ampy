@@ -11,7 +11,7 @@ class AmpTcpping(AmpIcmp):
         self.groupproperties = ['source', 'destination', 'port', \
                 'packet_size', 'aggregation']
         self.collection_name = 'amp-tcpping'
-        self.default_packet_size = 60
+        self.default_packet_size = "60"
         self.viewstyle = 'amp-latency'
         self.integerproperties = ['port']
 
@@ -81,7 +81,7 @@ class AmpTcpping(AmpIcmp):
 
         baseprop = {'source':source, 'destination':dest}
         
-        sels = self.streammanager.find_selections(baseprop)
+        sels = self.streammanager.find_selections(baseprop, False)
         if sels is None:
             return None
         
@@ -96,11 +96,12 @@ class AmpTcpping(AmpIcmp):
             return
         
         # Just use the lowest port number for now
-        baseprop['port'] = int(ports.sort()[0] )
+        ports.sort()
+        baseprop['port'] = int(ports[0] )
         baseprop['packet_size'] = self.default_packet_size
 
-        v4 = self._matrix_group_streams(groupprops, 'ipv4', groups)
-        v6 = self._matrix_group_streams(groupprops, 'ipv6', groups)
+        v4 = self._matrix_group_streams(baseprop, 'ipv4', groups)
+        v6 = self._matrix_group_streams(baseprop, 'ipv6', groups)
 
         if v4 == 0 and v6 == 0:
             views[(source, dest)] = -1

@@ -98,13 +98,18 @@ class AmpMesh(object):
         params = (mesh,)
         return self._meshquery(query, params)
 
-    def get_meshes(self, endpoint, site=None):
+    def get_meshes(self, endpoint, amptest=None, site=None):
         """
         Fetches all source or destination meshes.
 
         Parameters:
           endpoint -- either "source" or "destination", depending on
                       which meshes are required.
+          amptest -- limit results to meshes that are targets for a given test.
+                     If None, no filtering of meshes is performed. This
+                     parameter is ignored if querying for source meshes.
+                     Possible values include 'latency', 'hops', 'dns', 'http'
+                     and 'tput'.
           site -- optional argument to filter only meshes that this
                   site is a member of.
 
@@ -120,36 +125,42 @@ class AmpMesh(object):
             description -- a string describing the purpose of the mesh in
                            reasonable detail
         """
-        params = None
-        table = "mesh"
+        params = []
 
+        # we could avoid this join if there are no test/source requirements
+        # but it's so quick that the code complexity isn't really worth it
+        table = """ active_mesh_members JOIN full_mesh_details
+            ON active_mesh_members.meshname = full_mesh_details.meshname """
+
+        query = """ SELECT full_mesh_details.meshname, mesh_longname,
+                    mesh_description
+                    FROM %s WHERE mesh_active = true """ % table
+
+        # if site is set then only return meshes that it belongs to
         if site is not None:
-            # if site is set then need to do a join to get only meshes
-            # that site belongs to
-            params = (site,)
-            table = """ active_mesh_members JOIN mesh
-                        ON active_mesh_members.meshname = mesh.mesh_name
-                    """
+            query += " AND ampname = %s "
+            params.append(site)
 
-        query = """ SELECT mesh_name, mesh_longname, mesh_description
-                        FROM %s WHERE """ % table
+        # if test is set then only return destination meshes that the test is
+        # performed to (ignored for source meshes)
+        if amptest is not None and endpoint == "destination":
+            query += " AND meshtests_test = %s "
+            params.append(amptest)
 
-        if site is not None:
-            query += "ampname = %s"
-        else:
-            query += "mesh_active = true"
-
+        # return meshes of the appropriate type - source or dest
         if endpoint == "source":
-            query += " AND mesh.mesh_is_src = true"
+            query += " AND full_mesh_details.mesh_is_src = true "
         elif endpoint == "destination":
-            query += " AND mesh.mesh_is_dst = true"
+            query += " AND full_mesh_details.mesh_is_dst = true"
+        else:
+            # for now just return source and destination meshes if no endpoint
+            # is set, though this doesn't play that well with amptest being set
+            pass
 
-        query += " ORDER BY mesh_longname"
+        query += " GROUP BY full_mesh_details.meshname, mesh_longname, mesh_description ORDER BY mesh_longname"
 
-        # If the endpoint is invalid, we'll currently return all meshes.
-        # XXX Is this the correct behaviour?
         self.dblock.acquire()
-        if self.db.executequery(query, params) == -1:
+        if self.db.executequery(query, tuple(params)) == -1:
             log("Error while querying %s meshes" % (endpoint))
             self.dblock.release()
             return None

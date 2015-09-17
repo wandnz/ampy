@@ -15,21 +15,21 @@ class RRDMuninbytes(Collection):
     def detail_columns(self, detail):
         return ["bytes"], ["avg"]
 
-    def format_single_data(self, data, freq):
+    def format_single_data(self, data, freq, detail):
         if "bytes" not in data:
             return data
 
         if data['bytes'] == None:
             data['mbps'] = None
         else:
-            data['mbps'] = ((float(data['bytes']) * 8.0) / 1000000.0) / freq
+            data['mbps'] = ((float(data['bytes']) * 8.0) / 1000000.0)
 
         return data
 
-    def format_list_data(self, datalist, freq):
+    def format_list_data(self, datalist, freq, detail):
 
         for d in datalist:
-            self.format_single_data(d, freq)
+            self.format_single_data(d, freq, detail)
         return datalist
 
     def get_legend_label(self, description):

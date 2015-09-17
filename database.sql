@@ -24,6 +24,13 @@ CREATE INDEX index_member_ampname ON member(member_ampname);
 
 ALTER TABLE member ADD CONSTRAINT uniq_membership UNIQUE (member_meshname, member_ampname);
 
+CREATE TABLE meshtests (
+   meshtests_name TEXT NOT NULL REFERENCES mesh(mesh_name) ON DELETE CASCADE,
+   meshtests_test TEXT NOT NULL
+);
+
+ALTER TABLE meshtests ADD CONSTRAINT uniq_meshtest UNIQUE (meshtests_name, meshtests_test);
+
 CREATE VIEW active_mesh_members AS SELECT
     member_meshname as meshname,
     member_ampname as ampname,
@@ -34,7 +41,6 @@ CREATE VIEW active_mesh_members AS SELECT
     AND member.member_ampname=site.site_ampname
     AND mesh_active=true
     AND site_active=true;
-
 
 CREATE TABLE schedule (
     schedule_id SERIAL PRIMARY KEY,
@@ -54,9 +60,26 @@ CREATE TABLE endpoint (
     endpoint_destination_mesh TEXT REFERENCES mesh(mesh_name),
     endpoint_destination_site TEXT REFERENCES site(site_ampname)
 );
+
 ALTER TABLE endpoint ADD CONSTRAINT valid_source CHECK (
         endpoint_source_mesh IS NOT NULL OR
         endpoint_source_site IS NOT NULL);
+
 ALTER TABLE endpoint ADD CONSTRAINT valid_destination CHECK (
         endpoint_destination_mesh IS NOT NULL OR
         endpoint_destination_site IS NOT NULL);
+
+CREATE VIEW full_mesh_details AS SELECT
+    mesh_name as meshname,
+    mesh_longname,
+    mesh_description,
+    mesh_is_src,
+    mesh_is_dst,
+    mesh_active,
+    meshtests_test
+    FROM mesh, meshtests
+    WHERE mesh.mesh_name = meshtests.meshtests_name
+    AND mesh_active = true;
+
+/* TODO ampweb package should probably grant these permissions */
+GRANT ALL ON ALL TABLES IN SCHEMA public to "www-data";

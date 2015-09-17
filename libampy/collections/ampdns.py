@@ -12,16 +12,17 @@ class AmpDns(Collection):
         self.groupproperties = ['source', 'destination', 'query', 
                 'query_type', 'query_class', 'udp_payload_size',
                 'flags', 'aggregation']
+        self.integerproperties = ['udp_payload_size']
         self.collection_name = "amp-dns"
         self.viewstyle = "amp-latency"
         self.integerproperties = ['udp_payload_size']
 
     
     def detail_columns(self, detail):
-        if detail == "matrix":
-            aggfuncs = ["avg", "stddev", "count"]
-            aggcols = ["rtt", "rtt", "rtt"]
-        elif detail == "full" or detail == "summary":
+        if detail == "matrix" or detail == "basic":
+            aggfuncs = ["avg", "stddev", "count", "count"]
+            aggcols = ["rtt", "rtt", "rtt", "timestamp"]
+        elif detail == "full" or detail == "raw" or detail == "summary":
             aggfuncs = ["smoke"]
             aggcols = ["rtt"]
         else:
@@ -69,7 +70,7 @@ class AmpDns(Collection):
                 flags, agg)
         return label
    
-    def _lookup_streams(self, search, lookup):
+    def _lookup_streams(self, search, lookup, baselabel):
         streams = []
     
         if lookup:
@@ -133,7 +134,7 @@ class AmpDns(Collection):
        
 
         if groupparams['aggregation'] == "FULL":
-            streams = self._lookup_streams(search, lookup)
+            streams = self._lookup_streams(search, lookup, baselabel)
             if streams is None:
                 return None
             
@@ -155,7 +156,7 @@ class AmpDns(Collection):
             labels.append(nextlab)
 
         else:
-            streams = self._lookup_streams(search, True)
+            streams = self._lookup_streams(search, True, baselabel)
             if streams is None:
                 return None
 

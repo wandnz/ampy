@@ -1,23 +1,32 @@
-mesh | nzdns | NZ DNS | New Zealand DNS Servers | f | t
-mesh | trademedns | Trademe DNS | Trademe DNS Servers | f | t
-mesh | amptest | Test Amplets | AMP Test Network | t | f
-mesh | nzweb | NZ Web | New Zealand Websites | f | t
-mesh | rir | RIR | Regional Internet Registries | f | t
-mesh | alldns | DNS | All DNS Servers | f | t
-mesh | reannz-ps | REANNZ PerfSonar | REANNZ PerfSonar Monitors | t | f
-mesh | nzisp | NZ ISPs | New Zealand ISP s | f | t
-mesh | cdn | CDNs | Content Distribution Networks | f | t
-mesh | intweb | International Web | International Websites | f | t
-mesh | rootdns | Root DNS | Root DNS Servers | f | t
-mesh | pubdns | Open DNS | Open DNS Servers | f | t
-mesh | google | Google | Google Services | f | t
-mesh | nzamp | New Zealand Amplets | Deployed Amplets | f | t
+mesh | nzdns | NZ DNS | New Zealand DNS Servers | f | t | latency,hops,dns
+mesh | trademedns | Trademe DNS | Trademe DNS Servers | f | t | dns,latency
+mesh | amptest | Test Amplets | AMP Test Network | t | f | latency,hops
+mesh | nzweb | NZ Web | New Zealand Websites | f | t | latency,hops
+mesh | rir | RIR | Regional Internet Registries | f | t | latency,hops
+mesh | alldns | DNS | All DNS Servers | f | t | latency,hops,dns
+mesh | reannz-ps | REANNZ PerfSonar | REANNZ PerfSonar Monitors | t | f | latency,hops
+mesh | nzisp | NZ ISPs | New Zealand ISP s | f | t | latency,hops
+mesh | cdn | CDNs | Content Distribution Networks | f | t | latency,hops
+mesh | intweb | International Web | International Websites | f | t | latency,hops
+mesh | rootdns | Root DNS | Root DNS Servers | f | t | latency,hops,dns
+mesh | pubdns | Open DNS | Open DNS Servers | f | t | latency,hops,dns
+mesh | google | Google | Google Services | f | t | latency,hops
+mesh | nzamp | New Zealand Amplets | Deployed Amplets | f | t | latency,hops
+mesh | ausweb | Australia Web | Australian Websites | f | t | latency
+
+mesh | httptest | Test HTTP |  Test HTTP Sites | f | t | http
+mesh | tputtest | Test Throughput | Test Throughput Sites | f | t | tput
  
 site | prophet | Prophet | Hamilton | Prophet Test Amplet | amptest
-site | centos.vagrant.quarterpounder | Centos Test Amplet | Hamilton | | amptest
-site | waikato-dell.amp.wand.net.nz | Waikato Development Amplet | Hamilton | | amptest
+site | centos-amplet.cms.waikato.ac.nz | Centos Test Amplet (UoW) | Hamilton | | amptest
+site | centos-amplet.sdn.wand.net.nz | Centos Test Amplet (SDN) | Hamilton | | amptest
+site | lenny-amplet.cms.waikato.ac.nz | Lenny Test Amplet (UoW) | Hamilton | | amptest
+site | lenny-amplet.sdn.wand.net.nz | Lenny Test Amplet (SDN) | Hamilton | | amptest
+site | wheezy-amplet.cms.waikato.ac.nz | Wheezy Test Amplet (UoW) | Hamilton | | amptest
+site | wheezy-amplet.sdn.wand.net.nz | Wheezy Test Amplet (SDN) | Hamilton | | amptest
+site | shane-amplet | Shane's Test Amplet (SDN) | Hamilton | | amptest
 
-site | ps01-akl.reannz.co.nz | Auckland REANNZ perfSONAR node | Auckland | | reannz-ps | amptest
+site | ps01-akl.reannz.co.nz | Auckland REANNZ perfSONAR node | Auckland | | reannz-ps | amptest | tputtest
 site | ps02-wlg.reannz.co.nz | Wellington REANNZ perfSONAR node | Wellington | | reannz-ps | amptest
 site | ps03-chc.reannz.co.nz | Christchurch REANNZ perfSONAR node | Christchurch | | reannz-ps | amptest
 site | ps04-dud.reannz.co.nz | Dunedin REANNZ perfSONAR node | Dunedin | | reannz-ps | amptest
@@ -41,17 +50,17 @@ site | ns4.trademe.co.nz | Trademe Name Server 4 | | | trademedns | alldns
 site | www.callplus.co.nz | CallPlus  | | CallPlus | nzisp
 site | www.orcon.net.nz | Orcon  | | Orcon | nzisp
 site | www.snap.net.nz | Snap  | | Snap | nzisp
-site | www.reannz.net.nz | REANNZ  | | REANNZ | nzisp
+site | www.reannz.co.nz | REANNZ  | | REANNZ | nzisp
 site | www.fx.net.nz | FX Networks  | | FX Networks | nzisp
 site | www.vocus.co.nz | Vocus NZ  | | Vocus NZ | nzisp
 site | www.lightwire.co.nz | Lightwire  | | Lightwire | nzisp
 site | www.vodafone.co.nz | Vodafone NZ  | | Vodafone NZ | nzisp
-site | www.telecom.co.nz | Telecom NZ  | | Telecom NZ | nzisp
-site | www.2talk.co.nz | 2talk  | | 2talk | nzisp
+site | www.spark.co.nz | Spark NZ  | | Spark NZ | nzisp
+site | 2talk.co.nz | 2talk  | | 2talk | nzisp
 site | www.chorus.co.nz | Chorus  | | Chorus | nzisp
 site | www.enable.net.nz | Enable  | | Enable | nzisp
 site | www.ultrafastfibre.co.nz | UFF  | | Ultrafast Fibre | nzisp
-site | www.northpower.co.nz | Northpower  | | Northpower | nzisp
+site | www.northpowerfibre.co.nz | Northpower  | | Northpower | nzisp
 site | www.voyager.co.nz | Voyager  | | Voyager | nzisp
 site | www.iconz.net.nz | ICONZ-Webvisions  | | ICONZ-Webvisions | nzisp
 
@@ -64,6 +73,7 @@ site | www.quickflix.co.nz | QuickFlix | | QuickFlix | nzweb
 site | www.tv3.co.nz | TV3 | | TV3 | nzweb
 site | www.tvnz.co.nz | TVNZ | | TVNZ | nzweb
 site | www.xero.com | Xero | | Xero | nzweb
+site | www.xero.co.nz | Xero | | Xero | nzweb
 site | www.wand.net.nz | WAND | | WAND | nzweb
 
 site | afrinic.net | AFRINIC | | AFRINIC | rir
@@ -71,6 +81,18 @@ site | apnic.net | APNIC | | APNIC | rir
 site | arin.net | ARIN | | ARIN | rir
 site | lacnic.net | LACNIC | | LACNIC | rir
 site | pri.authdns.ripe.net | RIPE | | RIPE | rir
+
+site | www.commbank.com.au | Commonwealth Bank | | Commonwealth Bank | ausweb
+site | www.optus.com.au | Optus Australia | | Optus Australia | ausweb
+site | www.telstra.com.au | Telstra Australia | | Telstra Australia | ausweb
+site | www.whirlpool.net.au | Whirlpool | | Whirlpool | ausweb
+site | www.westpac.com.au | Westpac Australia | | Westpac Australia | ausweb
+site | www.nab.com.au | NAB | | NAB | ausweb
+site | www.abc.net.au | ABC | | Australia Broadcasting Corporation | ausweb
+site | www.gumtree.com.au | Gumtree | | Gumtree | ausweb
+site | www.iinet.com.au | iiNet | | iiNet | ausweb
+site | www.smh.com.au | Sydney Morning Herald | | Sydney Morning Herald | ausweb
+site | www.9news.com.au | 9 News | | 9 News | ausweb
 
 site | a.root-servers.net | A Root Server | | A Root Server | rootdns | alldns
 site | b.root-servers.net | B Root Server | | B Root Server | rootdns | alldns
@@ -105,6 +127,8 @@ site | www.cloudflare.com | CloudFlare | | | cdn
 site | www.google-analytics.com | Google Analytics | | | cdn | google
 site | www.googleapis.com | Google APIs | | | cdn | google
 site | store.steampowered.com | Steam | | | cdn
+site | appldnld.apple.com | Apple CDN | | | cdn
+site | secure-appldnld.apple.com | Apple CDN | | | cdn
 
 site | www.bing.com | Bing | | | intweb
 site | www.facebook.com | Facebook | | | intweb
@@ -115,6 +139,9 @@ site | www.apple.com | Apple | | | intweb
 site | www.wikipedia.org | Wikipedia | | | intweb
 site | www.youtube.com | YouTube | | | intweb | google
 site | www.amazon.com | Amazon | | | intweb 
+site | www.microsoft.com | Microsoft | | | intweb 
+site | www.espncricinfo.com | ESPNCricinfo | | | intweb 
+site | www.bbc.co.uk | BBC UK | | | intweb 
 
 site | imap.gmail.com | Gmail | | | google
 
@@ -138,4 +165,16 @@ site | snap-akl.amp.wand.net.nz | Snap | Auckland, NZ | | nzamp
 site | vocus.amp.wand.net.nz | Vocus | Auckland, NZ | | nzamp
 site | waikato.amp.wand.net.nz | University of Waikato | Hamilton, NZ | | nzamp
 site | wxc-akl.amp.wand.net.nz | WorldxChange Communications | Auckland, NZ | | nzamp
+
+site | http://wand.net.nz/ | WAND | Hamilton, NZ | | httptest
+site | http://www.amazon.com | Amazon | | | httptest
+site | http://www.apple.com/ | Apple | | | httptest
+site | http://www.bing.com/ | Bing | | | httptest
+site | http://www.facebook.com/ | Facebook | | | httptest
+site | http://www.google.co.nz | Google NZ | | | httptest
+site | http://www.metservice.com/national/home/ | MetService NZ | | | httptest
+site | http://www.nzherald.co.nz | New Zealand Herald | | | httptest
+site | http://www.stuff.co.nz | Stuff News | | | httptest
+site | http://www.trademe.co.nz | Trademe | | | httptest
+site | http://www.wikipedia.org/ | Wikipedia | | | httptest
 
