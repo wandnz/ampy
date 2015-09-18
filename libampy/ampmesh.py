@@ -127,12 +127,16 @@ class AmpMesh(object):
         """
         params = []
 
-        # we could avoid this join if there are no test/source requirements
-        # but it's so quick that the code complexity isn't really worth it
-        table = """ active_mesh_members JOIN full_mesh_details
-            ON active_mesh_members.meshname = full_mesh_details.meshname """
+        if amptest:
+            # if a test is set then use the view that includes tests
+            table = """ active_mesh_members JOIN full_mesh_details
+                ON active_mesh_members.meshname = full_mesh_details.meshname """
+        else:
+            # otherwise use all possible meshes, even if they have no tests
+            table = """ active_mesh_members JOIN mesh
+                ON active_mesh_members.meshname = mesh.mesh_name """
 
-        query = """ SELECT full_mesh_details.meshname, mesh_longname,
+        query = """ SELECT active_mesh_members.meshname, mesh_longname,
                     mesh_description
                     FROM %s WHERE mesh_active = true """ % table
 
@@ -149,15 +153,15 @@ class AmpMesh(object):
 
         # return meshes of the appropriate type - source or dest
         if endpoint == "source":
-            query += " AND full_mesh_details.mesh_is_src = true "
+            query += " AND active_mesh_members.mesh_is_src = true "
         elif endpoint == "destination":
-            query += " AND full_mesh_details.mesh_is_dst = true"
+            query += " AND active_mesh_members.mesh_is_dst = true"
         else:
             # for now just return source and destination meshes if no endpoint
             # is set, though this doesn't play that well with amptest being set
             pass
 
-        query += " GROUP BY full_mesh_details.meshname, mesh_longname, mesh_description ORDER BY mesh_longname"
+        query += " GROUP BY active_mesh_members.meshname, mesh_longname, mesh_description ORDER BY mesh_longname"
 
         self.dblock.acquire()
         if self.db.executequery(query, tuple(params)) == -1:
@@ -169,6 +173,7 @@ class AmpMesh(object):
         for row in self.db.cursor.fetchall():
             meshes.append({'name':row[0], 'longname':row[1], \
                     'description':row[2]})
+
         self.db.closecursor()
         self.dblock.release()
         return meshes
