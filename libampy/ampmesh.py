@@ -267,11 +267,12 @@ class AmpMesh(object):
         """
         # Dummy dictionary in case we can't find the site in question
         unknown = {
-            "ampname":site,
-            "longname":site,
-            "description":"",
-            "location":"Location unknown",
-            "active":False
+            "ampname": site,
+            "longname": site,
+            "description": "",
+            "location": "Location unknown",
+            "active": False,
+            "unknown": True
         }
 
         query = """ SELECT site_ampname as ampname, site_longname as longname,
@@ -288,7 +289,43 @@ class AmpMesh(object):
 
         result = self.db.cursor.fetchone()
         if result is None:
-            log("Warning: unable to find site %s in amp database" % (site))
+            #log("Warning: unable to find site %s in amp database" % (site))
+            self.db.closecursor()
+            self.dblock.release()
+            return unknown
+
+        retdict = dict(result)
+        self.db.closecursor()
+        self.dblock.release()
+        return retdict
+
+    def get_mesh_info(self, mesh):
+        """ Get more detailed and human readable information about a mesh """
+        # Dummy dictionary in case we can't find the site in question
+        unknown = {
+            "meshname": mesh,
+            "longname": mesh,
+            "description": "",
+            "src": False,
+            "dst": False,
+            "active": False,
+            "unknown": True
+        }
+        query = """ SELECT mesh_name AS name, mesh_longname AS longname,
+                    mesh_description AS description, mesh_is_src AS is_src,
+                    mesh_is_dst AS is_dst, mesh_active AS active
+                    FROM mesh WHERE mesh_name = %s
+                    """
+        params = (mesh,)
+
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+            log("Error while querying for mesh %s" % mesh)
+            self.dblock.release()
+            return None
+
+        result = self.db.cursor.fetchone()
+        if result is None:
             self.db.closecursor()
             self.dblock.release()
             return unknown

@@ -50,6 +50,8 @@ class Ampy(object):
         Fetches all the sites that are needed to construct a matrix.
     get_amp_site_info:
         Fetches detailed information about an AMP mesh member.
+    get_amp_mesh_info:
+        Fetches detailed information about an AMP mesh.
     get_recent_data:
         Fetches aggregated values for a time period starting at now and
         going back a specified duration, i.e. the most recent measurements.
@@ -253,6 +255,29 @@ class Ampy(object):
                     active
         """
         return self.ampmesh.get_site_info(sitename)
+
+    def get_amp_mesh_info(self, meshname):
+        """
+        Fetches details about a particular AMP mesh.
+
+        Parameters:
+          meshname -- the name of the mesh to query for
+
+        Returns:
+          a dictionary containing detailed information about the site.
+
+        The resulting dictionary contains the following items:
+          meshname -- a string containing the internal name for the site
+          longname -- a string containing a mesh name that is suitable for
+                      public display
+          description -- a string containing any additional descriptive
+                         information about the mesh
+          src -- a boolean flag indicating whether this is a source mesh
+          dst -- a boolean flag indicating whether this is a destination mesh
+          active -- a boolean flag indicating whether the mesh is currently
+                    active
+        """
+        return self.ampmesh.get_mesh_info(meshname)
 
     def get_amp_source_schedule(self, source, schedule_id=None):
         """
