@@ -98,7 +98,7 @@ class AmpTraceroute(AmpIcmp):
         return reslist
 
     def format_single_data(self, data, freq, detail):
-        if 'aspath' not in data:
+        if 'aspath' not in data or data['aspath'] is None:
             return data
 
         if detail in ['matrix', 'basic']:
