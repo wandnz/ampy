@@ -147,7 +147,10 @@ class AmpTraceroute(AmpIcmp):
         for asp in aspath:
             if asp[0] != None:
                 continue
-            asp[0] = queried[asp[2]]
+            if asp[2] not in queried:
+                asp[0] = asp[2]
+            else:
+                asp[0] = queried[asp[2]]
         
         data['aspath'] = aspath
         return data
