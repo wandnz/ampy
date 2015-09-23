@@ -47,10 +47,12 @@ CREATE VIEW full_mesh_details AS SELECT
     mesh_longname,
     mesh_description,
     mesh_is_src,
-    mesh_is_dst, 
+    mesh_is_dst,
     mesh_active,
     meshtests_test
     FROM mesh, meshtests
     WHERE mesh.mesh_name = meshtests.meshtests_name
     AND mesh_active = true;
 
+/* TODO ampweb package should probably grant these permissions */
+GRANT ALL ON ALL TABLES IN SCHEMA public to "www-data";
