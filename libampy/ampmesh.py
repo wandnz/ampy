@@ -550,7 +550,9 @@ class AmpMesh(object):
                     string_agg(endpoint_destination_site, ',') AS dest_site
                     FROM endpoint JOIN schedule
                     ON schedule_id=endpoint_schedule_id
-                    WHERE %s GROUP BY schedule_id """ % where
+                    WHERE %s GROUP BY schedule_id
+                    ORDER BY schedule_test, schedule_frequency, schedule_start
+                """ % where
 
         schedule = []
 
