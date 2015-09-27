@@ -546,8 +546,10 @@ class AmpMesh(object):
         query = """ SELECT schedule_id, schedule_test, schedule_frequency,
                     schedule_start, schedule_end, schedule_period,
                     schedule_args, max(schedule_modified) AS schedule_modified,
-                    string_agg(endpoint_destination_mesh, ',') AS dest_mesh,
-                    string_agg(endpoint_destination_site, ',') AS dest_site
+                    string_agg(endpoint_destination_mesh, ','
+                        ORDER BY endpoint_destination_mesh) AS dest_mesh,
+                    string_agg(endpoint_destination_site, ','
+                        ORDER BY endpoint_destination_site) AS dest_site
                     FROM endpoint JOIN schedule
                     ON schedule_id=endpoint_schedule_id
                     WHERE %s GROUP BY schedule_id
