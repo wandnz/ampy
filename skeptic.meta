@@ -10,6 +10,7 @@ mesh | rootdns | Root DNS | Root DNS Servers | f | t | latency,hops
 mesh | pubdns | Open DNS | Open DNS Servers | f | t | latency,hops
 mesh | google | Google | Google Services | f | t | latency,hops
 mesh | nzamp | New Zealand Amplets | Deployed Amplets | t | t | latency,hops
+mesh | nzresidential | New Zealand Residential Connections | | t | t | latency,hops
 mesh | nzbanks | NZ Banks | New Zealand Banks | f | t | latency,hops
 mesh | australia | AU Web | Australian Websites | f | t | latency,hops
 
@@ -152,3 +153,4 @@ site | vocus.amp.wand.net.nz | Vocus | Auckland, NZ | | nzamp
 site | waikato.amp.wand.net.nz | University of Waikato | Hamilton, NZ | | nzamp
 site | wxc-akl.amp.wand.net.nz | WorldxChange Communications | Auckland, NZ | | nzamp
 
+site | lw-hlz-f1.amp.wand.net.nz | Lightwire 200/200 Home Fibre Connection | Hamilton, NZ | | nzresidential
