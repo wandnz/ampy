@@ -10,7 +10,7 @@ mesh | rootdns | Root DNS | Root DNS Servers | f | t | latency,hops
 mesh | pubdns | Open DNS | Open DNS Servers | f | t | latency,hops
 mesh | google | Google | Google Services | f | t | latency,hops
 mesh | nzamp | New Zealand Amplets | Deployed Amplets | t | t | latency,hops
-mesh | nzresidential | New Zealand Residential Connections | | t | t | latency,hops
+mesh | nzresidential | New Zealand Residential | New Zealand Residential Connections | t | t | latency,hops
 mesh | nzbanks | NZ Banks | New Zealand Banks | f | t | latency,hops
 mesh | australia | AU Web | Australian Websites | f | t | latency,hops
 
