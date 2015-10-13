@@ -1,5 +1,4 @@
 mesh | nzdns | NZ DNS | New Zealand DNS Servers | f | t | latency,hops
-mesh | trademedns | Trademe DNS | Trademe DNS Servers | f | t | latency,hops
 mesh | nzweb | NZ Web | New Zealand Websites | f | t | latency,hops
 mesh | rir | RIR | Regional Internet Registries | f | t | latency,hops
 mesh | alldns | DNS | All DNS Servers | f | t | latency,hops
@@ -21,11 +20,6 @@ site | ns4.dns.net.nz | ns4.dns.net.nz | | | nzdns | alldns
 site | ns5.dns.net.nz | ns5.dns.net.nz | | | nzdns | alldns
 site | ns6.dns.net.nz | ns6.dns.net.nz | | | nzdns | alldns
 site | ns7.dns.net.nz | ns7.dns.net.nz | | | nzdns | alldns
-
-site | ns1.trademe.co.nz | Trademe Name Server 1 | | | trademedns | alldns
-site | ns2.trademe.co.nz | Trademe Name Server 2 | | | trademedns | alldns
-site | ns3.trademe.co.nz | Trademe Name Server 3 | | | trademedns | alldns
-site | ns4.trademe.co.nz | Trademe Name Server 4 | | | trademedns | alldns
 
 site | www.callplus.co.nz | CallPlus  | | CallPlus | nzisp
 site | www.orcon.net.nz | Orcon  | | Orcon | nzisp
