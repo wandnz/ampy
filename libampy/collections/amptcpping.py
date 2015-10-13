@@ -15,6 +15,8 @@ class AmpTcpping(AmpIcmp):
         self.viewstyle = 'amp-latency'
         self.integerproperties = ['port']
 
+        self.portpreferences = [443, 53, 80]
+
     def create_group_description(self, properties):
 
         if 'family' in properties:
@@ -95,9 +97,16 @@ class AmpTcpping(AmpIcmp):
             views[(source, dest)] = -1
             return
         
-        # Just use the lowest port number for now
-        ports.sort()
-        baseprop['port'] = int(ports[0] )
+        for p in self.portpreferences:
+            if p in ports:
+                baseprop['port'] = p
+                break
+
+        if 'port' not in baseprop:
+            # Just use the lowest port number for now
+            ports.sort()
+            baseprop['port'] = int(ports[0] )
+
         baseprop['packet_size'] = self.default_packet_size
 
         v4 = self._matrix_group_streams(baseprop, 'ipv4', groups)
