@@ -73,7 +73,7 @@ site | afrinic.net | AFRINIC | | AFRINIC | rir
 site | apnic.net | APNIC | | APNIC | rir
 site | arin.net | ARIN | | ARIN | rir
 site | lacnic.net | LACNIC | | LACNIC | rir
-site | pri.authdns.ripe.net | RIPE | | RIPE | rir
+site | ripe.net | RIPE | | RIPE | rir
 
 site | a.root-servers.net | A Root Server | | A Root Server | rootdns | alldns
 site | b.root-servers.net | B Root Server | | B Root Server | rootdns | alldns
