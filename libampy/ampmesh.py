@@ -133,11 +133,12 @@ class AmpMesh(object):
                 ON active_mesh_members.meshname = full_mesh_details.meshname """
         else:
             # otherwise use all possible meshes, even if they have no tests
-            table = """ active_mesh_members JOIN mesh
+            table = """ active_mesh_members RIGHT JOIN mesh
                 ON active_mesh_members.meshname = mesh.mesh_name """
 
-        query = """ SELECT active_mesh_members.meshname, mesh_longname,
-                    mesh_description
+        # XXX count isnt always sensible? if WHERE is involved
+        query = """ SELECT mesh_name, mesh_longname,
+                    mesh_description, count(active_mesh_members.*)
                     FROM %s WHERE mesh_active = true """ % table
 
         # if site is set then only return meshes that it belongs to
@@ -161,7 +162,7 @@ class AmpMesh(object):
             # is set, though this doesn't play that well with amptest being set
             pass
 
-        query += " GROUP BY active_mesh_members.meshname, mesh_longname, mesh_description ORDER BY mesh_longname"
+        query += " GROUP BY mesh_name, mesh_longname, mesh_description ORDER BY mesh_longname"
 
         self.dblock.acquire()
         if self.db.executequery(query, tuple(params)) == -1:
@@ -171,8 +172,8 @@ class AmpMesh(object):
 
         meshes = []
         for row in self.db.cursor.fetchall():
-            meshes.append({'name':row[0], 'longname':row[1], \
-                    'description':row[2]})
+            meshes.append({'ampname':row[0], 'longname':row[1], \
+                    'description':row[2], 'count':row[3]})
 
         self.db.closecursor()
         self.dblock.release()
@@ -241,6 +242,16 @@ class AmpMesh(object):
                     FROM site JOIN active_mesh_members ON
                     site.site_ampname = active_mesh_members.ampname
                     WHERE mesh_is_dst = true ORDER BY longname """
+
+        return self._sitequery(query, None)
+
+    # XXX why do sites have to be in a mesh to count as a src/dst?
+    def get_meshless_sites(self):
+        """
+        Fetches all sites that are not currently in a mesh
+        """
+        query = """ SELECT * FROM site WHERE site_ampname NOT IN (
+                    SELECT ampname FROM active_mesh_members) """
 
         return self._sitequery(query, None)
 
@@ -579,5 +590,120 @@ class AmpMesh(object):
         self.dblock.release()
         return schedule
 
+    # TODO if we want to be able to update the ampname then we probably need
+    # to add an id field that won't change
+    def update_mesh(self, ampname, longname, description):
+        query = """ UPDATE mesh SET mesh_longname=%s, mesh_description=%s
+                    WHERE mesh_name=%s """
+        params = (longname, description, ampname)
+
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+                log("Error while updating test")
+                self.dblock.release()
+                return None
+        self.db.closecursor()
+        self.dblock.release()
+        return True
+
+    def add_mesh(self, ampname, longname, description):
+        # XXX currently all new meshes are created as destinations
+        query = """ INSERT INTO mesh (mesh_name, mesh_longname,
+                        mesh_description, mesh_is_src, mesh_is_dst, mesh_active
+                    ) VALUES (%s, %s, %s, false, true, true) """
+        params = (ampname, longname, description)
+
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+                log("Error while updating test")
+                self.dblock.release()
+                return None
+        self.db.closecursor()
+        self.dblock.release()
+        return True
+
+    def delete_mesh(self, ampname):
+        query = """ DELETE FROM mesh WHERE mesh_name=%s """
+        params = (ampname, )
+
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+                log("Error while updating test")
+                self.dblock.release()
+                return None
+        self.db.closecursor()
+        self.dblock.release()
+        return True
+
+    def update_site(self, ampname, longname, location, description):
+        query = """ UPDATE site SET site_longname=%s, site_location=%s,
+                    site_description=%s WHERE site_ampname=%s """
+        params = (longname, location, description, ampname)
+
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+                log("Error while updating test")
+                self.dblock.release()
+                return None
+        self.db.closecursor()
+        self.dblock.release()
+        return True
+
+    def add_site(self, ampname, longname, location, description):
+        # XXX currently all new meshes are created as destinations
+        query = """ INSERT INTO site (site_ampname, site_longname,
+                        site_location, site_description, site_active
+                    ) VALUES (%s, %s, %s, %s, true) """
+        params = (ampname, longname, location, description)
+
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+                log("Error while updating test")
+                self.dblock.release()
+                return None
+        self.db.closecursor()
+        self.dblock.release()
+        return True
+
+    def delete_site(self, ampname):
+        query = """ DELETE FROM site WHERE site_ampname=%s """
+        params = (ampname, )
+
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+                log("Error while updating test")
+                self.dblock.release()
+                return None
+        self.db.closecursor()
+        self.dblock.release()
+        return True
+
+    def add_mesh_member(self, meshname, ampname):
+        query = """ INSERT INTO member (member_meshname, member_ampname)
+                    VALUES (%s, %s) """
+        params = (meshname, ampname)
+
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+                log("Error while updating test")
+                self.dblock.release()
+                return None
+        self.db.closecursor()
+        self.dblock.release()
+        return True
+
+    def delete_mesh_member(self, meshname, ampname):
+        query = """ DELETE FROM member
+                    WHERE member_meshname=%s AND member_ampname=%s """
+        params = (meshname, ampname)
+
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+                log("Error while updating test")
+                self.dblock.release()
+                return None
+        self.db.closecursor()
+        self.dblock.release()
+        return True
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :

@@ -220,6 +220,9 @@ class Ampy(object):
         """
         return self.ampmesh.get_destinations()
 
+    def get_amp_meshless_sites(self):
+        return self.ampmesh.get_meshless_sites()
+
     def get_amp_mesh_destinations(self, mesh):
         """
         Fetches all AMP sites that belong to the given mesh and that are
@@ -309,6 +312,30 @@ class Ampy(object):
 
     def delete_amp_test_endpoints(self, schedule_id, src, dst):
         return self.ampmesh.delete_endpoints(schedule_id, src, dst)
+
+    def update_amp_site(self, ampname, longname, loc, description):
+        return self.ampmesh.update_site(ampname, longname, loc, description)
+
+    def update_amp_mesh(self, ampname, longname, description):
+        return self.ampmesh.update_mesh(ampname, longname, description)
+
+    def add_amp_site(self, ampname, longname, location, description):
+        return self.ampmesh.add_site(ampname, longname, location, description)
+
+    def add_amp_mesh(self, ampname, longname, description):
+        return self.ampmesh.add_mesh(ampname, longname, description)
+
+    def delete_amp_site(self, ampname):
+        return self.ampmesh.delete_site(ampname)
+
+    def delete_amp_mesh(self, ampname):
+        return self.ampmesh.delete_mesh(ampname)
+
+    def add_amp_mesh_member(self, meshname, ampname):
+        return self.ampmesh.add_mesh_member(meshname, ampname)
+
+    def delete_amp_mesh_member(self, meshname, ampname):
+        return self.ampmesh.delete_mesh_member(meshname, ampname)
 
     def get_recent_data(self, viewstyle, view_id, duration, detail):
         """
