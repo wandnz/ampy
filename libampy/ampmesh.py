@@ -322,7 +322,7 @@ class AmpMesh(object):
             "active": False,
             "unknown": True
         }
-        query = """ SELECT mesh_name AS name, mesh_longname AS longname,
+        query = """ SELECT mesh_name AS ampname, mesh_longname AS longname,
                     mesh_description AS description, mesh_is_src AS is_src,
                     mesh_is_dst AS is_dst, mesh_active AS active
                     FROM mesh WHERE mesh_name = %s
