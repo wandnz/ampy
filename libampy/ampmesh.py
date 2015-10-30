@@ -442,6 +442,13 @@ class AmpMesh(object):
         self.dblock.release()
         return True
 
+    def get_site_endpoints(self):
+        query = """ SELECT DISTINCT endpoint_source_site AS ampname,
+                    site_longname AS longname, site_location AS location,
+                    site_description AS description
+                    FROM endpoint JOIN site ON site_ampname=endpoint_source_site
+                    WHERE endpoint_source_site IS NOT NULL """
+        return self._sitequery(query, None)
 
     def add_endpoints_to_test(self, schedule_id, src, dst):
         # TODO avoid duplicate rows - set unique constraint?

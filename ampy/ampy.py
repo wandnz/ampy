@@ -307,6 +307,9 @@ class Ampy(object):
     def delete_amp_test(self, schedule_id):
         return self.ampmesh.delete_test(schedule_id)
 
+    def get_amp_site_endpoints(self):
+        return self.ampmesh.get_site_endpoints()
+
     def add_amp_test_endpoints(self, schedule_id, src, dst):
         return self.ampmesh.add_endpoints_to_test(schedule_id, src, dst)
 
