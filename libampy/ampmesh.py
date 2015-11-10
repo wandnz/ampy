@@ -129,17 +129,19 @@ class AmpMesh(object):
 
         if amptest:
             # if a test is set then use the view that includes tests
+            meshname = "active_mesh_members.meshname"
             table = """ active_mesh_members JOIN full_mesh_details
                 ON active_mesh_members.meshname = full_mesh_details.meshname """
         else:
             # otherwise use all possible meshes, even if they have no tests
+            meshname = "mesh_name"
             table = """ active_mesh_members RIGHT JOIN mesh
                 ON active_mesh_members.meshname = mesh.mesh_name """
 
         # XXX count isnt always sensible? if WHERE is involved
-        query = """ SELECT mesh_name, mesh_longname,
+        query = """ SELECT %s as mesh_name, mesh_longname,
                     mesh_description, count(active_mesh_members.*)
-                    FROM %s WHERE mesh_active = true """ % table
+                    FROM %s WHERE mesh_active = true """ % (meshname, table)
 
         # if site is set then only return meshes that it belongs to
         if site is not None:
