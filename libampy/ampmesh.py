@@ -688,6 +688,14 @@ class AmpMesh(object):
         return True
 
     def add_mesh_member(self, meshname, ampname):
+        if self._is_mesh(ampname):
+            return
+        elif not self._is_site(ampname):
+            # assume the destination is a site that was entered with the
+            # text input box, and create it if it doesn't exist
+            if self._add_basic_site(ampname) is None:
+                return
+
         query = """ INSERT INTO member (member_meshname, member_ampname)
                     VALUES (%s, %s) """
         params = (meshname, ampname)
