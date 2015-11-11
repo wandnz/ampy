@@ -444,6 +444,19 @@ class AmpMesh(object):
         self.dblock.release()
         return True
 
+    def _flag_mesh_as_source(self, mesh):
+        query = """ UPDATE mesh SET mesh_is_src = true WHERE mesh_name = %s """
+        params = (mesh,)
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+                log("Error while updating mesh")
+                self.dblock.release()
+                return None
+
+        self.db.closecursor()
+        self.dblock.release()
+        return True
+
     def get_site_endpoints(self):
         query = """ SELECT DISTINCT endpoint_source_site AS ampname,
                     site_longname AS longname, site_location AS location,
@@ -461,9 +474,13 @@ class AmpMesh(object):
         if self._is_mesh(src):
             src_mesh = src
             src_site = None
+            if self._flag_mesh_as_source(src) is None:
+                return
         elif self._is_site(src):
             src_site = src
             src_mesh = None
+            # TODO if a site in a mesh is the source of a test, should all
+            # those meshes also be set as source meshes?
         else:
             print "source is neither mesh nor site"
             return
@@ -498,6 +515,8 @@ class AmpMesh(object):
         query = """ DELETE FROM endpoint WHERE endpoint_schedule_id=%s """
 
         if self._is_mesh(src):
+            # TODO set mesh_is_src=false if the mesh is no longer the source
+            # of any tests
             query += " AND endpoint_source_mesh=%s"
         elif self._is_site(src):
             query += " AND endpoint_source_site=%s"
