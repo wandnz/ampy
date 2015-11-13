@@ -378,6 +378,7 @@ class AmpMesh(object):
                     schedule_frequency=%s, schedule_start=%s,
                     schedule_end=%s, schedule_period=%s, schedule_args=%s,
                     schedule_modified=%s WHERE schedule_id=%s """
+
         params = (test, freq, start, end, period, args, int(time.time()),
                 schedule_id)
         self.dblock.acquire()
@@ -387,6 +388,9 @@ class AmpMesh(object):
                 return None
         self.db.closecursor()
         self.dblock.release()
+
+        # flag the mesh with the appropriate test if it changed and is new
+        self._flag_meshes_with_test(schedule_id)
         return True
 
     def delete_test(self, schedule_id):
@@ -457,6 +461,56 @@ class AmpMesh(object):
         self.dblock.release()
         return True
 
+    def _flag_mesh_with_test(self, mesh, schedule_id):
+        query = """ INSERT INTO meshtests (meshtests_name, meshtests_test)
+                    SELECT %s,
+                    CASE WHEN schedule_test='icmp' THEN 'latency'
+                         WHEN schedule_test='tcpping' THEN 'latency'
+                         WHEN schedule_test='dns' THEN 'latency'
+                         WHEN schedule_test='traceroute' THEN 'hops'
+                         ELSE schedule_test
+                    END
+                    FROM schedule WHERE schedule_id=%s
+                    EXCEPT SELECT meshtests_name, meshtests_test FROM meshtests
+                    WHERE meshtests_name=%s
+                """
+        params = (mesh, schedule_id, mesh)
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+                log("Error while updating meshtests")
+                self.dblock.release()
+                return None
+
+        self.db.closecursor()
+        self.dblock.release()
+        return True
+
+    # TODO unflag meshes when the tests are removed?
+    def _flag_meshes_with_test(self, schedule_id):
+        # select all the meshes that are sources for this test
+        query = """ SELECT endpoint_source_mesh, endpoint_destination_mesh
+                    FROM endpoint
+                    WHERE endpoint_schedule_id = %s """
+        params = (schedule_id,)
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+                log("Error while fetching schedule meshes")
+                self.dblock.release()
+                return None
+
+        meshes = []
+        for row in self.db.cursor.fetchall():
+            if len(row[0]) > 0:
+                meshes.append(row[0])
+            if len(row[1]) > 0:
+                meshes.append(row[0])
+
+        self.db.closecursor()
+        self.dblock.release()
+
+        for mesh in meshes:
+            self._flag_mesh_with_test(mesh, schedule_id)
+
     def get_site_endpoints(self):
         query = """ SELECT DISTINCT endpoint_source_site AS ampname,
                     site_longname AS longname, site_location AS location,
@@ -476,6 +530,8 @@ class AmpMesh(object):
             src_site = None
             if self._flag_mesh_as_source(src) is None:
                 return
+            if self._flag_mesh_with_test(src, schedule_id) is None:
+                return
         elif self._is_site(src):
             src_site = src
             src_mesh = None
@@ -488,6 +544,8 @@ class AmpMesh(object):
         if self._is_mesh(dst):
             dst_mesh = dst
             dst_site = None
+            if self._flag_mesh_with_test(dst, schedule_id) is None:
+                return
         elif self._is_site(dst):
             dst_site = dst
             dst_mesh = None
