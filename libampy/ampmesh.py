@@ -587,7 +587,7 @@ class AmpMesh(object):
         elif self._is_site(dst):
             query += " AND endpoint_destination_site=%s"
         else:
-            print "source is neither mesh nor site"
+            print "destination is neither mesh nor site"
             return
 
         params = (schedule_id, src, dst)
