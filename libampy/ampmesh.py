@@ -500,10 +500,10 @@ class AmpMesh(object):
 
         meshes = []
         for row in self.db.cursor.fetchall():
-            if len(row[0]) > 0:
+            if row[0] is not None:
                 meshes.append(row[0])
-            if len(row[1]) > 0:
-                meshes.append(row[0])
+            if row[1] is not None:
+                meshes.append(row[1])
 
         self.db.closecursor()
         self.dblock.release()
