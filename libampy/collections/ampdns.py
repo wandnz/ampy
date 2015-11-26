@@ -15,7 +15,14 @@ class AmpDns(Collection):
         self.integerproperties = ['udp_payload_size']
         self.collection_name = "amp-dns"
         self.viewstyle = "amp-latency"
-        self.integerproperties = ['udp_payload_size']
+        self.defaults = {
+            "query": "google.com",
+            "query_type": "A",
+            "query_class": "IN",
+            "udp_payload_size": 4096,
+            "nsid": False,
+            "dnssec": False,
+        }
 
     
     def detail_columns(self, detail):
@@ -226,16 +233,20 @@ class AmpDns(Collection):
         return keydict
 
     def update_matrix_groups(self, source, dest, groups, views, viewmanager):
-    
+
         # Firstly, we want to try to populate our matrix cell using streams
         # where the target DNS server is the authoritative server, if
         # any such streams are available. This can be done by looking for
-        # streams where there was no recursion.
+        # streams where there was no recursion (and assuming each
+        # authoritative server is only hit with one query!).
         #
-        # If no such streams are available, the server is probably a 
-        # public DNS server. In this case, we're going to use streams for
-        # resolving google.com. This should be cached, so we should
-        # get a reasonable estimate of server performance.
+        # If no such streams are available, the server is probably a
+        # public DNS server. In this case, we're going to try to use
+        # streams for resolving google.com IN A with the default settings.
+        # This should be cached, so we should get a reasonable estimate of
+        # server performance. If for some reason there isn't a stream that
+        # matches this criteria, then pick an arbitrary set of properties
+        # in order to get *something* to display.
         #
         # Note, this assumes that we are always going to test www.google.com
         # for each non-authoritative server but surely we can manage
@@ -243,16 +254,29 @@ class AmpDns(Collection):
         groupprops = {
             'source':source, 'destination':dest, 'recurse':False
         }
-       
+
+        # TODO should check if there are missing properties that prevented
+        # us from finding a stream without recursion
         streams = self.streammanager.find_streams(groupprops)
-           
+
         if len(streams) == 0:
+            # no streams without recursion, try with recursion
             groupprops['recurse'] = True
-            groupprops['query'] = "google.com"
-            groupprops['query_type'] = "A" 
-            groupprops['query_class'] = "IN"
-            streams = self.streammanager.find_streams(groupprops)    
-       
+            props = self.get_selections(groupprops, False)
+
+            # as long as there are properties that need setting, keep setting
+            # them until we get a stream id (that hopefully has recent data!)
+            while len(props) > 0:
+                for prop,values in props.iteritems():
+                    # prefer the default values, but if they aren't present
+                    # then pick the first option available
+                    if prop in self.defaults and self.defaults[prop] in values:
+                        groupprops[prop] = self.defaults[prop]
+                    else:
+                        groupprops[prop] = values[0]
+                props = self.get_selections(groupprops, False)
+            streams = self.streammanager.find_streams(groupprops)
+
         v4streams = []
         v6streams = []
 
