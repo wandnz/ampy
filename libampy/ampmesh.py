@@ -130,11 +130,13 @@ class AmpMesh(object):
         if amptest:
             # if a test is set then use the view that includes tests
             meshname = "active_mesh_members.meshname"
+            statustable = "active_mesh_members"
             table = """ active_mesh_members JOIN full_mesh_details
                 ON active_mesh_members.meshname = full_mesh_details.meshname """
         else:
             # otherwise use all possible meshes, even if they have no tests
             meshname = "mesh_name"
+            statustable = "mesh"
             table = """ active_mesh_members RIGHT JOIN mesh
                 ON active_mesh_members.meshname = mesh.mesh_name """
 
@@ -156,9 +158,9 @@ class AmpMesh(object):
 
         # return meshes of the appropriate type - source or dest
         if endpoint == "source":
-            query += " AND active_mesh_members.mesh_is_src = true "
+            query += " AND %s.mesh_is_src = true " % statustable
         elif endpoint == "destination":
-            query += " AND active_mesh_members.mesh_is_dst = true"
+            query += " AND %s.mesh_is_dst = true" % statustable
         else:
             # for now just return source and destination meshes if no endpoint
             # is set, though this doesn't play that well with amptest being set
