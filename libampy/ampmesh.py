@@ -490,7 +490,7 @@ class AmpMesh(object):
     # TODO unflag meshes when the tests are removed?
     def _flag_meshes_with_test(self, schedule_id):
         # select all the meshes that are sources for this test
-        query = """ SELECT endpoint_source_mesh, endpoint_destination_mesh
+        query = """ SELECT endpoint_destination_mesh
                     FROM endpoint
                     WHERE endpoint_schedule_id = %s """
         params = (schedule_id,)
@@ -504,8 +504,6 @@ class AmpMesh(object):
         for row in self.db.cursor.fetchall():
             if row[0] is not None:
                 meshes.append(row[0])
-            if row[1] is not None:
-                meshes.append(row[1])
 
         self.db.closecursor()
         self.dblock.release()
@@ -531,8 +529,6 @@ class AmpMesh(object):
             src_mesh = src
             src_site = None
             if self._flag_mesh_as_source(src) is None:
-                return
-            if self._flag_mesh_with_test(src, schedule_id) is None:
                 return
         elif self._is_site(src):
             src_site = src
