@@ -153,7 +153,8 @@ class AmpIcmp(Collection):
 
         return keydict
 
-    def update_matrix_groups(self, source, dest, groups, views, viewmanager):
+    def update_matrix_groups(self, source, dest, split, groups, views,
+            viewmanager):
 
         groupprops = {
             'source':source, 'destination':dest,
@@ -167,8 +168,15 @@ class AmpIcmp(Collection):
             views[(source, dest)] = -1
             return
 
+        if split == "ipv4":
+            split = "IPV4"
+        elif split == "ipv6":
+            split = "IPV6"
+        else:
+            split = "FAMILY"
+
         cellgroup = self.create_group_from_list([source, dest,
-                self.default_packet_size, self.default_aggregation])
+                self.default_packet_size, split])
         if cellgroup is None:
             log("Failed to create group for %s matrix cell" % \
                     (self.collection_name))

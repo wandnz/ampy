@@ -79,24 +79,25 @@ class AmpTcpping(AmpIcmp):
                 'packet_size':groupparams['packet_size']}        
 
    
-    def update_matrix_groups(self, source, dest, groups, views, viewmanager): 
+    def update_matrix_groups(self, source, dest, split, groups, views,
+            viewmanager):
 
         baseprop = {'source':source, 'destination':dest}
-        
+
         sels = self.streammanager.find_selections(baseprop, False)
         if sels is None:
             return None
-        
+
         req, ports = sels
         if req != 'port':
             log("Unable to find suitable ports for %s matrix cell %s to %s" \
                     % (self.collection_name, source, dest))
             return None
-        
+
         if ports == []:
             views[(source, dest)] = -1
             return
-        
+
         for p in self.portpreferences:
             if p in ports:
                 baseprop['port'] = p
@@ -116,8 +117,15 @@ class AmpTcpping(AmpIcmp):
             views[(source, dest)] = -1
             return
 
+        if split == "ipv4":
+            split = "IPV4"
+        elif split == "ipv6":
+            split = "IPV6"
+        else:
+            split = "FAMILY"
+
         cellgroup = self.create_group_from_list([source, dest, \
-                baseprop['port'], self.default_packet_size, "FAMILY"])
+                baseprop['port'], self.default_packet_size, split])
 
         if cellgroup is None:
             log("Failed to create group for %s matrix cell" % \

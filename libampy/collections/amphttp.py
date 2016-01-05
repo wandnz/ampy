@@ -165,7 +165,8 @@ class AmpHttp(Collection):
 
         return labels
 
-    def update_matrix_groups(self, source, dest, groups, views, viewmanager):
+    def update_matrix_groups(self, source, dest, split, groups, views,
+            viewmanager):
         groupprops = { 'source': source, 'destination': dest }
 
         label = "%s_%s_ipv4" % (source, dest)
