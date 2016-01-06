@@ -38,9 +38,9 @@ class RRDMuninbytes(Collection):
             log("Failed to parse group description to generate legend label")
             return None
 
-        label = "%s: %s %s" % \
-                tuple([groupparams[x] for x in self.groupproperties])
-        return label
+        label = "%s: %s" % \
+                (groupparams['switch'], groupparams['interfacelabel'])
+        return label, groupparams['direction']
 
     def create_group_description(self, properties):
         for p in self.groupproperties:

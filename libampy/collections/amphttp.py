@@ -133,7 +133,7 @@ class AmpHttp(Collection):
 
         label = "%s from %s %s%s" % (gps['destination'], gps['source'], \
                 pipelab, cachelab)
-        return label
+        return label, ""
 
 
     def group_to_labels(self, groupid, description, lookup=True):

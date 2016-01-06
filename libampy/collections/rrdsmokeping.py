@@ -29,7 +29,7 @@ class RRDSmokeping(Collection):
 
         label = "%s to %s" % \
                 tuple([groupparams[x] for x in self.groupproperties])
-        return label
+        return label, ""
 
     def create_group_description(self, properties):
         

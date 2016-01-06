@@ -46,11 +46,10 @@ class AmpIcmp(Collection):
             log("Failed to parse group description to generate legend label")
             return None
 
-        label = "%s to %s %s" % (groupparams['source'],
-                groupparams['destination'],
-                self.splits[groupparams['aggregation']])
+        label = "%s to %s ICMP" % (groupparams['source'],
+                groupparams['destination'])
 
-        return label
+        return label, self.splits[groupparams['aggregation']]
 
     def _generate_label(self, baselabel, search, family, lookup):
         if family is None:

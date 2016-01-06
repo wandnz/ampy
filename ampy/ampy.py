@@ -1174,7 +1174,7 @@ class Ampy(object):
         """
 
         added = 0
-        legendtext = col.get_legend_label(descr)
+        legendtext, aggmethod = col.get_legend_label(descr)
         if legendtext is None:
             legendtext = "Unknown"
 
@@ -1197,7 +1197,7 @@ class Ampy(object):
             added += 1
 
         legend.append({'group_id':gid, 'label':legendtext, 'lines':lines,
-                'collection':col.collection_name})
+                'collection':col.collection_name, 'aggmethod': aggmethod})
         return added
 
 

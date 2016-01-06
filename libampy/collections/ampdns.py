@@ -67,12 +67,12 @@ class AmpDns(Collection):
         else:
             agg = ""
 
-        label = "%s to %s, %s %s %s %s %s %s" % ( \
+        label = "%s to %s DNS, %s %s %s %s %s" % ( \
                 groupparams['source'], groupparams['destination'],
                 groupparams['query'], groupparams['query_class'],
                 groupparams['query_type'], groupparams['udp_payload_size'],
-                flags, agg)
-        return label
+                flags)
+        return label, agg
    
     def _lookup_streams(self, search, lookup, baselabel):
         streams = []

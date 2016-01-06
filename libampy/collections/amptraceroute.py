@@ -189,10 +189,9 @@ class AmpAsTraceroute(AmpTraceroute):
         if groupparams['aggregation'] == "FAMILY":
             groupparams['aggregation'] = "IPV4"
 
-        label = "%s to %s %s" % (groupparams['source'],
-                groupparams['destination'],
-                self.splits[groupparams['aggregation']])
-        return label
+        label = "%s to %s" % (groupparams['source'],
+                groupparams['destination'])
+        return label, self.splits[groupparams['aggregation']]
     
     def extra_blocks(self, detail):
         if detail == "hops-full" or detail == "full":

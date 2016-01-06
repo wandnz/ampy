@@ -67,10 +67,9 @@ class AmpTcpping(AmpIcmp):
             log("Failed to parse group description to generate legend label")
             return none
 
-        label = "%s to %s:%s %s" % (groupparams['source'],
-                groupparams['destination'], groupparams['port'],
-                self.splits[groupparams['aggregation']])
-        return label
+        label = "%s to %s:%s TCP" % (groupparams['source'],
+                groupparams['destination'], groupparams['port'])
+        return label, self.splits[groupparams['aggregation']]
 
     def _group_to_search(self, groupparams):
         return {'source':groupparams['source'],

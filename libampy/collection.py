@@ -344,10 +344,12 @@ class Collection(object):
           description -- a string describing the group
 
         Returns:
-          the legend label for the group, as a string
+          a two-tuple. The first element is the legend label for the group, as
+          a string. The second element is a string describing the aggregation
+          method for the group.
         """
 
-        return "No label"
+        return "No label", ""
 
     def group_to_labels(self, groupid, description, lookup=True):
         """
