@@ -101,7 +101,7 @@ class AmpTraceroute(AmpIcmp):
         if 'aspath' not in data or data['aspath'] is None:
             return data
 
-        if detail in ['matrix', 'basic']:
+        if detail in ['matrix', 'basic', 'raw']:
             return data
  
         pathlen = 0
@@ -167,7 +167,7 @@ class AmpAsTraceroute(AmpTraceroute):
         return []
     
     def detail_columns(self, detail):
-        if detail == "matrix" or detail == "basic":
+        if detail == "matrix" or detail == "basic" or detail == "raw":
             aggfuncs = ["avg", "most_array"]
             aggcols = ["responses", "aspath"]
         elif detail == "hops-full" or detail == "hops-summary":
@@ -189,10 +189,9 @@ class AmpAsTraceroute(AmpTraceroute):
         if groupparams['aggregation'] == "FAMILY":
             groupparams['aggregation'] = "IPV4"
 
-        label = "%s to %s %s" % (groupparams['source'],
-                groupparams['destination'],
-                self.splits[groupparams['aggregation']])
-        return label
+        label = "%s to %s" % (groupparams['source'],
+                groupparams['destination'])
+        return label, self.splits[groupparams['aggregation']]
     
     def extra_blocks(self, detail):
         if detail == "hops-full" or detail == "full":

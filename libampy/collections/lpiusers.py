@@ -57,10 +57,9 @@ class LPIUsers(Collection):
             log("Failed to parse group description to generate legend label")
             return None
 
-        label = "%s %s at %s %s" % (groupparams['protocol'], \
-                self.metric, groupparams['source'],
-                groupparams['metric'])
-        return label
+        label = "%s %s at %s" % (groupparams['protocol'], \
+                self.metric, groupparams['source'])
+        return label, groupparams['metric']
 
     def _generate_label(self, baselabel, search, metric, lookup):
         key = baselabel + "_" + metric

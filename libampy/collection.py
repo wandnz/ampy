@@ -344,10 +344,12 @@ class Collection(object):
           description -- a string describing the group
 
         Returns:
-          the legend label for the group, as a string
+          a two-tuple. The first element is the legend label for the group, as
+          a string. The second element is a string describing the aggregation
+          method for the group.
         """
 
-        return "No label"
+        return "No label", ""
 
     def group_to_labels(self, groupid, description, lookup=True):
         """
@@ -435,7 +437,8 @@ class Collection(object):
 
         return self.streammanager.find_stream_properties(streamid)
 
-    def update_matrix_groups(self, source, dest, groups, views, viewmanager):
+    def update_matrix_groups(self, source, dest, split, groups, views,
+            viewmanager):
         """
         Finds all groups (and labels and streams) that must be queried to
         populate a matrix cell for this collection.
@@ -446,6 +449,7 @@ class Collection(object):
         Parameters:
           source -- the source for the matrix cell
           dest -- the destination for the matrix cell
+          split -- the family or direction to show in the cell
           groups -- a dictionary containing all groups for the matrix so far
           views -- a dictionary mapping matrix cells to view ids
 

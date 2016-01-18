@@ -67,15 +67,19 @@ class AmpDns(Collection):
             agg = "combined instances"
         elif groupparams['aggregation'] == "FAMILY":
             agg = "IPv4/IPv6"
+        elif groupparams['aggregation'] == "IPV4":
+            agg = "IPv4"
+        elif groupparams['aggregation'] == "IPV6":
+            agg = "IPv6"
         else:
             agg = ""
 
-        label = "%s to %s, %s %s %s %s %s %s" % ( \
+        label = "%s to %s DNS, %s %s %s %s %s" % ( \
                 groupparams['source'], groupparams['destination'],
                 groupparams['query'], groupparams['query_class'],
                 groupparams['query_type'], groupparams['udp_payload_size'],
-                flags, agg)
-        return label
+                flags)
+        return label, agg
    
     def _lookup_streams(self, search, lookup, baselabel):
         streams = []
@@ -150,18 +154,19 @@ class AmpDns(Collection):
             lab = {'labelstring':baselabel, 'streams':streams, 
                     'shortlabel':'All instances'}
             labels.append(lab)
-        elif groupparams['aggregation'] == "FAMILY":
-            nextlab = self._generate_family_label(baselabel, search, "IPv4", 
-                    lookup)
-            if nextlab is None:
-                return None
-            labels.append(nextlab)
-            nextlab = self._generate_family_label(baselabel, search, "IPv6", 
-                    lookup)
-            if nextlab is None:
-                return None
-            labels.append(nextlab)
-
+        elif groupparams['aggregation'] in ["FAMILY", "IPV4", "IPV6"]:
+            if groupparams['aggregation'] != "IPV6":
+                nextlab = self._generate_family_label(baselabel, search,
+                    "IPv4", lookup)
+                if nextlab is None:
+                    return None
+                labels.append(nextlab)
+            if groupparams['aggregation'] != "IPV4":
+                nextlab = self._generate_family_label(baselabel, search,
+                    "IPv6", lookup)
+                if nextlab is None:
+                    return None
+                labels.append(nextlab)
         else:
             streams = self._lookup_streams(search, True, baselabel)
             if streams is None:
@@ -207,13 +212,14 @@ class AmpDns(Collection):
         regex += "OPTION (?P<query>[a-zA-Z0-9.]+) (?P<type>[A-Z]+) "
         regex += "(?P<class>[A-Z]+) "
         regex += "(?P<size>[0-9]+) (?P<flags>[TF]+) "
-        regex += "(?P<split>[A-Z]+)"
+        regex += "(?P<split>[A-Z0-9]+)"
         
         parts = self._apply_group_regex(regex, description)
         if parts is None:
             return None
 
-        if parts.group("split") not in ['FULL', 'NONE', 'FAMILY']:
+        if parts.group("split") not in ['FULL', 'NONE', 'FAMILY', 'IPV4',
+                    'IPV6']:
             log("%s group description has no aggregation method" % \
                     (self.collection_name))
             log(description)
@@ -232,7 +238,8 @@ class AmpDns(Collection):
 
         return keydict
 
-    def update_matrix_groups(self, source, dest, groups, views, viewmanager):
+    def update_matrix_groups(self, source, dest, split, groups, views,
+            viewmanager):
 
         # Firstly, we want to try to populate our matrix cell using streams
         # where the target DNS server is the authoritative server, if
@@ -294,6 +301,13 @@ class AmpDns(Collection):
                 v6streams.append(sid)
 
             streamprops = self.streammanager.find_stream_properties(sid)
+            if split == "ipv4":
+                streamprops['aggregation'] = "IPV4"
+            elif split == "ipv6":
+                streamprops['aggregation'] = "IPV6"
+            else:
+                streamprops['aggregation'] = "FAMILY"
+
             groupdesc = self.create_group_description(streamprops)
             cellgroups.add(groupdesc)
 

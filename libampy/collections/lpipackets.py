@@ -59,10 +59,9 @@ class LPIPackets(Collection):
             log("Failed to parse group description to generate legend label")
             return None
 
-        label = "%s %s for %s at %s %s" % (groupparams['protocol'], \
-                self.metric, groupparams['user'], groupparams['source'],
-                groupparams['dir'])
-        return label
+        label = "%s %s for %s at %s" % (groupparams['protocol'], \
+                self.metric, groupparams['user'], groupparams['source'])
+        return label, groupparams['dir']
 
     def _generate_label(self, baselabel, search, direction, lookup):
         key = baselabel + "_" + direction

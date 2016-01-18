@@ -95,11 +95,11 @@ class AmpThroughput(Collection):
         dest = gps['destination']
 
         if gps['family'] == "IPV4":
-            family = " IPv4"
+            family = "IPv4"
         elif gps['family'] == "IPV6":
-            family = " IPv6"
+            family = "IPv6"
         elif gps['family'] == "BOTH":
-            family = " IPv4/IPv6"
+            family = "IPv4/IPv6"
         else:
             family = ""
         
@@ -114,10 +114,10 @@ class AmpThroughput(Collection):
         else:
             dirstr = " Upload"
     
-        label = "%s : %s for %.1f secs, %.1f kB writes%s%s" % (source, dest,
-                durationsecs, kilobytes, dirstr, family)
+        label = "%s : %s for %.1f secs, %.1f kB writes" % (source, dest,
+                durationsecs, kilobytes)
 
-        return label 
+        return label, "%s%s" % (family, dirstr)
 
     def parse_group_description(self, description):
         regex = "FROM (?P<source>[.a-zA-Z0-9-]+) "
@@ -257,7 +257,8 @@ class AmpThroughput(Collection):
 
         return sorted(labels, key=itemgetter('shortlabel'))
 
-    def update_matrix_groups(self, source, dest, groups, views, viewmanager):
+    def update_matrix_groups(self, source, dest, split, groups, views,
+            viewmanager):
         groupprops = {'source': source, 'destination': dest, 
                 'duration':self.default_duration, 
                 'writesize': self.default_writesize, 'tcpreused': False,
@@ -278,12 +279,18 @@ class AmpThroughput(Collection):
         if tputin4 + tputin6 + tputout4 + tputout6 == 0:
             return
 
+        if split == "down":
+            split = "IN"
+        elif split == "up":
+            split = "OUT"
+        else:
+            split = "BOTH"
 
         if tputin4 != 0 or tputout4 != 0:
             # XXX this could become a function
             cg = self.create_group_from_list([source, dest, 
                     self.default_duration,
-                    self.default_writesize, False, "BOTH", "IPV4"])
+                    self.default_writesize, False, split, "IPV4"])
             if cg is None:
                 log("Failed to create group for %s matrix cell" % \
                         (self.collection_name))
@@ -300,7 +307,7 @@ class AmpThroughput(Collection):
         if tputin6 != 0 or tputout6 != 0:
             cg = self.create_group_from_list([source, dest, 
                     self.default_duration,
-                    self.default_writesize, False, "BOTH", "IPV6"])
+                    self.default_writesize, False, split, "IPV6"])
             if cg is None:
                 log("Failed to create group for %s matrix cell" % \
                         (self.collection_name))

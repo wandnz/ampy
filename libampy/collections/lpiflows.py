@@ -67,11 +67,10 @@ class LPIFlows(Collection):
             log("Failed to parse group description to generate legend label")
             return None
 
-        label = "%s %s %s for %s at %s %s" % (groupparams['protocol'], \
+        label = "%s %s %s for %s at %s" % (groupparams['protocol'], \
                 groupparams['metric'],
-                self.metric, groupparams['user'], groupparams['source'],
-                groupparams['dir'])
-        return label
+                self.metric, groupparams['user'], groupparams['source'])
+        return label, groupparams['dir']
 
     def _generate_label(self, baselabel, search, direction, lookup):
         key = baselabel + "_" + direction
