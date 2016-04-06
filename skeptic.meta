@@ -66,6 +66,7 @@ site | ftp.wicks.co.nz | Wicks Mirror | | | nzmirror
 site | mirror.xnet.co.nz | Xnet Mirror | | | nzmirror
 site | nz.archive.ubuntu.com | Official Ubuntu Mirror | | | nzmirror
 site | ftp.nz.debian.org | Official Debian Mirror | | | nzmirror
+site | mirror.auckland.ac.nz | University of Auckland Mirror | | | nzmirror
 
 site | www.anz.co.nz | ANZ | | ANZ | nzbanks
 site | www.westpac.co.nz | Westpac | | Westpac | nzbanks
