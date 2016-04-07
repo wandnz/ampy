@@ -51,7 +51,7 @@ class AmpMesh(object):
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
-            log("Error while querying sources for mesh %s" % (mesh))
+            log("Error while querying mesh members")
             self.dblock.release()
             return None
 

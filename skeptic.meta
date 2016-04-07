@@ -1,5 +1,6 @@
 mesh | nzdns | NZ DNS | New Zealand DNS Servers | f | t | latency,hops
 mesh | nzweb | NZ Web | New Zealand Websites | f | t | latency,hops
+mesh | nzmirror | NZ Caching Mirrors | New Zealand Caching Mirrors | f | t | latency,hops
 mesh | rir | RIR | Regional Internet Registries | f | t | latency,hops
 mesh | alldns | DNS | All DNS Servers | f | t | latency,hops
 mesh | nzisp | NZ ISPs | New Zealand ISPs | f | t | latency,hops
@@ -12,6 +13,7 @@ mesh | nzamp | New Zealand Amplets | Deployed Amplets | t | t | latency,hops
 mesh | nzresidential | New Zealand Residential | New Zealand Residential Connections | t | t | latency,hops
 mesh | nzbanks | NZ Banks | New Zealand Banks | f | t | latency,hops
 mesh | australia | AU Web | Australian Websites | f | t | latency,hops
+mesh | http | HTTP Tests | All HTTP Tests | f | t | http
 
 site | ns1.dns.net.nz | ns1.dns.net.nz | | | nzdns | alldns
 site | ns2.dns.net.nz | ns2.dns.net.nz | | | nzdns | alldns
@@ -50,6 +52,21 @@ site | www.xero.com | Xero | | Xero | nzweb
 site | www.wand.net.nz | WAND | | WAND | nzweb
 site | nz.yahoo.com | Yahoo New Zealand | | YahooNZ | nzweb
 site | www.metservice.com | Metservice | | Metservice | nzweb
+site | www.rnz.co.nz | Radio New Zealand | | RNZ | nzweb
+
+site | cdn-fastly.deb.debian.org | Fastly Debian Mirror | | | nzmirror
+site | ftp.citylink.co.nz | CityLink Mirror | | | nzmirror
+site | mirror.akl.tmnetwork.co.nz | Trade Me Mirror | Auckland, New Zealand | | nzmirror
+site | mirror.wlg.tmnetwork.co.nz | Trade Me Mirror | Auckland, New Zealand | | nzmirror
+site | ftp.slingshot.co.nz | Slingshot Mirror | | | nzmirror
+site | mirror.catalyst.net.nz | Catalyst Mirror | | | nzmirror
+site | mirror.inspire.net.nz | Inspire Mirror | | | nzmirror
+site | ucmirror.canterbury.ac.nz | University of Canterbury Mirror | | | nzmirror
+site | ftp.wicks.co.nz | Wicks Mirror | | | nzmirror
+site | mirror.xnet.co.nz | Xnet Mirror | | | nzmirror
+site | nz.archive.ubuntu.com | Official Ubuntu Mirror | | | nzmirror
+site | ftp.nz.debian.org | Official Debian Mirror | | | nzmirror
+site | mirror.auckland.ac.nz | University of Auckland Mirror | | | nzmirror
 
 site | www.anz.co.nz | ANZ | | ANZ | nzbanks
 site | www.westpac.co.nz | Westpac | | Westpac | nzbanks
@@ -148,3 +165,12 @@ site | waikato.amp.wand.net.nz | University of Waikato | Hamilton, NZ | | nzamp
 site | wxc-akl.amp.wand.net.nz | WorldxChange Communications | Auckland, NZ | | nzamp
 
 site | lw-hlz-f1.amp.wand.net.nz | Lightwire 200/200 Home Fibre Connection | Hamilton, NZ | | nzresidential
+
+site | http://wand.net.nz/ | WAND | | | http
+site | http://www.amazon.com | Amazon | | | http
+site | http://www.nzherald.co.nz | NZ Herald | | | http
+site | http://www.stuff.co.nz | Stuff News | | | http
+site | http://www.trademe.co.nz | Trade Me | | | http
+site | http://www.metservice.com/national/home/ | MetService NZ | | | http
+site | http://www.google.co.nz | Google NZ | | | http
+site | http://www.bing.com/ | Bing | | | http
