@@ -78,6 +78,10 @@ class Ampy(object):
         Fetches all events that belong to a specified event group.
     get_asn_names:
         Translates a list of ASNs into their corresponding names.
+    get_event_filter:
+        Fetches an event filter for a given user.
+    modify_event_filter:
+        Creates, deletes or changes an event filter.
     """
 
     def __init__(self, ampdbconf, viewconf, nntscconf, eventconf,
@@ -941,9 +945,40 @@ class Ampy(object):
 
 
     def get_event_filter(self, username, filtername):
+        """
+        Looks up the event filter belonging to a given user and assigned
+        a particular name.
+
+        Parameters:
+          username -- the user who owns the event filter
+          filtername -- the name of the event filter
+
+        Returns:
+          a string containing stringified JSON that describes the matching
+          filter or None if there is no filter for that username, filtername
+          combination.
+        """
         return self.viewmanager.get_event_filter(username, filtername)
 
     def modify_event_filter(self, method, username, filtername, filterstring):
+        """
+        Creates, modifies or deletes an event filter.
+
+        Parameters:
+          method -- either "add", "del" or "update", describing the operation
+          to be performed.
+          username -- the user who owns the event filter
+          filtername -- the name of the event filter
+          filterstring -- a string containing stringified JSON that will act
+                          as the new filter for the given username, filtername
+                          combination. If the method is "del", this parameter
+                          is ignored.
+
+        Returns:
+          a tuple containing the username and filtername if the operation is
+          successful. None if the operation is unsuccessful.
+        """
+
         if method == "add":
             return self.viewmanager.create_event_filter(username, filtername, filterstring)
 
