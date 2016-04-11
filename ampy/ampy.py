@@ -6,7 +6,7 @@ from libampy.collection import Collection
 from libampy.nntsc import NNTSCConnection
 from libampy.cache import AmpyCache
 from libampy.eventmanager import EventManager
-from libampy.asnnames import queryASNames
+from libampy.asnnames import ASNManager
 
 from libnntscclient.logger import *
 
@@ -80,7 +80,8 @@ class Ampy(object):
         Translates a list of ASNs into their corresponding names.
     """
 
-    def __init__(self, ampdbconf, viewconf, nntscconf, eventconf):
+    def __init__(self, ampdbconf, viewconf, nntscconf, eventconf,
+            asdbconf=None):
         """
         Init function for the Ampy class.
 
@@ -101,6 +102,7 @@ class Ampy(object):
         self.nntscconfig = nntscconf
         self.cache = AmpyCache(12)
         self.eventmanager = EventManager(eventconf)
+        self.asmanager = ASNManager(asdbconf, self.cache)
 
         self.collections = {}
         self.savedcoldata = {}
@@ -907,8 +909,8 @@ class Ampy(object):
 
         Returns:
           a dictionary where the key is the ASN and the value is the
-          name for the AS (according to Team Cymru) or None if the lookup
-          fails.
+          name for the AS (according to our AS->name database) or None if the
+          lookup fails.
         """
         result = {}
         toquery = set()
@@ -928,7 +930,7 @@ class Ampy(object):
             if asname is not None:
                 result[a] = asname 
 
-        queried = queryASNames(toquery, self.cache)
+        queried = self.asmanager.queryASNames(toquery)
 
         if queried is None:
             return None
@@ -1016,9 +1018,9 @@ class Ampy(object):
         if collection == "amp-icmp":
             newcol = AmpIcmp(colid, self.viewmanager, self.nntscconfig)
         if collection == "amp-astraceroute":
-            newcol = AmpAsTraceroute(colid, self.viewmanager, self.nntscconfig)
+            newcol = AmpAsTraceroute(colid, self.viewmanager, self.nntscconfig, self.asmanager)
         if collection == "amp-traceroute":
-            newcol = AmpTraceroute(colid, self.viewmanager, self.nntscconfig)
+            newcol = AmpTraceroute(colid, self.viewmanager, self.nntscconfig, self.asmanager)
         if collection == "amp-dns":
             newcol = AmpDns(colid, self.viewmanager, self.nntscconfig)
         if collection == "amp-http":

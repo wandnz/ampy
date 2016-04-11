@@ -1,62 +1,61 @@
+from libampy.database import AmpyDatabase
 from libnntscclient.logger import *
 import socket
+import psycopg2
 
-def queryASNames(toquery, localcache=None):
-    if len(toquery) == 0:
-        return {}
+class ASNManager(object):
 
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.settimeout(2)
+    def __init__(self, asdbconfig, cache):
+        if asdbconfig is None:
+            asdbconfig = {}
+        if 'name' not in asdbconfig:
+            asdbconfig['name'] = 'amp-asmap'
 
-    try:
-        s.connect(('whois.cymru.com', 43))
-    except socket.error, msg:
-        log("Failed to connect to whois.cymru.com:43, %s" % (msg))
-        s.close()
-        return {}
+        self.dbconfig = asdbconfig
+        self.db = AmpyDatabase(asdbconfig, True)
+        self.db.connect(15)
+        self.cache = cache;
 
-    msg = "begin\n"
-    for q in toquery:
-        msg += q + "\n"
-    msg += "end\n"
+    def queryDatabase(self, asn):
 
-    totalsent = 0
-    while totalsent < len(msg):
-        sent = s.send(msg[totalsent:])
-        if sent == 0:
-            log("Error while sending query to whois.cymru.com")
-            s.close()
-            return {}
-        totalsent += sent
+        query = "SELECT * FROM asmap WHERE asn=%s"
+        params = (asn,)
 
-    # Receive all our responses
-    responded = 0
-    recvbuf = ""
-    asnames = {}
+        if self.db.executequery(query, params) == -1:
+            log("Error while querying for AS name for %s" % (asn))
+            return None
 
-    inds = list(toquery)
-    while responded < len(toquery):
-        chunk = s.recv(2048)
-        if chunk == '':
-            break
-        recvbuf += chunk
+        if self.db.cursor.rowcount == 0:
+            log("ASN %s not found in AS database :(" % (asn))
+            self.db.closecursor()
+            return "NotFound"
 
-        if '\n' not in recvbuf:
-            continue
+        asname = self.db.cursor.fetchone()['asname']
+        self.db.closecursor()
+        return asname
 
-        lines = recvbuf.splitlines(True)
-        consumed = 0
-        for l in lines:
-            if l[-1] == "\n":
-                if "Bulk mode" not in l:
-                    asnames[inds[responded]] = l.strip()
-                    if localcache:
-                        localcache.store_asname(inds[responded], l.strip())
-                    responded += 1
-                consumed += len(l)
-        recvbuf = recvbuf[consumed:]
-    s.close()
+    def queryASNames(self, toquery):
+        asnames = {}
 
-    return asnames
+        if len(toquery) == 0:
+            return asnames
+
+        for q in toquery:
+            cached = self.cache.search_asname(q)
+            if cached is not None:
+                asnames[q] = cached
+                continue
+
+            queried = self.queryDatabase(q[2:])
+
+            if queried is None:
+                return None
+            elif queried == "NotFound":
+                asnames[q] = q
+            else:
+                self.cache.store_asname(q, queried)
+                asnames[q] = queried
+
+        return asnames
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :
