@@ -36,7 +36,16 @@ def queryASNames(toquery, localcache=None):
 
     inds = list(toquery)
     while responded < len(toquery):
-        chunk = s.recv(2048)
+        try:
+            chunk = s.recv(2048)
+        except socket.error as e:
+            err = e.args[0]
+            if err == errno.EAGAIN or err == errno.EWOULDBLOCK:
+                return asnames
+            else:
+                log("Error receiving AS names from whois.cymru.com: %s" % (e))
+                return asnames
+
         if chunk == '':
             break
         recvbuf += chunk
