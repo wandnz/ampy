@@ -19,6 +19,7 @@ class AmpIcmp(Collection):
         self.default_packet_size = "84"
         self.default_aggregation = "FAMILY"
         self.viewstyle = "amp-latency"
+        self.sizepreferences = [self.default_packet_size]
 
     def detail_columns(self, detail):
         # the matrix view expects both the mean and stddev for the latency
@@ -155,13 +156,34 @@ class AmpIcmp(Collection):
     def update_matrix_groups(self, source, dest, split, groups, views,
             viewmanager):
 
-        groupprops = {
-            'source':source, 'destination':dest,
-                    'packet_size':self.default_packet_size
-        }
+        baseprop = {'source':source, 'destination':dest }
 
-        v4 = self._matrix_group_streams(groupprops, 'ipv4', groups)
-        v6 = self._matrix_group_streams(groupprops, 'ipv6', groups)
+        sels = self.streammanager.find_selections(baseprop, False)
+        if sels is None:
+            return None
+
+        req, sizes = sels
+        if req != 'packet_size':
+            log("Unable to find packet size for %s matrix cell %s to %s" % (
+                        self.collection_name, source, dest))
+            return None
+
+        if sizes == []:
+            views[(source, dest)] = -1
+            return
+
+        for s in self.sizepreferences:
+            if s in sizes:
+                baseprop['packet_size'] = s
+                break
+
+        if 'packet_size' not in baseprop:
+            # Just use the lowest packet size for now
+            sizes.sort()
+            baseprop['packet_size'] = int(sizes[0] )
+
+        v4 = self._matrix_group_streams(baseprop, 'ipv4', groups)
+        v6 = self._matrix_group_streams(baseprop, 'ipv6', groups)
 
         if v4 == 0 and v6 == 0:
             views[(source, dest)] = -1
@@ -175,7 +197,7 @@ class AmpIcmp(Collection):
             split = "FAMILY"
 
         cellgroup = self.create_group_from_list([source, dest,
-                self.default_packet_size, split])
+                baseprop['packet_size'], split])
         if cellgroup is None:
             log("Failed to create group for %s matrix cell" % \
                     (self.collection_name))
