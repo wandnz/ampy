@@ -321,5 +321,64 @@ class ViewManager(object):
             return None
         return newview
 
-       
+    def get_event_filter(self, username, filtername):
+
+        query = """SELECT * FROM userfilters WHERE user_id=%s AND filter_name=%s"""
+        params = (username, filtername)
+
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+            log("Error while searching for event filter")
+            self.dblock.release()
+            return None
+
+        # Ideally, this shouldn't happen but let's try and do something
+        # sensible if it does
+        if self.db.cursor.rowcount > 1:
+            log("Warning: multiple event filters match the description %s %s" % (username, filtername))
+            log("Using first instance")
+
+        if self.db.cursor.rowcount == 0:
+            self.dblock.release()
+            return None
+
+        filterdata = self.db.cursor.fetchone()
+        self.db.closecursor()
+        self.dblock.release()
+        return filterdata
+
+    def create_event_filter(self, username, filtername, filterstring):
+        query = """INSERT INTO userfilters (user_id, filter_name, filter) VALUES (%s, %s, %s) """
+        params = (username, filtername, filterstring)
+
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+            log("Error while inserting new event filter")
+            self.dblock.release()
+            return None
+        self.dblock.release()
+        return username, filtername
+
+    def update_event_filter(self, username, filtername, filterstring):
+        query = """UPDATE userfilters WHERE user_id=%s AND filter_name=%s SET filter TO %s"""
+        params = (username, filtername, filterstring)
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+            log("Error while updating event filter")
+            self.dblock.release()
+            return None
+        self.dblock.release()
+        return username, filtername
+
+    def delete_event_filter(self, username, filtername):
+        query = """DELETE FROM userfilters WHERE user_id=%s AND filter_name=%s"""
+        params = (username, filtername)
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+            log("Error while removing event filter")
+            self.dblock.release()
+            return None
+        self.dblock.release()
+        return username, filtername
+
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :

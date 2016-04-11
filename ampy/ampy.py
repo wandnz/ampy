@@ -938,6 +938,23 @@ class Ampy(object):
         return result
 
 
+    def get_event_filter(self, username, filtername):
+        return self.viewmanager.get_event_filter(username, filtername)
+
+    def modify_event_filter(self, method, username, filtername, filterstring):
+        if method == "add":
+            return self.viewmanager.create_event_filter(username, filtername, filterstring)
+
+        if method == "del":
+            return self.viewmanager.delete_event_filter(username, filtername)
+
+        if method == "update":
+            return self.viewmanager.update_event_filter(username, filtername, filterstring)
+
+        log("Invalid event filter modification type: %s" % (method))
+        return None
+
+
     def _query_collections(self):
         """
         Fetches the set of available collections from NNTSC and updates
