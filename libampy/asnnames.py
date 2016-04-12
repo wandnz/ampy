@@ -34,6 +34,39 @@ class ASNManager(object):
         self.db.closecursor()
         return asname
 
+    def getASNsByName(self, pagesize=30, offset=0, term=""):
+
+        # sanitize the term so we don't get sql-injected
+
+
+        matched = []
+        query = """SELECT count(*) FROM asmap WHERE CAST(asn AS TEXT) ILIKE
+                %s OR asname ILIKE %s"""
+        params = ("%" + term + "%", "%" + term + "%")
+
+        if self.db.executequery(query, params) == -1:
+            log("Error while counting ASNs in the database")
+            return (0, {})
+        ascount = self.db.cursor.fetchone()[0]
+
+        query = """SELECT * FROM asmap WHERE CAST(asn AS TEXT) ILIKE
+                %s OR asname ILIKE %s LIMIT %s OFFSET %s"""
+        params = ("%" + term + "%", "%" + term + "%", pagesize, offset)
+
+        if self.db.executequery(query, params) == -1:
+            log("Error while querying for all AS names")
+            return (0, {})
+
+        allasns = []
+        for row in self.db.cursor:
+            asstring = "AS%s %s" % (row[0], row[1])
+            allasns.append({'id': row[0], 'text': asstring})
+
+            if (len(allasns) > pagesize):
+                break
+        return ascount, allasns
+
+
     def queryASNames(self, toquery):
         asnames = {}
 

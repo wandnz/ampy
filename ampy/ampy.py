@@ -78,6 +78,9 @@ class Ampy(object):
         Fetches all events that belong to a specified event group.
     get_asn_names:
         Translates a list of ASNs into their corresponding names.
+    get_matching_asns:
+        Fetches known ASNs that contain a substring in either the ASN or the
+        AS name.
     get_event_filter:
         Fetches an event filter for a given user.
     modify_event_filter:
@@ -925,6 +928,9 @@ class Ampy(object):
                 aslabel = asname = "No response"
             elif a == "0":
                 aslabel = asname = "Unknown"
+            elif a == "Private":
+                aslabel = "ASPrivate"
+                asname = "Private Address Space"
             else:
                 aslabel = "AS" + a
                 asname = self.cache.search_asname(aslabel)
@@ -942,6 +948,39 @@ class Ampy(object):
         for a, n in queried.iteritems():
             result[a] = n
         return result
+
+    def get_matching_asns(self, pageindex=1, pagesize=30, term=""):
+        """
+        Looks up the names and ASNs for all known Autonomous Systems, on a
+        page by page basis.
+
+        Fetches are page-based because generally trying to load all of the
+        ASNs at once tends to cripple a browser.
+
+        Params:
+          pageindex -- the index of the page to fetch, where 1 = the first N
+                       ASNs
+          pagesize -- the number of ASNs that appear on each page.
+          term -- a substring that must appear in either the ASN or the AS
+                  name.
+
+        Returns:
+          a dictionary of three items:
+            'total': the total number of ASNs matching the provided term
+            'pagesize': the requested page size
+            'asns': a list of dicts describing the requested page's worth of
+                    ASNs in the database. Each dict has two keys: 'id': the
+                    ASN, and 'text': the AS name.
+        """
+        pindex = int(pageindex)
+        result = self.asmanager.getASNsByName(pagesize, ((pindex-1) * pagesize),
+                term)
+
+        return {
+            'total': result[0],
+            'pagesize': pagesize,
+            'asns': result[1]
+        }
 
 
     def get_event_filter(self, username, filtername):
