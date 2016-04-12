@@ -180,7 +180,7 @@ class AmpIcmp(Collection):
         if 'packet_size' not in baseprop:
             # Just use the lowest packet size for now
             sizes.sort()
-            baseprop['packet_size'] = int(sizes[0] )
+            baseprop['packet_size'] = sizes[0]
 
         v4 = self._matrix_group_streams(baseprop, 'ipv4', groups)
         v6 = self._matrix_group_streams(baseprop, 'ipv6', groups)
