@@ -411,8 +411,8 @@ class ViewManager(object):
           the tuple (username, filtername) if the filter is successfully
           updated, or None if the filter doesn't exist or the update fails.
         """
-        query = """UPDATE userfilters WHERE user_id=%s AND filter_name=%s SET filter TO %s"""
-        params = (username, filtername, filterstring)
+        query = """UPDATE userfilters SET filter = %s WHERE user_id=%s AND filter_name=%s"""
+        params = (filterstring, username, filtername)
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
             log("Error while updating event filter")
