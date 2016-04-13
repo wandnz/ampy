@@ -42,6 +42,33 @@ CREATE VIEW active_mesh_members AS SELECT
     AND mesh_active=true
     AND site_active=true;
 
+CREATE TABLE schedule (
+    schedule_id SERIAL PRIMARY KEY,
+    schedule_test TEXT NOT NULL,
+    schedule_frequency INTEGER NOT NULL,
+    schedule_start INTEGER,
+    schedule_end INTEGER,
+    schedule_period INTEGER, /* or TEXT? */
+    schedule_args TEXT,
+    schedule_modified INTEGER NOT NULL
+);
+
+CREATE TABLE endpoint (
+    endpoint_schedule_id INTEGER NOT NULL REFERENCES schedule(schedule_id) ON DELETE CASCADE,
+    endpoint_source_mesh TEXT REFERENCES mesh(mesh_name),
+    endpoint_source_site TEXT REFERENCES site(site_ampname),
+    endpoint_destination_mesh TEXT REFERENCES mesh(mesh_name),
+    endpoint_destination_site TEXT REFERENCES site(site_ampname)
+);
+
+ALTER TABLE endpoint ADD CONSTRAINT valid_source CHECK (
+        endpoint_source_mesh IS NOT NULL OR
+        endpoint_source_site IS NOT NULL);
+
+ALTER TABLE endpoint ADD CONSTRAINT valid_destination CHECK (
+        endpoint_destination_mesh IS NOT NULL OR
+        endpoint_destination_site IS NOT NULL);
+
 CREATE VIEW full_mesh_details AS SELECT
     mesh_name as meshname,
     mesh_longname,
