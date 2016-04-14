@@ -42,10 +42,16 @@ class Ampy(object):
         Fetches a list of supported collections from the NNTSC database.
     get_meshes:
         Fetches a list of available AMP meshes.
+    get_amp_sources:
+        Fetches a list of available AMP source sites.
+    get_amp_destinations:
+        Fetches a list of available AMP destination sites.
     get_matrix_members:
         Fetches all the sites that are needed to construct a matrix.
     get_amp_site_info:
         Fetches detailed information about an AMP mesh member.
+    get_amp_mesh_info:
+        Fetches detailed information about an AMP mesh.
     get_recent_data:
         Fetches aggregated values for a time period starting at now and
         going back a specified duration, i.e. the most recent measurements.
@@ -147,7 +153,7 @@ class Ampy(object):
         """
         return self.savedcoldata.keys()
 
-    def get_meshes(self, endpoint, amptest=None):
+    def get_meshes(self, endpoint, amptest=None, site=None):
         """
         Fetches all source or destination meshes.
 
@@ -155,10 +161,12 @@ class Ampy(object):
           endpoint -- either "source" or "destination", depending on
                       which meshes are required.
           amptest -- limit results to meshes that are targets for a given test.
-                     If None, no filtering of meshes is performed. This 
+                     If None, no filtering of meshes is performed. This
                      parameter is ignored if querying for source meshes.
                      Possible values include 'latency', 'hops', 'dns', 'http'
                      and 'tput'.
+          site -- optional argument to filter only meshes that this
+                  site is a member of.
 
         Returns:
           a list of dictionaries that describe the available meshes or
@@ -172,7 +180,7 @@ class Ampy(object):
             description -- a string describing the purpose of the mesh in
                            reasonable detail
         """
-        return self.ampmesh.get_meshes(endpoint, amptest)
+        return self.ampmesh.get_meshes(endpoint, amptest, site)
 
     def get_matrix_members(self, sourcemesh, destmesh):
         """
@@ -187,15 +195,55 @@ class Ampy(object):
           the second is the list of targets.
           Returns None if the query fails.
         """
-        sources = self.ampmesh.get_sources(sourcemesh)
+        sources = self.ampmesh.get_mesh_sources(sourcemesh)
         if sources is None:
             return None
 
-        dests = self.ampmesh.get_destinations(destmesh)
+        dests = self.ampmesh.get_mesh_destinations(destmesh)
         if dests is None:
             return None
 
         return (sources, dests)
+
+    def get_amp_sources(self):
+        """
+        Fetches all known AMP sources.
+
+        Parameters:
+          None
+
+        Returns:
+          a list of all AMP sources
+        """
+        return self.ampmesh.get_sources()
+
+    def get_amp_destinations(self):
+        """
+        Fetches all known AMP destinations.
+
+        Parameters:
+          None
+
+        Returns:
+          a list of all AMP destinations
+        """
+        return self.ampmesh.get_destinations()
+
+    def get_amp_meshless_sites(self):
+        return self.ampmesh.get_meshless_sites()
+
+    def get_amp_mesh_destinations(self, mesh):
+        """
+        Fetches all AMP sites that belong to the given mesh and that are
+        valid test destinations.
+
+        Parameters:
+          mesh -- the mesh to which destinations should belong
+
+        Returns:
+          a list of all AMP destinations in the mesh
+        """
+        return self.ampmesh.get_mesh_destinations(mesh)
 
     def get_amp_site_info(self, sitename):
         """
@@ -220,6 +268,86 @@ class Ampy(object):
         """
         return self.ampmesh.get_site_info(sitename)
 
+    def get_amp_mesh_info(self, meshname):
+        """
+        Fetches details about a particular AMP mesh.
+
+        Parameters:
+          meshname -- the name of the mesh to query for
+
+        Returns:
+          a dictionary containing detailed information about the site.
+
+        The resulting dictionary contains the following items:
+          meshname -- a string containing the internal name for the site
+          longname -- a string containing a mesh name that is suitable for
+                      public display
+          description -- a string containing any additional descriptive
+                         information about the mesh
+          src -- a boolean flag indicating whether this is a source mesh
+          dst -- a boolean flag indicating whether this is a destination mesh
+          active -- a boolean flag indicating whether the mesh is currently
+                    active
+        """
+        return self.ampmesh.get_mesh_info(meshname)
+
+    def get_amp_source_schedule(self, source, schedule_id=None):
+        """
+        Fetch all scheduled tests that originate at this source.
+
+        Parameters:
+          source -- the name of the source site/mesh to fetch the schedule for
+
+        Returns:
+          a list containing the scheduled tests from this source
+        """
+        return self.ampmesh.get_source_schedule(source, schedule_id)
+
+    def schedule_new_amp_test(self, src, dst, test, freq, start, end,
+            period, args):
+        return self.ampmesh.schedule_new_test(src, dst, test, freq, start, end,
+                period, args)
+
+    def update_amp_test(self, schedule_id, test, freq, start, end,
+            period, args):
+        return self.ampmesh.update_test(schedule_id, test, freq, start, end,
+                period, args)
+
+    def delete_amp_test(self, schedule_id):
+        return self.ampmesh.delete_test(schedule_id)
+
+    def get_amp_site_endpoints(self):
+        return self.ampmesh.get_site_endpoints()
+
+    def add_amp_test_endpoints(self, schedule_id, src, dst):
+        return self.ampmesh.add_endpoints_to_test(schedule_id, src, dst)
+
+    def delete_amp_test_endpoints(self, schedule_id, src, dst):
+        return self.ampmesh.delete_endpoints(schedule_id, src, dst)
+
+    def update_amp_site(self, ampname, longname, loc, description):
+        return self.ampmesh.update_site(ampname, longname, loc, description)
+
+    def update_amp_mesh(self, ampname, longname, description):
+        return self.ampmesh.update_mesh(ampname, longname, description)
+
+    def add_amp_site(self, ampname, longname, location, description):
+        return self.ampmesh.add_site(ampname, longname, location, description)
+
+    def add_amp_mesh(self, ampname, longname, description):
+        return self.ampmesh.add_mesh(ampname, longname, description)
+
+    def delete_amp_site(self, ampname):
+        return self.ampmesh.delete_site(ampname)
+
+    def delete_amp_mesh(self, ampname):
+        return self.ampmesh.delete_mesh(ampname)
+
+    def add_amp_mesh_member(self, meshname, ampname):
+        return self.ampmesh.add_mesh_member(meshname, ampname)
+
+    def delete_amp_mesh_member(self, meshname, ampname):
+        return self.ampmesh.delete_mesh_member(meshname, ampname)
 
     def get_recent_data(self, viewstyle, view_id, duration, detail):
         """
@@ -1224,12 +1352,12 @@ class Ampy(object):
         # currently looking at
         split = options[2]
 
-        sources = self.ampmesh.get_sources(sourcemesh)
+        sources = self.ampmesh.get_mesh_sources(sourcemesh)
         if sources is None:
             log("Error while fetching matrix streams")
             return None
 
-        destinations = self.ampmesh.get_destinations(destmesh)
+        destinations = self.ampmesh.get_mesh_destinations(destmesh)
         if destinations is None:
             log("Error while fetching matrix streams")
             return None

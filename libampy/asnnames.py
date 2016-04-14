@@ -39,7 +39,6 @@ class ASNManager(object):
         # sanitize the term so we don't get sql-injected
 
 
-        matched = []
         query = """SELECT count(*) FROM asmap WHERE CAST(asn AS TEXT) ILIKE
                 %s OR asname ILIKE %s"""
         params = ("%" + term + "%", "%" + term + "%")
@@ -48,9 +47,10 @@ class ASNManager(object):
             log("Error while counting ASNs in the database")
             return (0, {})
         ascount = self.db.cursor.fetchone()[0]
+        self.db.closecursor();
 
         query = """SELECT * FROM asmap WHERE CAST(asn AS TEXT) ILIKE
-                %s OR asname ILIKE %s LIMIT %s OFFSET %s"""
+                %s OR asname ILIKE %s ORDER BY asn LIMIT %s OFFSET %s"""
         params = ("%" + term + "%", "%" + term + "%", pagesize, offset)
 
         if self.db.executequery(query, params) == -1:
@@ -64,6 +64,7 @@ class ASNManager(object):
 
             if (len(allasns) > pagesize):
                 break
+        self.db.closecursor();
         return ascount, allasns
 
 
