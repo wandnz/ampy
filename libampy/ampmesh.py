@@ -18,6 +18,9 @@ class AmpMesh(object):
         Returns a list of all available source sites
     get_destinations:
         Returns a list of all available destination sites
+    get_endpoints_by_name:
+        Returns a list of sources or destinations that contain a given
+        substring in their AMP name
     """
 
     def __init__(self, ampdbconfig):
@@ -229,6 +232,82 @@ class AmpMesh(object):
                     WHERE mesh_is_src = true ORDER BY longname """
 
         return self._sitequery(query, None)
+
+    def get_endpoints_by_name(self, issrc=True, pagesize=30, offset=0, term=""):
+        """
+        Fetches known endpoints that contain a given substring in their AMP
+        name.
+
+        Parameters:
+          issrc: if True, only return endpoints that are AMP test sources,
+                 otherwise only return endpoints that are AMP test targets.
+          pagesize: the maximum number of sources to return.
+          offset: the number of sources to skip, starting from the front of
+                  the source list.
+          term: the substring that must be present in each returned source's
+                AMP name.
+
+        Returns:
+          a two tuple -- the first element is the total number of sources that
+          contained the given substring, the second element is a list of
+          matching sources given the offset and pagesize constraints.
+        """
+
+        # TODO: mesh-less sites are ignored by this -- sites need to record
+        # whether they can be a source or not, rather than meshes.
+        # When this changes, update these queries to reflect that.
+
+        if issrc:
+            countquery = """ SELECT DISTINCT site_ampname AS ampname
+                    FROM site JOIN active_mesh_members ON
+                    site.site_ampname = active_mesh_members.ampname WHERE
+                    mesh_is_src = true AND site.site_ampname ILIKE %s """
+            epquery = """ SELECT DISTINCT site_ampname AS ampname
+                    FROM site JOIN active_mesh_members ON
+                    site.site_ampname = active_mesh_members.ampname WHERE
+                    mesh_is_src = true AND site.site_ampname ILIKE %s
+                    ORDER BY ampname LIMIT %s OFFSET %s  """
+        else:
+            countquery = """ SELECT DISTINCT site_ampname AS ampname
+                    FROM site JOIN active_mesh_members ON
+                    site.site_ampname = active_mesh_members.ampname WHERE
+                    mesh_is_dst = true AND site.site_ampname ILIKE %s """
+            epquery = """ SELECT DISTINCT site_ampname AS ampname
+                    FROM site JOIN active_mesh_members ON
+                    site.site_ampname = active_mesh_members.ampname WHERE
+                    mesh_is_dst = true AND site.site_ampname ILIKE %s
+                    ORDER BY ampname LIMIT %s OFFSET %s  """
+
+
+        matched = []
+        params = ("%" + term + "%",)
+
+        self.dblock.acquire()
+        if self.db.executequery(countquery, params) == -1:
+            log("Error while querying for site counts")
+            self.dblock.release()
+            return 0, []
+
+        epcount = self.db.cursor.rowcount
+        self.db.closecursor()
+
+    
+        params = ("%" + term + "%", pagesize, offset)
+
+        if self.db.executequery(epquery, params) == -1:
+            log("Error while querying for sites")
+            self.dblock.release()
+            return 0, []
+
+        for row in self.db.cursor:
+            matched.append({'id': row[0], 'text': row[0]})
+            if (len(matched) > pagesize):
+                break
+
+        self.db.closecursor()
+        self.dblock.release()
+        return epcount, matched
+
 
     def get_destinations(self):
         """

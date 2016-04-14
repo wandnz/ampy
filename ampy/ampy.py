@@ -87,6 +87,10 @@ class Ampy(object):
     get_matching_asns:
         Fetches known ASNs that contain a substring in either the ASN or the
         AS name.
+    get_matching_sources:
+        Fetches known AMP sources that contain a substring in their AMP name.
+    get_matching_targets:
+        Fetches known AMP targets that contain a substring in their AMP name.
     get_event_filter:
         Fetches an event filter for a given user.
     modify_event_filter:
@@ -1110,6 +1114,78 @@ class Ampy(object):
             'asns': result[1]
         }
 
+    def get_matching_sources(self, pageindex=1, pagesize=30, term=""):
+        """
+        Looks up the names of AMP sources that contain a given substring,
+        on a page by page basis.
+
+        Fetches are page-based to be consistent with the get_matching_asns
+        function, but also to ensure we can scale to large numbers of AMP
+        monitors.
+
+        Params:
+          pageindex -- the index of the page to fetch, where 1 = the first N
+                       ASNs
+          pagesize -- the number of sources that appear on each page.
+          term -- a substring that must appear in the source's AMP name.
+
+        Returns:
+          a dictionary of three items:
+            'total': the total number of sources matching the provided term
+            'pagesize': the requested page size
+            'sources': a list of dicts describing the requested page's worth of
+                    AMP sources in the database. Each dict has two keys: 'id'
+                    and 'text' which are both the AMP name of the source. The
+                    duplication is to simplify populating dropdowns with the
+                    returned sources.
+        """
+
+        pindex = int(pageindex)
+        result = self.ampmesh.get_endpoints_by_name(True, pagesize,
+                ((pindex-1) * pagesize), term)
+
+        return {
+            'total': result[0],
+            'pagesize': pagesize,
+            'sources': result[1]
+        }
+
+    def get_matching_targets(self, pageindex=1, pagesize=30, term=""):
+
+        """
+        Looks up the names of AMP targets that contain a given substring,
+        on a page by page basis.
+
+        Fetches are page-based to be consistent with the get_matching_asns
+        function, but also to ensure we can scale to large numbers of AMP
+        targets.
+
+        Params:
+          pageindex -- the index of the page to fetch, where 1 = the first N
+                       ASNs
+          pagesize -- the number of targets that appear on each page.
+          term -- a substring that must appear in the target's AMP name.
+
+        Returns:
+          a dictionary of three items:
+            'total': the total number of targets matching the provided term
+            'pagesize': the requested page size
+            'sources': a list of dicts describing the requested page's worth of
+                    AMP targets in the database. Each dict has two keys: 'id'
+                    and 'text' which are both the AMP name of the target. The
+                    duplication is to simplify populating dropdowns with the
+                    returned target.
+        """
+
+        pindex = int(pageindex)
+        result = self.ampmesh.get_endpoints_by_name(False, pagesize,
+                ((pindex-1) * pagesize), term)
+
+        return {
+            'total': result[0],
+            'pagesize': pagesize,
+            'targets': result[1]
+        }
 
     def get_event_filter(self, username, filtername):
         """
