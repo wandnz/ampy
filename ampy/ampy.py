@@ -6,7 +6,7 @@ from libampy.collection import Collection
 from libampy.nntsc import NNTSCConnection
 from libampy.cache import AmpyCache
 from libampy.eventmanager import EventManager
-from libampy.asnnames import queryASNames
+from libampy.asnnames import ASNManager
 
 from libnntscclient.logger import *
 
@@ -84,9 +84,21 @@ class Ampy(object):
         Fetches all events that belong to a specified event group.
     get_asn_names:
         Translates a list of ASNs into their corresponding names.
+    get_matching_asns:
+        Fetches known ASNs that contain a substring in either the ASN or the
+        AS name.
+    get_matching_sources:
+        Fetches known AMP sources that contain a substring in their AMP name.
+    get_matching_targets:
+        Fetches known AMP targets that contain a substring in their AMP name.
+    get_event_filter:
+        Fetches an event filter for a given user.
+    modify_event_filter:
+        Creates, deletes or changes an event filter.
     """
 
-    def __init__(self, ampdbconf, viewconf, nntscconf, eventconf):
+    def __init__(self, ampdbconf, viewconf, nntscconf, eventconf,
+            asdbconf=None):
         """
         Init function for the Ampy class.
 
@@ -107,6 +119,7 @@ class Ampy(object):
         self.nntscconfig = nntscconf
         self.cache = AmpyCache(12)
         self.eventmanager = EventManager(eventconf)
+        self.asmanager = ASNManager(asdbconf, self.cache)
 
         self.collections = {}
         self.savedcoldata = {}
@@ -1035,8 +1048,8 @@ class Ampy(object):
 
         Returns:
           a dictionary where the key is the ASN and the value is the
-          name for the AS (according to Team Cymru) or None if the lookup
-          fails.
+          name for the AS (according to our AS->name database) or None if the
+          lookup fails.
         """
         result = {}
         toquery = set()
@@ -1047,6 +1060,9 @@ class Ampy(object):
                 aslabel = asname = "No response"
             elif a == "0":
                 aslabel = asname = "Unknown"
+            elif a == "Private":
+                aslabel = "ASPrivate"
+                asname = "Private Address Space"
             else:
                 aslabel = "AS" + a
                 asname = self.cache.search_asname(aslabel)
@@ -1056,7 +1072,7 @@ class Ampy(object):
             if asname is not None:
                 result[a] = asname 
 
-        queried = queryASNames(toquery, self.cache)
+        queried = self.asmanager.queryASNames(toquery)
 
         if queried is None:
             return None
@@ -1064,6 +1080,159 @@ class Ampy(object):
         for a, n in queried.iteritems():
             result[a] = n
         return result
+
+    def get_matching_asns(self, pageindex=1, pagesize=30, term=""):
+        """
+        Looks up the names and ASNs for all known Autonomous Systems, on a
+        page by page basis.
+
+        Fetches are page-based because generally trying to load all of the
+        ASNs at once tends to cripple a browser.
+
+        Params:
+          pageindex -- the index of the page to fetch, where 1 = the first N
+                       ASNs
+          pagesize -- the number of ASNs that appear on each page.
+          term -- a substring that must appear in either the ASN or the AS
+                  name.
+
+        Returns:
+          a dictionary of three items:
+            'total': the total number of ASNs matching the provided term
+            'pagesize': the requested page size
+            'asns': a list of dicts describing the requested page's worth of
+                    ASNs in the database. Each dict has two keys: 'id': the
+                    ASN, and 'text': the AS name.
+        """
+        pindex = int(pageindex)
+        result = self.asmanager.getASNsByName(pagesize, ((pindex-1) * pagesize),
+                term)
+
+        return {
+            'total': result[0],
+            'pagesize': pagesize,
+            'asns': result[1]
+        }
+
+    def get_matching_sources(self, pageindex=1, pagesize=30, term=""):
+        """
+        Looks up the names of AMP sources that contain a given substring,
+        on a page by page basis.
+
+        Fetches are page-based to be consistent with the get_matching_asns
+        function, but also to ensure we can scale to large numbers of AMP
+        monitors.
+
+        Params:
+          pageindex -- the index of the page to fetch, where 1 = the first N
+                       ASNs
+          pagesize -- the number of sources that appear on each page.
+          term -- a substring that must appear in the source's AMP name.
+
+        Returns:
+          a dictionary of three items:
+            'total': the total number of sources matching the provided term
+            'pagesize': the requested page size
+            'sources': a list of dicts describing the requested page's worth of
+                    AMP sources in the database. Each dict has two keys: 'id'
+                    and 'text' which are both the AMP name of the source. The
+                    duplication is to simplify populating dropdowns with the
+                    returned sources.
+        """
+
+        pindex = int(pageindex)
+        result = self.ampmesh.get_endpoints_by_name(True, pagesize,
+                ((pindex-1) * pagesize), term)
+
+        return {
+            'total': result[0],
+            'pagesize': pagesize,
+            'sources': result[1]
+        }
+
+    def get_matching_targets(self, pageindex=1, pagesize=30, term=""):
+
+        """
+        Looks up the names of AMP targets that contain a given substring,
+        on a page by page basis.
+
+        Fetches are page-based to be consistent with the get_matching_asns
+        function, but also to ensure we can scale to large numbers of AMP
+        targets.
+
+        Params:
+          pageindex -- the index of the page to fetch, where 1 = the first N
+                       ASNs
+          pagesize -- the number of targets that appear on each page.
+          term -- a substring that must appear in the target's AMP name.
+
+        Returns:
+          a dictionary of three items:
+            'total': the total number of targets matching the provided term
+            'pagesize': the requested page size
+            'sources': a list of dicts describing the requested page's worth of
+                    AMP targets in the database. Each dict has two keys: 'id'
+                    and 'text' which are both the AMP name of the target. The
+                    duplication is to simplify populating dropdowns with the
+                    returned target.
+        """
+
+        pindex = int(pageindex)
+        result = self.ampmesh.get_endpoints_by_name(False, pagesize,
+                ((pindex-1) * pagesize), term)
+
+        return {
+            'total': result[0],
+            'pagesize': pagesize,
+            'targets': result[1]
+        }
+
+    def get_event_filter(self, username, filtername):
+        """
+        Looks up the event filter belonging to a given user and assigned
+        a particular name.
+
+        Parameters:
+          username -- the user who owns the event filter
+          filtername -- the name of the event filter
+
+        Returns:
+          a string containing stringified JSON that describes the matching
+          filter or None if there is no filter for that username, filtername
+          combination.
+        """
+        return self.viewmanager.get_event_filter(username, filtername)
+
+    def modify_event_filter(self, method, username, filtername, filterstring):
+        """
+        Creates, modifies or deletes an event filter.
+
+        Parameters:
+          method -- either "add", "del" or "update", describing the operation
+          to be performed.
+          username -- the user who owns the event filter
+          filtername -- the name of the event filter
+          filterstring -- a string containing stringified JSON that will act
+                          as the new filter for the given username, filtername
+                          combination. If the method is "del", this parameter
+                          is ignored.
+
+        Returns:
+          a tuple containing the username and filtername if the operation is
+          successful. None if the operation is unsuccessful.
+        """
+
+        if method == "add":
+            return self.viewmanager.create_event_filter(username, filtername, filterstring)
+
+        if method == "del":
+            return self.viewmanager.delete_event_filter(username, filtername)
+
+        if method == "update":
+            return self.viewmanager.update_event_filter(username, filtername, filterstring)
+
+        log("Invalid event filter modification type: %s" % (method))
+        return None
 
 
     def _query_collections(self):
@@ -1127,9 +1296,9 @@ class Ampy(object):
         if collection == "amp-icmp":
             newcol = AmpIcmp(colid, self.viewmanager, self.nntscconfig)
         if collection == "amp-astraceroute":
-            newcol = AmpAsTraceroute(colid, self.viewmanager, self.nntscconfig)
+            newcol = AmpAsTraceroute(colid, self.viewmanager, self.nntscconfig, self.asmanager)
         if collection == "amp-traceroute":
-            newcol = AmpTraceroute(colid, self.viewmanager, self.nntscconfig)
+            newcol = AmpTraceroute(colid, self.viewmanager, self.nntscconfig, self.asmanager)
         if collection == "amp-dns":
             newcol = AmpDns(colid, self.viewmanager, self.nntscconfig)
         if collection == "amp-http":

@@ -1,12 +1,11 @@
 from libnntscclient.logger import *
 from libampy.collection import Collection
 from libampy.collections.ampicmp import AmpIcmp
-from libampy.asnnames import queryASNames
 import re, socket
 from operator import itemgetter
 
 class AmpTraceroute(AmpIcmp):
-    def __init__(self, colid, viewmanager, nntscconf):
+    def __init__(self, colid, viewmanager, nntscconf, asnmanager):
         super(AmpTraceroute, self).__init__(colid, viewmanager, nntscconf)
 
         self.streamproperties = ['source', 'destination', 'packet_size',
@@ -18,7 +17,7 @@ class AmpTraceroute(AmpIcmp):
         self.default_aggregation = "FAMILY"
         self.viewstyle = "amp-traceroute"
 
-        self.localcache = None
+        self.asnmanager = asnmanager
     def group_columns(self, detail):
         if detail == "ippaths":
             return ['aspath', 'path']
@@ -43,7 +42,6 @@ class AmpTraceroute(AmpIcmp):
             binsize):
 
         # Save the cache because we'll want it for our AS name lookups    
-        self.localcache = cache
         if detail != "ippaths":
             return super(AmpTraceroute, self).get_collection_history(cache,
                     labels, start, end, detail, binsize)
@@ -122,9 +120,8 @@ class AmpTraceroute(AmpIcmp):
                 aslabel = asname = "Unknown"
             else:
                 aslabel = "AS" + asnsplit[1]
-                asname = self.localcache.search_asname(aslabel)
-                if asname == None:
-                    toquery.add(aslabel)
+                asname = None
+                toquery.add(aslabel)
             
             repeats = int(asnsplit[0])
             pathlen += repeats 
@@ -138,7 +135,7 @@ class AmpTraceroute(AmpIcmp):
             data['aspath'] = aspath
             return data
 
-        queried = queryASNames(toquery, self.localcache)
+        queried = self.asnmanager.queryASNames(toquery)
         if queried is None:
             log("Unable to query AS names")
             data['aspath'] = aspath
@@ -157,8 +154,9 @@ class AmpTraceroute(AmpIcmp):
 
 
 class AmpAsTraceroute(AmpTraceroute):
-    def __init__(self, colid, viewmanager, nntscconf):
-        super(AmpAsTraceroute, self).__init__(colid, viewmanager, nntscconf)
+    def __init__(self, colid, viewmanager, nntscconf, asnmanager):
+        super(AmpAsTraceroute, self).__init__(colid, viewmanager, nntscconf,
+                asnmanager)
         self.collection_name = "amp-astraceroute"
         self.viewstyle = "amp-astraceroute"
         self.default_aggregation = "FAMILY"

@@ -40,6 +40,11 @@ class ViewManager(object):
       to the view-level collection, e.g. 'amp-latency' for latency views,
       and 'collection' to refer to the group collection.
 
+    The views database is also used to store event filters for use with the
+    event dashboard. Event filters allow users to control which events
+    appear on their dashboard, e.g. removing events for a particular target
+    that they do not care about.
+
     API Functions
     -------------
       get_view_groups:
@@ -56,6 +61,14 @@ class ViewManager(object):
       remove_group_from_view:
         Returns the id of the view that results from removing a group from an
         existing view.
+      get_event_filter:
+        Fetches a specific event filter from the views database.
+      create_event_filter:
+        Inserts a new event filter into the views database.
+      delete_event_filter:
+        Removes an event filter from the views database.
+      update_event_filter:
+        Replaces an existing event filter with a new set of filtering options.
 
     """
 
@@ -321,5 +334,113 @@ class ViewManager(object):
             return None
         return newview
 
-       
+    def get_event_filter(self, username, filtername):
+        """
+        Fetches the event filter that matches a given user, filtername
+        combination.
+
+        Parameters:
+          username -- the user that is requesting the event filter
+          filtername -- the name of the filter to be fetched
+
+        Returns:
+          The row in the event filter table that matches the given username
+          and filter name, or None if no such filter exists (or an error
+          occurs while querying the database).
+        """
+        query = """SELECT * FROM userfilters WHERE user_id=%s AND filter_name=%s"""
+        params = (username, filtername)
+
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+            log("Error while searching for event filter")
+            self.dblock.release()
+            return None
+
+        # Ideally, this shouldn't happen but let's try and do something
+        # sensible if it does
+        if self.db.cursor.rowcount > 1:
+            log("Warning: multiple event filters match the description %s %s" % (username, filtername))
+            log("Using first instance")
+
+        if self.db.cursor.rowcount == 0:
+            self.dblock.release()
+            return None
+
+        filterdata = self.db.cursor.fetchone()
+        self.db.closecursor()
+        self.dblock.release()
+        return filterdata
+
+    def create_event_filter(self, username, filtername, filterstring):
+        """
+        Inserts a new event filter into the filter table.
+
+        Parameters:
+          username -- the user who the new filter belongs to.
+          filtername -- the name to be associated with this new filter.
+          filterstring -- a string containing stringified JSON that describes
+                          the filter options.
+
+        Returns:
+          the tuple (username, filtername) if the new filter is successfully
+          inserted into the filter table, or None if the insertion fails.
+        """
+        query = """INSERT INTO userfilters (user_id, filter_name, filter) VALUES (%s, %s, %s) """
+        params = (username, filtername, filterstring)
+
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+            log("Error while inserting new event filter")
+            self.dblock.release()
+            return None
+        self.dblock.release()
+        return username, filtername
+
+    def update_event_filter(self, username, filtername, filterstring):
+        """
+        Replaces the filter string for an existing event filter.
+
+        Parameters:
+          username -- the user who the updated filter belongs to.
+          filtername -- the name of the filter to be updated.
+          filterstring -- a string containing stringified JSON that describes
+                          the new filter options.
+
+        Returns:
+          the tuple (username, filtername) if the filter is successfully
+          updated, or None if the filter doesn't exist or the update fails.
+        """
+        query = """UPDATE userfilters SET filter = %s WHERE user_id=%s AND filter_name=%s"""
+        params = (filterstring, username, filtername)
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+            log("Error while updating event filter")
+            self.dblock.release()
+            return None
+        self.dblock.release()
+        return username, filtername
+
+    def delete_event_filter(self, username, filtername):
+        """
+        Removes an existing event filter from the filter table.
+
+        Parameters:
+          username -- the user who owns the filter to be removed.
+          filtername -- the name of the filter to be removed
+
+        Returns:
+          the tuple (username, filtername) if the filter is successfully
+          removed from the filter table, or None if the removal fails.
+        """
+        query = """DELETE FROM userfilters WHERE user_id=%s AND filter_name=%s"""
+        params = (username, filtername)
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+            log("Error while removing event filter")
+            self.dblock.release()
+            return None
+        self.dblock.release()
+        return username, filtername
+
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :
