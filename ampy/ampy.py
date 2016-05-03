@@ -831,6 +831,7 @@ class Ampy(object):
             # Find the stream in our stream hierarchy
             streamprops = col.find_stream(stream)
             if streamprops is not None:
+                collection = c
                 break
 
         if streamprops is None:
