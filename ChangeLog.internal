@@ -1,8 +1,19 @@
-ampy 2.2
+ampy 2.3
 
 Deployment dates:
   skeptic: TBD
   lamp: TBD
+
+Major Changes:
+ * Fixed bug where ASN ids were integers instead of strings, which would
+   cause issues when trying to select ASN 0 on the dashboard filter.
+
+
+ampy 2.2
+
+Deployment dates:
+  skeptic: TBD
+  lamp: 28/04/16
 
 Major Changes:
  * Site, mesh and schedule management has now been added for admin users.
