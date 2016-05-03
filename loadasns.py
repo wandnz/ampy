@@ -19,8 +19,9 @@ def insert_asn(db, asn, name):
     try:
         cursor.execute(query, params)
     except psycopg2.IntegrityError as e:
-        print "Attempted to insert duplicate ASN %s" % (params[0])
+        #print "Attempted to insert duplicate ASN %s" % (params[0])
         db.rollback()
+        return None
     except psycopg2.Error as e:
         print "Failed to insert site", e
         return None

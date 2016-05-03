@@ -60,7 +60,7 @@ class ASNManager(object):
         allasns = []
         for row in self.db.cursor:
             asstring = "AS%s %s" % (row[0], row[1])
-            allasns.append({'id': row[0], 'text': asstring})
+            allasns.append({'id': str(row[0]), 'text': asstring})
 
             if (len(allasns) > pagesize):
                 break

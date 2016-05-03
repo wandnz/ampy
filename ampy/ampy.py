@@ -817,13 +817,23 @@ class Ampy(object):
             self.cache.store_stream_view(stream, cachedview)
             return cachedview
 
-        col = self._getcol(collection)
-        if col == None:
-            log("Error while creating event view")
-            return None
+        if collection == "amp-latency":
+            possibles = ['amp-icmp', 'amp-dns', 'amp-tcpping']
+        else:
+            possibles = [collection]
 
-        # Find the stream in our stream hierarchy
-        streamprops = col.find_stream(stream)
+        streamprops = None
+        for c in possibles:
+            col = self._getcol(c)
+            if col == None:
+                continue
+
+            # Find the stream in our stream hierarchy
+            streamprops = col.find_stream(stream)
+            if streamprops is not None:
+                collection = c
+                break
+
         if streamprops is None:
             log("Error while creating event view")
             log("Stream %s does not exist for collection %s" % \
