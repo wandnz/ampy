@@ -16,6 +16,8 @@ class AmpThroughput(Collection):
         self.default_duration = 10000
         self.default_writesize = 131072
 
+        self.dirlabels = {"in": "Download", "out": "Upload"}
+
     def detail_columns(self, detail):
 
         aggfuncs = ["sum", "sum", "sum"]
@@ -163,10 +165,10 @@ class AmpThroughput(Collection):
         key = baselabel + "_" + direction
         search['direction'] =  direction
 
-        if direction == "in":
-            shortlabel = "Download"
+        if direction in self.dirlabels:
+            shortlabel = self.dirlabels[direction]
         else:
-            shortlabel = "Upload"
+            shortlabel = ""
 
         labels = []
 
@@ -207,10 +209,10 @@ class AmpThroughput(Collection):
     def _generate_family_label(self, baselabel, search, family, lookup):
         key = baselabel + "_" + family
         search['family'] = family.lower()
-        if search['direction'] == "in":
-            shortlabel = family + " Download"
+        if search['direction'] in self.dirlabels:
+            shortlabel = family + " " + self.dirlabels[search['direction']]
         else:
-            shortlabel = family + " Upload"
+            shortlabel = family
 
         if lookup:
             streams = self.streammanager.find_streams(search)
