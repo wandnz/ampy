@@ -16,6 +16,7 @@ from libampy.collections.ampdns import AmpDns
 from libampy.collections.amphttp import AmpHttp
 from libampy.collections.amptcpping import AmpTcpping
 from libampy.collections.ampthroughput import AmpThroughput
+from libampy.collections.ampudpstream import AmpUdpstream
 from libampy.collections.rrdsmokeping import RRDSmokeping
 from libampy.collections.rrdmuninbytes import RRDMuninbytes
 from libampy.collections.lpipackets import LPIPackets
@@ -466,7 +467,6 @@ class Ampy(object):
                     log("Unable to convert group %d into stream labels" % (gid))
                     continue
                 alllabels += grouplabels
-
             colhist = col.get_collection_history(self.cache, alllabels, start,
                     end, detail, binsize)
 
@@ -857,7 +857,7 @@ class Ampy(object):
         self.cache.store_stream_view(stream, view)
         return view
 
-    def modify_view(self, collection, view_id, action, options):
+    def modify_view(self, collection, view_id, viewstyle, action, options):
         """
         Adds or removes a group from an existing view.
 
@@ -909,13 +909,13 @@ class Ampy(object):
                 newgroup = col.create_group_from_list(options)
             if newgroup is None:
                 return view_id
-            return self.viewmanager.add_groups_to_view(col.viewstyle,
+            return self.viewmanager.add_groups_to_view(viewstyle,
                     collection, view_id, [newgroup])
         elif action == "del":
             # XXX In theory, we could support removing more than one group?
             groupid = int(options[0])
             return self.viewmanager.remove_group_from_view(
-                    collection, view_id, groupid)
+                    viewstyle, view_id, groupid)
         else:
             return view_id
 
@@ -1317,6 +1317,8 @@ class Ampy(object):
             newcol = AmpTcpping(colid, self.viewmanager, self.nntscconfig)
         if collection == "amp-throughput":
             newcol = AmpThroughput(colid, self.viewmanager, self.nntscconfig)
+        if collection == "amp-udpstream":
+            newcol = AmpUdpstream(colid, self.viewmanager, self.nntscconfig)
         if collection == "rrd-smokeping":
             newcol = RRDSmokeping(colid, self.viewmanager, self.nntscconfig)
         if collection == "rrd-muninbytes":
