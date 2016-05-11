@@ -30,8 +30,8 @@ class AmpDns(Collection):
             aggfuncs = ["avg", "stddev", "count", "count"]
             aggcols = ["rtt", "rtt", "rtt", "timestamp"]
         elif detail == "full" or detail == "raw" or detail == "summary":
-            aggfuncs = ["smoke"]
-            aggcols = ["rtt"]
+            aggfuncs = ["smoke", "count", "count"]
+            aggcols = ["rtt", "rtt", "timestamp"]
         else:
             aggfuncs = ["avg"]
             aggcols = ["rtt"]
@@ -270,6 +270,9 @@ class AmpDns(Collection):
             # no streams without recursion, try with recursion
             groupprops['recurse'] = True
             props = self.get_selections(groupprops, False)
+
+            if props is None:
+                return
 
             # as long as there are properties that need setting, keep setting
             # them until we get a stream id (that hopefully has recent data!)
