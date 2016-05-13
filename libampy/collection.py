@@ -24,6 +24,9 @@ class Collection(object):
 
     API Functions
     -------------
+    get_maximum_view_groups:
+        Returns the maximum number of groups that can be depicted on a single
+        graph.
     extra_blocks:
         Determines how many extra blocks should be fetched when making
         a data query.
@@ -99,6 +102,23 @@ class Collection(object):
         self.collection_name = "basecollection"
         self.streamproperties = None
         self.groupproperties = None
+
+    def get_maximum_view_groups(self):
+        """
+        Provides the maximum number of groups that can be shown on a single
+        graph for this collection.
+
+        Some collections, e.g. amp-astraceroute, can only depict a single
+        series so this function allows callers to get this information for
+        any given collection.
+
+        Returns:
+          the maximum number of groups that can be shown on a graph, or
+          zero if there is no limit.
+        """
+
+        return 0
+
 
     def extra_blocks(self, detail):
         """
