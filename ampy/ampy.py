@@ -923,6 +923,12 @@ class Ampy(object):
                 newgroup = col.create_group_from_list(options)
             if newgroup is None:
                 return view_id
+
+            # TODO: what should we do if maxgroups > 1, i.e. finite and more
+            # than one?
+            if col.get_maximum_view_groups() == 1:
+                view_id = 0
+
             return self.viewmanager.add_groups_to_view(col.viewstyle,
                     collection, view_id, [newgroup])
         elif action == "del":
