@@ -1,6 +1,6 @@
 mesh | nzdns | NZ DNS | New Zealand DNS Servers | f | t | latency,hops,dns
 mesh | trademedns | Trademe DNS | Trademe DNS Servers | f | t | dns,latency
-mesh | amptest | Test Amplets | AMP Test Network | t | f | latency,hops
+mesh | amptest | Test Amplets | AMP Test Network | t | t | latency,hops
 mesh | nzweb | NZ Web | New Zealand Websites | f | t | latency,hops
 mesh | rir | RIR | Regional Internet Registries | f | t | latency,hops
 mesh | alldns | DNS | All DNS Servers | f | t | latency,hops,dns
@@ -25,6 +25,7 @@ site | lenny-amplet.sdn.wand.net.nz | Lenny Test Amplet (SDN) | Hamilton | | amp
 site | wheezy-amplet.cms.waikato.ac.nz | Wheezy Test Amplet (UoW) | Hamilton | | amptest
 site | wheezy-amplet.sdn.wand.net.nz | Wheezy Test Amplet (SDN) | Hamilton | | amptest
 site | shane-amplet | Shane's Test Amplet (SDN) | Hamilton | | amptest
+site | waikato-dell.amp.wand.net.nz | Waikato Test Amplet | Hamilton | | amptest
 
 site | ps01-akl.reannz.co.nz | Auckland REANNZ perfSONAR node | Auckland | | reannz-ps | amptest | tputtest
 site | ps02-wlg.reannz.co.nz | Wellington REANNZ perfSONAR node | Wellington | | reannz-ps | amptest

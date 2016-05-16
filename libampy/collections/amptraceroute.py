@@ -148,9 +148,19 @@ class AmpTraceroute(AmpIcmp):
                 asp[0] = asp[2]
             else:
                 asp[0] = queried[asp[2]]
-        
+
         data['aspath'] = aspath
         return data
+
+    def get_maximum_view_groups(self):
+        return 1
+
+    def translate_group(self, groupprops):
+        if 'aggregation' not in groupprops or groupprops['aggregation'] \
+                    not in ["IPV4", "IPV6"]:
+            return None
+
+        return super(AmpTraceroute, self).translate_group(groupprops)
 
 
 class AmpAsTraceroute(AmpTraceroute):
@@ -160,6 +170,9 @@ class AmpAsTraceroute(AmpTraceroute):
         self.collection_name = "amp-astraceroute"
         self.viewstyle = "amp-astraceroute"
         self.default_aggregation = "FAMILY"
+
+    def get_maximum_view_groups(self):
+        return 1
 
     def group_columns(self, detail):
         return []
@@ -202,5 +215,10 @@ class AmpAsTraceroute(AmpTraceroute):
                             labels, start, end, detail, binsize)
         return result
 
+    def translate_group(self, groupprops):
+        if 'aggregation' not in groupprops or groupprops['aggregation'] \
+                    not in ["IPV4", "IPV6"]:
+            return None
 
+        return super(AmpAsTraceroute, self).translate_group(groupprops)
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :

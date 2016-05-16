@@ -654,6 +654,11 @@ class Ampy(object):
             log("Error while constructing tabview")
             return None
 
+        maxgroups = tabcol.get_maximum_view_groups()
+
+        totalgroups = 0
+        matched = 0
+
         for colname, vgs in groups.iteritems():
             col = self._getcol(colname)
             if col is None:
@@ -661,6 +666,11 @@ class Ampy(object):
                 return None
 
             for gid, descr in vgs:
+                # Don't allow switching to a view which can only show 1 group
+                totalgroups += 1
+                if totalgroups > maxgroups:
+                    return False
+
                 # Translate each group in turn
                 grouprule = col.parse_group_description(descr)
 
@@ -672,7 +682,11 @@ class Ampy(object):
                 for lab in labels:
                     # We can bail as soon as we get one group with a stream
                     if len(lab['streams']) > 0:
-                        return True
+                        matched += 1
+                        break
+
+        if matched == len(groups):
+            return True
 
         # If we get here, none of the translated groups would match any
         # streams in the database
@@ -909,6 +923,12 @@ class Ampy(object):
                 newgroup = col.create_group_from_list(options)
             if newgroup is None:
                 return view_id
+
+            # TODO: what should we do if maxgroups > 1, i.e. finite and more
+            # than one?
+            if col.get_maximum_view_groups() == 1:
+                view_id = 0
+
             return self.viewmanager.add_groups_to_view(viewstyle,
                     collection, view_id, [newgroup])
         elif action == "del":
