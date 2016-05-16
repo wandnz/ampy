@@ -3,10 +3,17 @@ ampy 2.3
 Deployment dates:
   skeptic: TBD
   lamp: TBD
+  VF: TBD
 
 Major Changes:
  * Fixed bug where ASN ids were integers instead of strings, which would
    cause issues when trying to select ASN 0 on the dashboard filter.
+ * Fixed issues with creating a view from a loss event.
+ * Fixed bug where we were not querying enough columns to be able to calculate
+   loss for amp-dns.
+ * Limit translations to amp-astraceroute to views that only have a single
+   series, as many graph types for this collection can only show one series
+   at a time.
 
 
 ampy 2.2
