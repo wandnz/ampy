@@ -203,7 +203,7 @@ class StreamManager(object):
         
         return found
 
-    def find_selections(self, selected, logmissing=True):
+    def find_selections(self, selected, logmissing=False):
         """
         Gets a list of possible values at a hierarchy level, given a set of
         selections made at earlier levels.
