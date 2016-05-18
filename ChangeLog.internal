@@ -6,6 +6,7 @@ Deployment dates:
   VF: TBD
 
 Major Changes:
+ * Added support for fetching amp-udpstream data.
  * Fixed bug where ASN ids were integers instead of strings, which would
    cause issues when trying to select ASN 0 on the dashboard filter.
  * Fixed issues with creating a view from a loss event.
@@ -15,7 +16,7 @@ Major Changes:
    series, as many graph types for this collection can only show one series
    at a time.
 
-
+===================================
 ampy 2.2
 
 Deployment dates:
