@@ -23,7 +23,28 @@ class AmpUdpstream(AmpThroughput):
 
         self.dirlabels = {"in": "Inward", "out": "Outward"}
 
+    def extra_blocks(self, detail):
+        if detail in ["jitter", "full"]:
+            return 2
+        return 0;
+
     def detail_columns(self, detail):
+
+        if detail == "jitter" or detail == "jitter-summary":
+            aggcols = ["min_jitter", "jitter_percentile_10",
+                    "jitter_percentile_20",
+                    "jitter_percentile_30",
+                    "jitter_percentile_40",
+                    "jitter_percentile_50",
+                    "jitter_percentile_60",
+                    "jitter_percentile_70",
+                    "jitter_percentile_80",
+                    "jitter_percentile_90",
+                    "jitter_percentile_100"
+            ]
+            aggmethods = ['mean'] * len(aggcols)
+            return (aggcols, aggmethods)
+
         return ( \
             ["mean_jitter", "mean_rtt", "packets_recvd", "packets_sent"],
             ["mean", "mean", "sum", "sum"],
