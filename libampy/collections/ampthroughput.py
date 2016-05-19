@@ -172,13 +172,13 @@ class AmpThroughput(Collection):
 
         labels = []
 
-        if family in ["BOTH", "IPV4"]:
+        if family in ["BOTH", "FAMILY", "IPV4"]:
             lab = self._generate_family_label(key, search, "IPv4", lookup)
             if lab is None:
                 return None
             labels.append(lab)
         
-        if family in ["BOTH", "IPV6"]:
+        if family in ["BOTH", "FAMILY", "IPV6"]:
             lab = self._generate_family_label(key, search, "IPv6", lookup)
             if lab is None:
                 return None
@@ -260,7 +260,7 @@ class AmpThroughput(Collection):
         return sorted(labels, key=itemgetter('shortlabel'))
 
     def update_matrix_groups(self, source, dest, split, groups, views,
-            viewmanager):
+            viewmanager, viewstyle):
         groupprops = {'source': source, 'destination': dest, 
                 'duration':self.default_duration, 
                 'writesize': self.default_writesize, 'tcpreused': False,
@@ -298,7 +298,7 @@ class AmpThroughput(Collection):
                         (self.collection_name))
                 return None
 
-            viewid = viewmanager.add_groups_to_view(self.viewstyle,
+            viewid = viewmanager.add_groups_to_view(viewstyle,
                     self.collection_name, 0, [cg])
 
             if viewid is None:
@@ -315,7 +315,7 @@ class AmpThroughput(Collection):
                         (self.collection_name))
                 return None
 
-            viewid = viewmanager.add_groups_to_view(self.viewstyle,
+            viewid = viewmanager.add_groups_to_view(viewstyle,
                     self.collection_name, 0, [cg])
 
             if viewid is None:

@@ -939,13 +939,15 @@ class Ampy(object):
         else:
             return view_id
 
-    def get_matrix_data(self, collection, options, duration):
+    def get_matrix_data(self, collection, viewstyle, options, duration):
         """
         Fetches all of the data required to populate an AMP matrix.
 
         Parameters:
           collection -- the name of the collection that the matrix
                         belongs to.
+          viewstyle -- a string describing which data from the collection to
+                       create a matrix for.
           options -- an ordered list describing which meshes should appear
                      in the matrix.
           duration -- the amount of recent data that should be queried for
@@ -976,7 +978,7 @@ class Ampy(object):
             return None
 
         # Work out which groups are required for this matrix
-        matrixgroups = self._get_matrix_groups(col, options)
+        matrixgroups = self._get_matrix_groups(col, viewstyle, options)
         if matrixgroups is None:
             return None
 
@@ -1410,13 +1412,14 @@ class Ampy(object):
 
         return viewgroups
 
-    def _get_matrix_groups(self, col, options):
+    def _get_matrix_groups(self, col, viewstyle, options):
         """
         Internal function for finding the groups necessary to populate
         a matrix.
 
         Parameters:
           col -- the module for the collection being shown on the matrix.
+          viewstyle -- the view style to use when creating new groups / views.
           options -- a list of parameters describing the matrix properties.
 
         Returns:
@@ -1483,7 +1486,7 @@ class Ampy(object):
         for s in sources:
             for d in destinations:
                 col.update_matrix_groups(s, d, split, groups, views,
-                        self.viewmanager)
+                        self.viewmanager, viewstyle)
 
         return groups, sources, destinations, views
 

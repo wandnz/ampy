@@ -15,6 +15,7 @@ Major Changes:
  * Limit translations to amp-astraceroute to views that only have a single
    series, as many graph types for this collection can only show one series
    at a time.
+ * Added support for 64 byte TCPPing tests when fetching matrix data.
 
 ===================================
 ampy 2.2

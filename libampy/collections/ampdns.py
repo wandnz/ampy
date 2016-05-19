@@ -239,7 +239,7 @@ class AmpDns(Collection):
         return keydict
 
     def update_matrix_groups(self, source, dest, split, groups, views,
-            viewmanager):
+            viewmanager, viewstyle):
 
         # Firstly, we want to try to populate our matrix cell using streams
         # where the target DNS server is the authoritative server, if
@@ -315,7 +315,7 @@ class AmpDns(Collection):
             cellgroups.add(groupdesc)
 
         if len(cellgroups) != 0:
-            cellview = viewmanager.add_groups_to_view(self.viewstyle, 
+            cellview = viewmanager.add_groups_to_view(viewstyle, 
                     self.collection_name, 0, list(cellgroups))
         else:
             cellview = -1
