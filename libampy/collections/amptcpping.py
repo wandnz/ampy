@@ -11,7 +11,7 @@ class AmpTcpping(AmpIcmp):
         self.groupproperties = ['source', 'destination', 'port', \
                 'packet_size', 'aggregation']
         self.collection_name = 'amp-tcpping'
-        self.default_packet_size = "60"
+        self.default_packet_sizes = ["64", "60"]
         self.viewstyle = 'amp-latency'
         self.integerproperties = ['port']
 
@@ -107,7 +107,41 @@ class AmpTcpping(AmpIcmp):
             ports.sort()
             baseprop['port'] = int(ports[0] )
 
-        baseprop['packet_size'] = self.default_packet_size
+        sels = self.streammanager.find_selections(baseprop, False)
+        if sels is None:
+            return None
+
+
+        # Find a suitable packet size, based on our test preferences
+        if sels[0] != 'packet_size':
+            log("Unable to find suitable packet sizes for %s matrix cell %s to %s" \
+                    % (self.collection_name, source, dest))
+            return None
+
+        if sels[1] == []:
+            views[(source, dest)] = -1
+            return
+
+        for p in self.default_packet_sizes:
+            if p in sels[1]:
+                baseprop['packet_size'] = p
+                break
+
+        if 'packet_size' not in baseprop:
+            minsize = 0
+            for s in sels[1]:
+                if s == "random":
+                    continue
+                try:
+                    if int(s) < minsize or minsize == 0:
+                        minsize = s
+                except TypeError:
+                    # packet size is not an int, so ignore it
+                    pass
+
+            if minsize == 0:
+                return None
+            baseprop['packet_size'] = str(minsize)
 
         v4 = self._matrix_group_streams(baseprop, 'ipv4', groups)
         v6 = self._matrix_group_streams(baseprop, 'ipv6', groups)
@@ -124,7 +158,7 @@ class AmpTcpping(AmpIcmp):
             split = "FAMILY"
 
         cellgroup = self.create_group_from_list([source, dest, \
-                baseprop['port'], self.default_packet_size, split])
+                baseprop['port'], baseprop['packet_size'], split])
 
         if cellgroup is None:
             log("Failed to create group for %s matrix cell" % \
