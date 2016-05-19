@@ -29,8 +29,7 @@ class AmpUdpstream(AmpThroughput):
         return 0;
 
     def detail_columns(self, detail):
-
-        if detail == "jitter" or detail == "jitter-summary":
+        if detail == "jitter" or detail == "jitter-summary" or detail == "raw":
             aggcols = ["min_jitter", "jitter_percentile_10",
                     "jitter_percentile_20",
                     "jitter_percentile_30",
