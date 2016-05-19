@@ -154,7 +154,7 @@ class AmpIcmp(Collection):
         return keydict
 
     def update_matrix_groups(self, source, dest, split, groups, views,
-            viewmanager):
+            viewmanager, viewstyle):
 
         baseprop = {'source':source, 'destination':dest }
 
@@ -203,7 +203,7 @@ class AmpIcmp(Collection):
                     (self.collection_name))
             return None
 
-        viewid = viewmanager.add_groups_to_view(self.viewstyle,
+        viewid = viewmanager.add_groups_to_view(viewstyle,
                 self.collection_name, 0, [cellgroup])
         if viewid is None:
             views[(source, dest)] = -1

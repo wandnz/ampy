@@ -166,7 +166,7 @@ class AmpHttp(Collection):
         return labels
 
     def update_matrix_groups(self, source, dest, split, groups, views,
-            viewmanager):
+            viewmanager, viewstyle):
         groupprops = { 'source': source, 'destination': dest }
 
         label = "%s_%s_ipv4" % (source, dest)
@@ -191,7 +191,7 @@ class AmpHttp(Collection):
                 break
             cgs.append(cellgroup)
 
-        viewid = viewmanager.add_groups_to_view(self.viewstyle,
+        viewid = viewmanager.add_groups_to_view(viewstyle,
                 self.collection_name, 0, cgs)
         if viewid is None:
             views[(source, dest)] = -1

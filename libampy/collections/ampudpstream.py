@@ -18,7 +18,7 @@ class AmpUdpstream(AmpThroughput):
 
         self.default_size = 100
         self.default_spacing = 20000
-        self.default_count = 11
+        self.default_count = 101
         self.default_dscp = "Default"
 
         self.dirlabels = {"in": "Inward", "out": "Outward"}
@@ -43,6 +43,17 @@ class AmpUdpstream(AmpThroughput):
                     "jitter_percentile_100"
             ]
             aggmethods = ['mean'] * len(aggcols)
+            return (aggcols, aggmethods)
+
+        if detail == "matrix":
+            aggcols = ['packets_sent', 'packets_recvd', 'mean_rtt', 'mean_rtt',
+                    'mean_rtt']
+            aggmethods = ['sum', 'sum', 'avg', 'stddev', 'count']
+            return (aggcols, aggmethods)
+
+        if detail == "basic":
+            aggcols = ['packets_sent', 'packets_recvd', 'mean_rtt']
+            aggmethods = ['sum', 'sum', 'avg']
             return (aggcols, aggmethods)
 
         return ( \
@@ -83,7 +94,7 @@ class AmpUdpstream(AmpThroughput):
         properties['direction'] = properties['direction'].upper()
         properties['family'] = properties['family'].upper()
 
-        return "FROM %s TO %s DSCP %s SIZE %s SPACING %s COUNT %s DIRECTION %s FAMILY %s" \
+        return "FROM %s TO %s DSCP %s SIZE %s SPACING %s COUNT %s DIRECTION %s %s" \
                 % (properties['source'], properties['destination'],
                    properties['dscp'], properties['packet_size'],
                    properties['packet_spacing'], properties['packet_count'],
@@ -100,7 +111,7 @@ class AmpUdpstream(AmpThroughput):
             family = "IPv4"
         elif gps['family'] == "IPV6":
             family = "IPv6"
-        elif gps['family'] == "BOTH":
+        elif gps['family'] == "FAMILY":
             family = "IPv4/IPv6"
         else:
             family = ""
@@ -127,7 +138,7 @@ class AmpUdpstream(AmpThroughput):
         regex += "SPACING (?P<spacing>[0-9-]+) "
         regex += "COUNT (?P<count>[0-9-]+) "
         regex += "DIRECTION (?P<direction>[A-Z]+) "
-        regex += "FAMILY (?P<family>[A-Z0-9]+)"
+        regex += "(?P<family>[A-Z0-9]+)"
 
         parts = self._apply_group_regex(regex, description)
         if parts is None:
@@ -138,7 +149,7 @@ class AmpUdpstream(AmpThroughput):
                     (parts.group('direction'), self.collection_name))
             return None
 
-        if parts.group('family') not in ['IPV4', 'IPV6', 'BOTH', 'NONE']:
+        if parts.group('family') not in ['IPV4', 'IPV6', 'FAMILY', 'NONE']:
             log("%s is not a valid address family for a %s group" % \
                     (parts.group('family'), self.collection_name))
             return None
@@ -157,11 +168,77 @@ class AmpUdpstream(AmpThroughput):
         return keydict
 
     def update_matrix_groups(self, source, dest, split, groups, views,
-            viewmanager):
+            viewmanager, viewstyle):
 
-        # TODO
+        baseprop = {'source': source, 'destination': dest,
+                'dscp': self.default_dscp, 'packet_size': self.default_size,
+                'packet_spacing': self.default_spacing }
+        sels = self.streammanager.find_selections(baseprop, False)
+        if sels is None:
+            return None
+
+        req, counts = sels
+        if req != "packet_count":
+            log("Unable to find suitable packet counters for %s matrix cell %s to %s" \
+                    (self.collection_name, source, dest))
+            return None
+
+        if counts == []:
+            views[(source, dest)] = -1
+            return
+        
+        baseprop['packet_count'] = max(counts);
+
+        v4 = self._matrix_group_streams(baseprop, "out", "ipv4", groups);
+        v6 = self._matrix_group_streams(baseprop, "out", "ipv6", groups);
+
+        if v4 == 0 and v6 == 0:
+            views[(source, dest)] = -1
+            return
+
+        if split == "ipv4":
+            split = "IPV4"
+        elif split == "ipv6":
+            split = "IPV6"
+        else:
+            split = "FAMILY"
+
+
+        v = self._add_matrix_group(baseprop, "OUT", split, viewmanager,
+                viewstyle)
+        views[(source, dest)] = v
+
         return
+    
+    def _matrix_group_streams(self, baseprops, direction, family, groups):
 
+        baseprops['direction'] = direction
+        baseprops['family'] = family
+        label = "%s_%s_%s_%s" % (baseprops['source'], baseprops['destination'],
+                direction, family)
+        streams = self.streammanager.find_streams(baseprops)
+
+        if len(streams) > 0:
+            groups.append({'labelstring': label,
+                    'streams': [x[0] for x in streams]})
+        return len(streams)
+
+
+    def _add_matrix_group(self, props, split, family, viewmanager, viewstyle):
+        cg = self.create_group_from_list([props['source'], props['destination'],
+                props['dscp'], props['packet_size'], props['packet_spacing'],
+                props['packet_count'], split, family.upper()])
+        if cg is None:
+            log("Failed to create %s group for %s matrix cell" % \
+                    (family, self.collection_name))
+            return -1
+
+        viewid = viewmanager.add_groups_to_view(viewstyle, \
+                self.collection_name, 0, [cg])
+
+        if viewid is None:
+            return -1
+        return viewid
 
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :
