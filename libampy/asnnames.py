@@ -18,6 +18,9 @@ class ASNManager(object):
 
     def queryDatabase(self, asn):
 
+        if asn == "" or int(asn) < 0:
+            return None
+
         query = "SELECT * FROM asmap WHERE asn=%s"
         params = (asn,)
 
