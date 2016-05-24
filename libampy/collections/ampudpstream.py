@@ -63,7 +63,9 @@ class AmpUdpstream(AmpThroughput):
     def calculate_binsize(self, start, end, detail):
         minbin = int(((end - start)) / 200)
 
-        if minbin <= 600:
+        if minbin <= 300:
+            binsize = 300
+        elif minbin <= 600:
             binsize = 600
         elif minbin <= 1200:
             binsize = 1200
