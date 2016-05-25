@@ -10,6 +10,8 @@ class EventManager(object):
 
     API Functions
     -------------
+    fetch_specific_event:
+        fetches a single known event from the database
     fetch_events: 
         fetch all events that occurred in a time period for a given set of
         stream labels
@@ -44,6 +46,40 @@ class EventManager(object):
         self.db = AmpyDatabase(eventdbconfig, True)
         self.db.connect(15)
         self.dblock = Lock()
+
+    def fetch_specific_event(self, stream, eventid):
+        """
+        Fetches a specific event in the database, given the stream ID and the
+        event ID.
+
+        Parameters:
+          stream -- the stream that the requested event belongs to
+          eventid -- the ID number of the requested event
+
+        Returns:
+          a dictionary describing the event in question, or None if an error
+          occurs or no such event exists.
+        """
+
+        if self.disabled:
+            return None
+
+        self.dblock.acquire()
+
+        stable = "eventing.events_str%s" % (stream)
+        query = "SELECT * FROM " + stable
+        query += " WHERE event_id = %s"
+        params = (eventid,)
+
+        if self.db.executequery(query, params) == -1:
+            log("Error while querying for a specific event (%s %s)" % \
+                    (stream, eventid))
+            self.dblock.release()
+            return None
+
+        result = self.db.cursor.fetchone()
+        self.dblock.release()
+        return dict(result)
 
     def fetch_events(self, labels, start, end):
         """ 
