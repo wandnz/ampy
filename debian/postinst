@@ -17,6 +17,28 @@ set -e
 # for details, see http://www.debian.org/doc/debian-policy/ or
 # the debian-policy package
 
+create_database_user()
+{
+    if [ $# -ne 1 ]; then
+        echo "create_database_user expects 1 argument, $# given"
+        return
+    fi
+
+    su postgres -c "psql -tAc \"SELECT 1 FROM pg_roles WHERE rolname='$1'\" | grep -q 1 || createuser $1"
+}
+
+
+install_database()
+{
+    if [ $# -ne 2 ]; then
+        echo "install_database expects 2 arguments, $# given"
+        return
+    fi
+
+    su postgres -c "psql --list | cut -d ' ' -f 2 | grep -qx $1 || \
+        (createdb -O cuz $1 && zcat /usr/share/ampy/$2 | psql -q -d $1)"
+}
+
 
 case "$1" in
     configure)
@@ -30,28 +52,11 @@ case "$1" in
         echo "=============================================================="
 
         # create the databases and install the schemas if they don't exist
-        # TODO check the database exists properly so error messages are better:
-        #   su postgres -c "psql --list" | grep etc
-        # Then we can tell if something already existed, or if it failed
-        RET=0
-        echo -n "Creating views database... "
-        su postgres -c "createdb -O postgres views >/dev/null 2>&1" || RET=$? || true
-        if [ $RET -eq 0 ]; then
-            echo "done!"
-            su postgres -c "psql -q -d views -f /usr/share/ampy/views.sql"
-        else
-            echo "failed!"
-        fi
-
-        RET=0
-        echo -n "Creating metadata database... "
-        su postgres -c "createdb -O postgres ampmeta >/dev/null 2>&1" || RET=$? || true
-        if [ $RET -eq 0 ]; then
-            echo "done!"
-            su postgres -c "psql -q -d ampmeta -f /usr/share/ampy/database.sql"
-        else
-            echo "failed!"
-        fi
+        create_database_user "www-data"
+        create_database_user "cuz"
+        install_database "views" "views.sql.gz"
+        install_database "ampmeta" "database.sql.gz"
+        install_database "amp-asdb" "asdb-full.sql.gz"
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)

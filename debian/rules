@@ -9,7 +9,16 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
-export PYBUILD_NAME = ampy
-
 %:
-	dh $@ --with python2 --buildsystem=pybuild
+	dh $@ --with python2
+
+override_dh_clean:
+	dh_clean asdb-full.sql
+
+override_dh_compress:
+	dh_compress usr/share/ampy/database.sql usr/share/ampy/views.sql usr/share/ampy/asdb-full.sql
+
+override_dh_install:
+	cat asdb.sql > asdb-full.sql
+	w3m -dump http://www.cidr-report.org/as2.0/autnums.html | grep "^AS" | awk '{printf "INSERT INTO asmap VALUES (" substr($$1, 3) ",'\''"; for (i=2; i<NF; i++) printf $$i " "; printf $$NF; print "'\'')"}' >> asdb-full.sql
+	dh_install
