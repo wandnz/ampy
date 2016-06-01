@@ -1,3 +1,16 @@
+ampy (2.2-1) unstable; urgency=low
+
+  * Add preferred values for matrix queries (port, size etc) with fallbacks.
+  * Split matrix data between IPv4 and IPv6 so we link to the correct view.
+  * Add functions for creating/configuring sites and meshes.
+  * Add functions for creating/configuring test schedules.
+  * Add support for user-specific event filters.
+  * Add API for ASN to AS name mapping database.
+  * Add support for new udpstream test.
+  * Many bugfixes too numerous to mention here.
+
+ -- Brendon Jones <brendonj@waikato.ac.nz>  Thu, 19 May 2016 14:24:44 +1200
+
 ampy (2.1-1) unstable; urgency=low
 
   * Added parsers for all the existing tests.
