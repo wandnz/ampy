@@ -1,3 +1,9 @@
+ampy (2.3-1) unstable; urgency=low
+
+  * Bring version numbering into line across whole package.
+
+ -- Brendon Jones <brendonj@waikato.ac.nz>  Thu,  2 Jun 2016 17:14:40 +1200
+
 ampy (2.2-2) unstable; urgency=low
 
   * Fix database and database user creation after package installation.
