@@ -1,8 +1,21 @@
-ampy 2.3
+ampy 2.4
 
 Deployment dates:
   skeptic: TBD
   lamp: TBD
+  VF: TBD
+
+Major Changes:
+ * Added API function for finding a single event based on a stream ID and
+   event ID. This is used for rating events (a new feature in amp-web 1.2).
+
+
+===================================
+ampy 2.3
+
+Deployment dates:
+  skeptic: 22/06/16
+  lamp: 02/06/2016
   VF: TBD
 
 Major Changes:
