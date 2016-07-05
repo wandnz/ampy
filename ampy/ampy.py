@@ -79,6 +79,8 @@ class Ampy(object):
     get_view_events:
         Fetches all events for streams belonging to a given view that
         occurred over a certain time period.
+    get_single_event:
+        Fetches a specific event that matches a given stream ID and event ID.
     get_event_groups:
         Fetches all event groups for a specified time period.
     get_event_group_members:
@@ -1036,6 +1038,21 @@ class Ampy(object):
                 alllabels += grouplabels
 
         return self.eventmanager.fetch_events(alllabels, start, end)
+
+    def get_single_event(self, stream, eventid):
+        """
+        Finds the event that matches the given stream ID and event ID.
+
+        Parameters:
+          stream -- the ID of the stream that the requested event belongs to.
+          eventid -- the ID of the event within that stream that is being
+                     requested.
+
+        Returns:
+          a dictionary describing the event in question, or None if there is
+          no such event or an error occurs while querying for it.
+        """
+        return self.eventmanager.fetch_specific_event(stream, eventid)
 
     def get_event_groups(self, start, end):
         """
