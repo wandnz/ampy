@@ -8,6 +8,8 @@ Deployment dates:
 Major Changes:
  * Added API function for finding a single event based on a stream ID and
    event ID. This is used for rating events (a new feature in amp-web 1.2).
+ * Added ippaths-summary detail level for amp-traceroute -- needed by the
+   previously missing summary line on amp-traceroute path maps.
 
 
 ===================================
