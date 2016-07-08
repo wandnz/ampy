@@ -27,6 +27,9 @@ class AmpTraceroute(AmpIcmp):
         if detail == "ippaths":
             aggfuncs = ["most", "most", "count", "most"]
             aggcols = ["error_type", "error_code", "path", "path_id"]
+        elif detail == "ippaths-summary":
+            aggfuncs = ["count"]
+            aggcols = ["path_id"]
         else:
             aggfuncs = ["smoke"]
             aggcols = ["length"]
@@ -85,7 +88,6 @@ class AmpTraceroute(AmpIcmp):
                             (cachelabel))
                 cache.store_ippaths(cachelabel, start, end, formatted)
                 paths[label] = formatted
-
 
         return paths
 
