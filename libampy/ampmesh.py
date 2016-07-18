@@ -42,7 +42,7 @@ class AmpMesh(object):
         self.db.connect(15)
         self.dblock = Lock()
 
-    def _meshquery(self, query, params):
+    def _meshquery(self, query, params, lock=True):
         """
         Performs a basic query for mesh members and returns a list of results.
 
@@ -56,7 +56,8 @@ class AmpMesh(object):
         """
         sites = []
 
-        self.dblock.acquire()
+        if lock:
+            self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
             log("Error while querying mesh members")
             self.dblock.release()
@@ -65,11 +66,12 @@ class AmpMesh(object):
         for row in self.db.cursor.fetchall():
             sites.append(row['ampname'])
         self.db.closecursor()
-        self.dblock.release()
+        if lock:
+            self.dblock.release()
         return sites
 
 
-    def get_mesh_sources(self, mesh):
+    def get_mesh_sources(self, mesh, lock=True):
         """
         Fetches all known sources that belong to the given mesh.
 
@@ -83,7 +85,7 @@ class AmpMesh(object):
                     meshname=%s AND mesh_is_src = true ORDER BY ampname
                 """
         params = (mesh,)
-        return self._meshquery(query, params)
+        return self._meshquery(query, params, lock)
 
     def get_mesh_destinations(self, mesh):
         """
@@ -366,12 +368,15 @@ class AmpMesh(object):
             "description": "",
             "location": "Location unknown",
             "active": False,
+            "last_schedule_update": 0,
             "unknown": True
         }
 
         query = """ SELECT site_ampname as ampname, site_longname as longname,
                     site_location as location, site_description as description,
-                    site_active as active FROM site WHERE site_ampname = %s
+                    site_active as active,
+                    site_last_schedule_update AS last_schedule_update
+                    FROM site WHERE site_ampname = %s
                 """
         params = (site,)
 
@@ -468,6 +473,7 @@ class AmpMesh(object):
                 self.dblock.release()
                 return None
         self.db.closecursor()
+        self._update_last_modified_schedule(schedule_id)
         self.dblock.release()
 
         # flag the mesh with the appropriate test if it changed and is new
@@ -487,10 +493,11 @@ class AmpMesh(object):
         self.dblock.release()
         return True
 
-    def _is_mesh(self, name):
+    def _is_mesh(self, name, lock=True):
         query = """ SELECT COUNT(*) FROM mesh WHERE mesh_name = %s """
         params = (name,)
-        self.dblock.acquire()
+        if lock:
+            self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
                 log("Error while querying is_mesh()")
                 self.dblock.release()
@@ -498,13 +505,15 @@ class AmpMesh(object):
 
         count = self.db.cursor.fetchone()['count']
         self.db.closecursor()
-        self.dblock.release()
+        if lock:
+            self.dblock.release()
         return count
 
-    def _is_site(self, name):
+    def _is_site(self, name, lock=True):
         query = """ SELECT COUNT(*) FROM site WHERE site_ampname = %s """
         params = (name,)
-        self.dblock.acquire()
+        if lock:
+            self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
                 log("Error while querying is_site()")
                 self.dblock.release()
@@ -512,7 +521,8 @@ class AmpMesh(object):
 
         count = self.db.cursor.fetchone()['count']
         self.db.closecursor()
-        self.dblock.release()
+        if lock:
+            self.dblock.release()
         return count
 
     def _add_basic_site(self, name):
@@ -680,46 +690,94 @@ class AmpMesh(object):
 
         return True
 
+    # TODO
     # XXX expects the db lock to be held by caller, so we can update
     # this at the same time as the modifications get made
+    # XXX do something useful with return values so we don't carry on after
+    # a broken update
     def _update_last_modified_schedule(self, schedule_id):
+        # get all sites involved with this test item and update them
+        sites = []
+        schedule = self._get_endpoint_schedule(None, None, schedule_id, False)
+        for item in schedule:
+            sites += item["source_site"]
+            for mesh in item["source_mesh"]:
+                sites += self.get_mesh_sources(mesh, lock=False)
+        for site in set(sites):
+            self._update_last_modified_site(site)
+        return True
+
+    # XXX expects the db lock to be held by caller, so we can update
+    # this at the same time as the modifications get made
+    # XXX do something useful with return values so we don't carry on after
+    # a broken update
+    def _update_last_modified_site(self, ampname):
         # update last modified time of schedule
-        query = "UPDATE schedule SET schedule_modified=%s WHERE schedule_id=%s"
-        params = (int(time.time()), schedule_id)
+        query = """ UPDATE site
+                    SET site_last_schedule_update=%s WHERE site_ampname=%s"""
+        params = (int(time.time()), ampname)
 
         # XXX can we ROLLBACK if this failed? or does autocommit screw us?
         if self.db.executequery(query, params) == -1:
             log("Error updating schedule modification time")
-            self.dblock.release()
             return None
 
         self.db.closecursor()
         return True
 
-    def get_source_schedule(self, source, schedule_id=None):
+    def get_source_schedule(self, source, schedule_id=None, lock=True):
+        return self._get_endpoint_schedule(source, None, schedule_id, lock)
+
+    def get_destination_schedule(self, destination, schedule_id=None,lock=True):
+        return self._get_endpoint_schedule(None, destination, schedule_id, lock)
+
+    def _get_endpoint_schedule(self, src, dst, schedule_id, lock):
         """
-        Fetch all scheduled tests that originate at this source
+        Fetch all scheduled tests that involve the given endpoints
 
         Parameters:
-          source -- the name of the source site/mesh to fetch the schedule for
+          src -- the name of the source site/mesh to fetch the schedule for
+          dst -- the name of the destination site/mesh to fetch the schedule for
 
         Returns:
-          a list containing the scheduled tests from this source
+          a list containing the scheduled tests to these endpoints
         """
-        if self._is_mesh(source):
-            where = "endpoint_source_mesh=%s"
-        elif self._is_site(source):
-            where = "endpoint_source_site=%s"
-        else:
+
+        if src is None and dst is None and schedule_id is None:
             return None
 
-        params = (source,)
+        where = []
+        params = []
+
+        if src is not None:
+            if self._is_mesh(src, lock):
+                where.append("endpoint_source_mesh=%s")
+            elif self._is_site(src, lock):
+                where.append("endpoint_source_site=%s")
+            else:
+                return None
+            params.append(src)
+
+        if dst is not None:
+            if self._is_mesh(dst, lock):
+                where.append("endpoint_destination_mesh=%s")
+            elif self._is_site(dst, lock):
+                where.append("endpoint_destination_site=%s")
+            else:
+                return None
+            params.append(dst)
+
         if schedule_id is not None:
-            where += " AND schedule_id=%s"
-            params = (source, schedule_id)
+            where.append("schedule_id=%s")
+            params.append(schedule_id)
+
         query = """ SELECT schedule_id, schedule_test, schedule_frequency,
                     schedule_start, schedule_end, schedule_period,
-                    schedule_args, max(schedule_modified) AS schedule_modified,
+                    schedule_args,
+                    string_agg(DISTINCT endpoint_source_mesh, ','
+                        ORDER BY endpoint_source_mesh) AS source_mesh,
+                    string_agg(DISTINCT endpoint_source_site, ','
+                        ORDER BY endpoint_source_site) AS source_site,
                     string_agg(endpoint_destination_mesh, ','
                         ORDER BY endpoint_destination_mesh) AS dest_mesh,
                     string_agg(endpoint_destination_site, ','
@@ -728,29 +786,32 @@ class AmpMesh(object):
                     ON schedule_id=endpoint_schedule_id
                     WHERE %s GROUP BY schedule_id
                     ORDER BY schedule_test, schedule_frequency, schedule_start
-                """ % where
+                """ % (" AND ".join(where))
 
         schedule = []
 
-        self.dblock.acquire()
-        if self.db.executequery(query, params) == -1:
+        if lock:
+            self.dblock.acquire()
+
+        if self.db.executequery(query, tuple(params)) == -1:
             log("Error while querying for schedule")
             self.dblock.release()
             return None
 
         for row in self.db.cursor.fetchall():
-            # TODO need to know if source is single or part of a mesh test
-            meshes = [] if row[8] is None else row[8].split(",")
-            sites = [] if row[9] is None else row[9].split(",")
+            source_meshes = [] if row[7] is None else row[7].split(",")
+            dest_meshes = [] if row[9] is None else row[9].split(",")
+            source_sites = [] if row[8] is None else row[8].split(",")
+            dest_sites = [] if row[10] is None else row[10].split(",")
             schedule.append({'id':row[0], 'test':row[1], \
                     'frequency':row[2], 'start':row[3], \
                     'end':row[4], 'period':row[5], 'args':row[6],
-                    'modified':row[7],
-                    #'endpoints':endpoints})
-                    'dest_mesh':meshes, 'dest_site':sites})
+                    'source_mesh':source_meshes, 'source_site':source_sites,
+                    'dest_mesh':dest_meshes, 'dest_site':dest_sites})
 
         self.db.closecursor()
-        self.dblock.release()
+        if lock:
+            self.dblock.release()
         return schedule
 
     # TODO if we want to be able to update the ampname then we probably need
@@ -860,7 +921,16 @@ class AmpMesh(object):
                 self.dblock.release()
                 return None
         self.db.closecursor()
+
+        # update the site so it will fetch tests belonging to the new mesh
+        self._update_last_modified_site(ampname)
+
+        # update all sites that test to this mesh to include this target
+        for schedule in self.get_destination_schedule(meshname, lock=False):
+            self._update_last_modified_schedule(schedule["id"])
+
         self.dblock.release()
+
         return True
 
     def delete_mesh_member(self, meshname, ampname):
@@ -874,7 +944,16 @@ class AmpMesh(object):
                 self.dblock.release()
                 return None
         self.db.closecursor()
+
+        # update the site so it will remove tests belonging to the new mesh
+        self._update_last_modified_site(ampname)
+
+        # update all sites that test to this mesh to remove this target
+        for schedule in self.get_destination_schedule(meshname, lock=False):
+            self._update_last_modified_schedule(schedule["id"])
+
         self.dblock.release()
+
         return True
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :

@@ -3,7 +3,8 @@ CREATE TABLE site (
     site_longname TEXT NOT NULL,
     site_location TEXT,
     site_description TEXT,
-    site_active BOOLEAN DEFAULT true
+    site_active BOOLEAN DEFAULT true,
+    site_last_schedule_update INTEGER DEFAULT 0
 );
 
 CREATE TABLE mesh (
