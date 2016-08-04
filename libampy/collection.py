@@ -515,7 +515,7 @@ class Collection(object):
         self.collock.release()
         return now
 
-    def get_selections(self, selected, logmissing=True):
+    def get_selections(self, selected, term, page, pagesize, logmissing=True):
         """
         Given a set of known stream properties, finds the next possible
         decision point and returns the set of available options at that
@@ -574,7 +574,7 @@ class Collection(object):
 
         # Stupid python not having a do-while construct
         while repeat:
-            found = self.streammanager.find_selections(selected, logmissing)
+            found = self.streammanager.find_selections(selected, term, page, pagesize, logmissing)
             if found is None:
                 if logmissing:
                     log("Failed to get selection options for collection %s" % (self.collection_name))
@@ -591,8 +591,8 @@ class Collection(object):
             # If there is only one possible option, why not automatically
             # assume it will be selected and fetch the next level of options
             # since the caller will probably want to do that anyway
-            if len(options) == 1:
-                selected[key] = options[0]
+            if options['maxitems'] == 1:
+                selected[key] = options['items'][0]['id']
             else:
                 repeat = False
 

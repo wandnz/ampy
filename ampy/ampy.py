@@ -565,7 +565,7 @@ class Ampy(object):
 
         return col.streamproperties
 
-    def get_selection_options(self, collection, selected):
+    def get_selection_options(self, collection, selected, term, page, pagesize=30):
         """
         Given a set of known stream properties, finds the next unknown
         stream property where there is more than one choice available
@@ -604,7 +604,7 @@ class Ampy(object):
             return None
 
         # The collection module does most of the work here
-        options = col.get_selections(seldict, False)
+        options = col.get_selections(seldict, term, page, pagesize, False)
         return options
 
 
