@@ -576,17 +576,34 @@ class Ampy(object):
         This is primarily used to populate dropdown lists on the modal
         dialogs for selecting what series to display on a graph.
 
+        Selection options are divided into "pages", which are used to return a
+        manageable number of options at a time. This allows callers to
+        iteratively load more options as the user scrolls, rather than
+        trying to load and insert all of the possible options into a dropdown
+        at once which can be quite laggy if there are many possible options
+        to present.
+
         Parameters:
           collection -- the name of the collection to use to interpret
                         the options.
           selected -- a list containing the stream properties that
                       have already been selected, e.g. the choices already
                       made on the modal dialog, in order.
+          term -- only options containing the 'term' string will be returned.
+                  Set to "" to match all options.
+          page -- a *string* representing the index of the page to return.
+                  Pages are indexed starting from "1".
+          pagesize -- the number of options to include in a page.
 
         Returns:
           a dictionary where the key is a stream property and the value is
-          a list of possible choices for that stream property, given the
-          properties already chosen in the 'selected' dictionary.
+          a dictionary of possible choices for that stream property, given the
+          properties already chosen in the 'selected' dictionary. The 'choices'
+          dictionary contains two items:
+            - 'maxitems', which lists the total number of options available for
+              this property
+            - 'items', a list of dictionaries describing each item. There are
+              two fields in the dictionary: 'text' and 'id'.
 
           Returns None if an error occurs while fetching the selection
           options.
