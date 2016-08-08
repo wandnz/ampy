@@ -269,7 +269,7 @@ class AmpDns(Collection):
         if len(streams) == 0:
             # no streams without recursion, try with recursion
             groupprops['recurse'] = True
-            props = self.get_selections(groupprops, False)
+            props = self.get_selections(groupprops, "", "1", 30000, False)
 
             if props is None:
                 return
@@ -280,11 +280,13 @@ class AmpDns(Collection):
                 for prop,values in props.iteritems():
                     # prefer the default values, but if they aren't present
                     # then pick the first option available
-                    if prop in self.defaults and self.defaults[prop] in values:
+                    if prop in self.defaults and \
+                                any(n['text'] == self.defaults[prop] \
+                                    for n in values['items']):
                         groupprops[prop] = self.defaults[prop]
                     else:
-                        groupprops[prop] = values[0]
-                props = self.get_selections(groupprops, False)
+                        groupprops[prop] = values['items'][0]['text']
+                props = self.get_selections(groupprops, "", "1", 30000, False)
             streams = self.streammanager.find_streams(groupprops)
 
         v4streams = []

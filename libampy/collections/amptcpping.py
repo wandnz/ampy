@@ -83,7 +83,7 @@ class AmpTcpping(AmpIcmp):
 
         baseprop = {'source':source, 'destination':dest}
 
-        sels = self.streammanager.find_selections(baseprop, False)
+        sels = self.streammanager.find_selections(baseprop, "", "1", 30000, False)
         if sels is None:
             return None
 
@@ -93,21 +93,21 @@ class AmpTcpping(AmpIcmp):
                     % (self.collection_name, source, dest))
             return None
 
-        if ports == []:
+        if ports == {} or 'items' not in ports:
             views[(source, dest)] = -1
             return
 
         for p in self.portpreferences:
-            if p in ports:
+            if any(p == int(found['text']) for found in ports['items']):
                 baseprop['port'] = p
                 break
 
         if 'port' not in baseprop:
             # Just use the lowest port number for now
             ports.sort()
-            baseprop['port'] = int(ports[0] )
+            baseprop['port'] = int(ports['items'][0]['text'])
 
-        sels = self.streammanager.find_selections(baseprop, False)
+        sels = self.streammanager.find_selections(baseprop, "", "1", 30000, False)
         if sels is None:
             return None
 
@@ -118,23 +118,23 @@ class AmpTcpping(AmpIcmp):
                     % (self.collection_name, source, dest))
             return None
 
-        if sels[1] == []:
+        if sels[1] == {} or 'items' not in sels[1]:
             views[(source, dest)] = -1
             return
 
         for p in self.default_packet_sizes:
-            if p in sels[1]:
+            if any(p == found['text'] for found in sels[1]['items']):
                 baseprop['packet_size'] = p
                 break
 
         if 'packet_size' not in baseprop:
             minsize = 0
-            for s in sels[1]:
-                if s == "random":
+            for s in sels[1]['items']:
+                if s['text'] == "random":
                     continue
                 try:
-                    if int(s) < minsize or minsize == 0:
-                        minsize = s
+                    if int(s['text']) < minsize or minsize == 0:
+                        minsize = int(s['text'])
                 except TypeError:
                     # packet size is not an int, so ignore it
                     pass

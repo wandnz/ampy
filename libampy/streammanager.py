@@ -1,4 +1,5 @@
 from libnntscclient.logger import *
+import re
 
 class StreamManager(object):
     """
@@ -203,7 +204,8 @@ class StreamManager(object):
         
         return found
 
-    def find_selections(self, selected, logmissing=False):
+    def find_selections(self, selected, term, pageno, pagesize,
+            logmissing=False):
         """
         Gets a list of possible values at a hierarchy level, given a set of
         selections made at earlier levels.
@@ -267,7 +269,31 @@ class StreamManager(object):
             # accidentally return the stream id list
             return None, []
 
-        return requested, curr.keys()
+        result = curr.keys()
+        result.sort()
+
+        if term != "":
+            pat = ".*(" + re.escape(term) + ").*"
+        else:
+            pat = None
+
+        skip = (int(pageno) * pagesize) - pagesize
+        seen = 0
+
+        filtered = []
+        for x in result:
+            if not pat or re.search(pat, x) is not None:
+                if seen < skip:
+                    seen += 1
+                    continue
+
+                filtered.append({'id': x, 'text': x})
+                if len(filtered) >= pagesize:
+                    break
+
+        res = {'maxitems': len(result), 'items': filtered}
+            
+        return requested, res
 
         
     

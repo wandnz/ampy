@@ -158,7 +158,7 @@ class AmpIcmp(Collection):
 
         baseprop = {'source':source, 'destination':dest }
 
-        sels = self.streammanager.find_selections(baseprop, False)
+        sels = self.streammanager.find_selections(baseprop, "", "1", 30000, False)
         if sels is None:
             return None
 
@@ -168,19 +168,18 @@ class AmpIcmp(Collection):
                         self.collection_name, source, dest))
             return None
 
-        if sizes == []:
+        if sizes == {} or 'items' not in sizes:
             views[(source, dest)] = -1
             return
 
         for s in self.sizepreferences:
-            if s in sizes:
+            if any(s == found['text'] for found in sizes['items']):
                 baseprop['packet_size'] = s
                 break
 
         if 'packet_size' not in baseprop:
             # Just use the lowest packet size for now
-            sizes.sort()
-            baseprop['packet_size'] = sizes[0]
+            baseprop['packet_size'] = sizes['items'][0]['text']
 
         v4 = self._matrix_group_streams(baseprop, 'ipv4', groups)
         v6 = self._matrix_group_streams(baseprop, 'ipv6', groups)
@@ -229,7 +228,7 @@ class AmpIcmp(Collection):
         newprops = {'source':groupprops['source'],
                 'destination':groupprops['destination']}
 
-        sels = self.streammanager.find_selections(newprops)
+        sels = self.streammanager.find_selections(newprops, "", "1", 10000)
         if sels is None:
             return None
 
@@ -240,14 +239,16 @@ class AmpIcmp(Collection):
                     newprops['destination']))
             return None
 
-        if sizes == []:
+        if sizes is None or len(sizes['items']) == 0:
             packetsize = defaultsize
-        elif packetsize not in sizes:
-            if defaultsize in sizes:
-                packetsize = defaultsize
-            else:
-                sizes.sort(key=int)
-                packetsize = sizes[0]
+        else:
+            packetsize = None
+            for i in sizes['items']:
+                if i['text'] == defaultsize:
+                    packetsize = defaultsize
+                    break
+                elif packetsize is None or int(i['text']) < packetsize:
+                    packetsize = i['text']
 
         if 'aggregation' not in groupprops:
             agg = "FAMILY"

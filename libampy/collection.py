@@ -515,7 +515,7 @@ class Collection(object):
         self.collock.release()
         return now
 
-    def get_selections(self, selected, logmissing=True):
+    def get_selections(self, selected, term, page, pagesize, logmissing=True):
         """
         Given a set of known stream properties, finds the next possible
         decision point and returns the set of available options at that
@@ -524,43 +524,72 @@ class Collection(object):
 
         Child collections should NOT override this function.
 
+        Selection options are divided into "pages", which are used to return a
+        manageable number of options at a time. This allows callers to
+        iteratively load more options as the user scrolls, rather than trying
+        to load and insert all of the possible options into a dropdown at once
+        which can be quite laggy if there are many possible options to present.
+ 
 
         Parameters:
           selected -- a dictionary of stream properties with known values
+          term -- only options containing the 'term' string will be returned.
+                  Set to "" to match all options.
+          page -- a *string* representing the index of the page to return.
+                  Pages are indexed starting from "1".
+          pagesize -- the number of options to include in a page.
           logmissing -- if True, report an error message if any of the
                         selected options are not present in the streams
                         hierarchy.
 
         Returns:
           a dictionary where the key is a stream property and the value is
-          a list of possible choices for that stream property, given the
-          properties already chosen in the 'selected' dictionary.
+          a dictionary of possible choices for that stream property, given the
+          properties already chosen in the 'selected' dictionary. The 'choices'
+          dictionary contains two items:
+            - 'maxitems', which lists the total number of options available for
+              this property
+            - 'items', a list of dictionaries describing each item. There are
+              two fields in the dictionary: 'text' and 'id'.
+
 
         This function is best explained with an example. Consider amp-icmp,
         where there are 4 stream properties: source, dest, packetsize and
-        family.
+        family. The function is called with an empty term, a page size of 10
+        and a page index of "1".
 
-        If selected is empty, this function will return a dictionary:
-            {'source':[ <all possible sources> ]}
+        If selected is empty, this function will return a dictionary of
+        sources. If there are 22 total sources, we'll get something like:
+            {'source': {'maxitems': 22, 'items': [ <first 10 sources> ]}}
 
-        If selected contains an entry for 'source' but no 'dest', the
-        function instead returns something like:
-            {'dest': [ <all destinations for the given source> ]}
+        If selected contains an entry for 'source' but no 'dest' and there
+        are 108 destinations for that source, the function instead returns
+        something like:
+            {'dest': {'maxitems': 108, 'items': [ <first 10 destinations for
+                  the given source> ]}}
 
-        If selected contains both a 'source' and a 'dest', the result is:
-            {'packetsize': [ <all packet sizes for the given source/dest pair ]}
+        Repeating the call with the same 'selected' but a page index of "2"
+        will return the next 10 destinations, i.e. destinations 11-20.
 
-        In the last case, imagine there is only one packet size available for
-        the source/dest pair. In this case, this function adds the packet size
-        to the result but will then automatically descend to the next level of
-        the stream hierarchy, assuming that the only packet size was chosen,
-        and include the options at that level in the result as well.
+        If selected contains both a 'source' and a 'dest' and that source/dest
+        pair has used two different packet sizes, the result is:
+            {'packetsize': {'maxitems': 2, 'items': [ {'text': '84',
+                    'id': '84'}, {'text': '128', 'id': '128'} ]}}
+
+        In the last case, instead imagine there is only one packet size
+        available for the source/dest pair. In this case, this function adds
+        the packet size to the result but will then automatically descend to
+        the next level of the stream hierarchy, assuming that the only packet
+        size was chosen, and includes the options at that level in the result
+        as well.
 
         Descending through the hierarchy will continue until a stream property
         provides more than one possible choice or the bottom of the hierarchy
         is reached. In the packet size case, the result is something like:
-            {'packetsize':[ one size ],
-             'family': [ all possible families for source/dest/size ]
+            {'packetsize': {'maxitems': 1, 'items': [ {'text': "84",
+                    'id': "84"} ]},
+             'family': {'maxitems': 2, 'items': [ {'text': 'ipv4',
+                    'id': 'ipv4'}, {'text': 'ipv6', id': 'ipv6'} ]}
             }
 
         """
@@ -574,7 +603,7 @@ class Collection(object):
 
         # Stupid python not having a do-while construct
         while repeat:
-            found = self.streammanager.find_selections(selected, logmissing)
+            found = self.streammanager.find_selections(selected, term, page, pagesize, logmissing)
             if found is None:
                 if logmissing:
                     log("Failed to get selection options for collection %s" % (self.collection_name))
@@ -591,8 +620,8 @@ class Collection(object):
             # If there is only one possible option, why not automatically
             # assume it will be selected and fetch the next level of options
             # since the caller will probably want to do that anyway
-            if len(options) == 1:
-                selected[key] = options[0]
+            if options['maxitems'] == 1:
+                selected[key] = options['items'][0]['id']
             else:
                 repeat = False
 

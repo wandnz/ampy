@@ -174,7 +174,7 @@ class AmpUdpstream(AmpThroughput):
         baseprop = {'source': source, 'destination': dest,
                 'dscp': self.default_dscp, 'packet_size': self.default_size,
                 'packet_spacing': self.default_spacing }
-        sels = self.streammanager.find_selections(baseprop, False)
+        sels = self.streammanager.find_selections(baseprop, "", "1", 30000, False)
         if sels is None:
             return None
 
@@ -184,11 +184,12 @@ class AmpUdpstream(AmpThroughput):
                     (self.collection_name, source, dest))
             return None
 
-        if counts == []:
+        if counts == {} or 'items' not in counts:
             views[(source, dest)] = -1
             return
         
-        baseprop['packet_count'] = max(counts);
+        poss = [c['text'] for c in counts['items']]
+        baseprop['packet_count'] = max(poss);
 
         v4 = self._matrix_group_streams(baseprop, "out", "ipv4", groups);
         v6 = self._matrix_group_streams(baseprop, "out", "ipv6", groups);
