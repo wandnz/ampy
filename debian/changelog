@@ -1,3 +1,10 @@
+ampy (2.5-1) unstable; urgency=low
+
+  * Added ability to fetch a subset of the available stream options (adds
+    support for pagination in amp-web modals).
+
+ -- Brendon Jones <brendonj@waikato.ac.nz>  Thu, 25 Aug 2016 11:44:30 +1200
+
 ampy (2.4-1) unstable; urgency=low
 
   * Added API function for finding a single event based on a stream ID and
