@@ -1,3 +1,12 @@
+ampy (2.6-1) unstable; urgency=low
+
+  * Split address family suffix from test target names before querying database.
+  * Remove (temporarily?) foreign key for destination sites to allow storing
+    test targets with address family suffixes.
+  * Update install dependencies.
+
+ -- Brendon Jones <brendonj@waikato.ac.nz>  Tue,  6 Sep 2016 11:35:33 +1200
+
 ampy (2.5-1) unstable; urgency=low
 
   * Added ability to fetch a subset of the available stream options (adds
