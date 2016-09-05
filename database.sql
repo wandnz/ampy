@@ -58,8 +58,8 @@ CREATE TABLE endpoint (
     endpoint_schedule_id INTEGER NOT NULL REFERENCES schedule(schedule_id) ON DELETE CASCADE,
     endpoint_source_mesh TEXT REFERENCES mesh(mesh_name),
     endpoint_source_site TEXT REFERENCES site(site_ampname),
-    endpoint_destination_mesh TEXT REFERENCES mesh(mesh_name),
-    endpoint_destination_site TEXT REFERENCES site(site_ampname)
+    endpoint_destination_mesh TEXT REFERENCES mesh(mesh_name)/*,
+    endpoint_destination_site TEXT REFERENCES site(site_ampname)*/
 );
 
 ALTER TABLE endpoint ADD CONSTRAINT valid_source CHECK (
