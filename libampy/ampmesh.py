@@ -511,7 +511,8 @@ class AmpMesh(object):
 
     def _is_site(self, name, lock=True):
         query = """ SELECT COUNT(*) FROM site WHERE site_ampname = %s """
-        params = (name,)
+        # remove any suffixes from the name, e.g. !v4 !v6 family specifiers
+        params = (name.split('!', 1)[0],)
         if lock:
             self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
@@ -528,7 +529,8 @@ class AmpMesh(object):
     def _add_basic_site(self, name):
         query = """ INSERT INTO site (site_ampname, site_longname)
                     VALUES (%s, %s) """
-        params = (name, name)
+        # remove any suffixes from the name, e.g. !v4 !v6 family specifiers
+        params = (name.split('!', 1)[0], name.split('!', 1)[0])
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
                 log("Error while inserting new site")
