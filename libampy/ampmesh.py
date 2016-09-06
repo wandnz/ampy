@@ -561,6 +561,7 @@ class AmpMesh(object):
                          WHEN schedule_test='tcpping' THEN 'latency'
                          WHEN schedule_test='dns' THEN 'latency'
                          WHEN schedule_test='traceroute' THEN 'hops'
+                         WHEN schedule_test='throughput' THEN 'tput'
                          ELSE schedule_test
                     END
                     FROM schedule WHERE schedule_id=%s
