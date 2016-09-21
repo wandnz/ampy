@@ -164,6 +164,20 @@ class AmpTraceroute(AmpIcmp):
 
         return super(AmpTraceroute, self).translate_group(groupprops)
 
+    def get_legend_label(self, description):
+        groupparams = self.parse_group_description(description)
+        if groupparams is None:
+            log("Failed to parse group description to generate legend label")
+            return None
+
+        # We can only show one family on a graph at a time
+        #if groupparams['aggregation'] == "FAMILY":
+        #    groupparams['aggregation'] = "IPV4"
+
+        label = "%s to %s" % (groupparams['source'],
+                groupparams['destination'])
+        return label, self.splits[groupparams['aggregation']]
+    
 
 class AmpAsTraceroute(AmpTraceroute):
     def __init__(self, colid, viewmanager, nntscconf, asnmanager):
@@ -192,20 +206,6 @@ class AmpAsTraceroute(AmpTraceroute):
         
         return aggcols, aggfuncs
    
-    def get_legend_label(self, description):
-        groupparams = self.parse_group_description(description)
-        if groupparams is None:
-            log("Failed to parse group description to generate legend label")
-            return None
-
-        # We can only show one family on a graph at a time
-        #if groupparams['aggregation'] == "FAMILY":
-        #    groupparams['aggregation'] = "IPV4"
-
-        label = "%s to %s" % (groupparams['source'],
-                groupparams['destination'])
-        return label, self.splits[groupparams['aggregation']]
-    
     def extra_blocks(self, detail):
         if detail == "hops-full" or detail == "full":
             return 2
