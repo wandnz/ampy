@@ -199,8 +199,8 @@ class AmpAsTraceroute(AmpTraceroute):
             return None
 
         # We can only show one family on a graph at a time
-        if groupparams['aggregation'] == "FAMILY":
-            groupparams['aggregation'] = "IPV4"
+        #if groupparams['aggregation'] == "FAMILY":
+        #    groupparams['aggregation'] = "IPV4"
 
         label = "%s to %s" % (groupparams['source'],
                 groupparams['destination'])
