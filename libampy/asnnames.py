@@ -28,6 +28,10 @@ class ASNManager(object):
             log("Error while querying for AS name for %s" % (asn))
             return None
 
+        if self.db.cursor is None:
+            log("Cursor for querying ASDB is None?")
+            return None
+
         if self.db.cursor.rowcount == 0:
             log("ASN %s not found in AS database :(" % (asn))
             self.db.closecursor()
