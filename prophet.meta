@@ -76,6 +76,9 @@ site | www.tvnz.co.nz | TVNZ | | TVNZ | nzweb
 site | www.xero.com | Xero | | Xero | nzweb
 site | www.xero.co.nz | Xero | | Xero | nzweb
 site | www.wand.net.nz | WAND | | WAND | nzweb
+site | www.lightbox.co.nz | Lightbox | | Lightbox | nzweb
+site | www.neontv.co.nz | Neon TV | | Neon TV | nzweb
+site | www.netflix.co.nz | NetFlix NZ | | NetFlix NZ | nzweb
 
 site | afrinic.net | AFRINIC | | AFRINIC | rir
 site | apnic.net | APNIC | | APNIC | rir
@@ -178,4 +181,5 @@ site | http://www.nzherald.co.nz | New Zealand Herald | | | httptest
 site | http://www.stuff.co.nz | Stuff News | | | httptest
 site | http://www.trademe.co.nz | Trademe | | | httptest
 site | http://www.wikipedia.org/ | Wikipedia | | | httptest
+site | http://www.netflix.co.nz | NetFlix NZ | | | httptest
 

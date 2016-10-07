@@ -42,21 +42,29 @@ install_database()
 
 case "$1" in
     configure)
-        # TODO actually install these on postinst? or download them as part
-        # of building the package and include the files, installing them with
-        # the rest of our python scripts in /usr/share/amppki/.
-        echo "=============================================================="
-        echo "Debian has really old python packages, if you haven't already:"
-        echo
-        echo "pip install psycopg2"
-        echo "=============================================================="
+        if [ -z $2 ]; then
+            # new install, no pre-existing package
+            if [ `lsb_release -sc` = "wheezy" ]; then
+                echo "======================================================"
+                echo "Debian Wheezy has really old python packages:"
+                echo
+                echo "pip install psycopg2"
+                echo "======================================================"
+            fi
 
-        # create the databases and install the schemas if they don't exist
-        create_database_user "www-data"
-        create_database_user "cuz"
-        install_database "views" "views.sql.gz"
-        install_database "ampmeta" "database.sql.gz"
-        install_database "amp-asdb" "asdb-full.sql.gz"
+            # create the databases and install the schemas if they don't exist
+            create_database_user "www-data"
+            create_database_user "cuz"
+            install_database "views" "views.sql.gz"
+            install_database "ampmeta" "database.sql.gz"
+            install_database "amp-asdb" "asdb-full.sql.gz"
+        else
+            # upgrading an existing install
+            if dpkg --compare-versions "$2" le-nl "2.6-1"; then
+                # remove constraint that is no longer needed
+                su postgres -c "psql -q -c \"ALTER TABLE endpoint DROP CONSTRAINT valid_destination\" -d ampmeta || true"
+            fi
+        fi
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)
