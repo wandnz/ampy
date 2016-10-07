@@ -66,10 +66,6 @@ ALTER TABLE endpoint ADD CONSTRAINT valid_source CHECK (
         endpoint_source_mesh IS NOT NULL OR
         endpoint_source_site IS NOT NULL);
 
-ALTER TABLE endpoint ADD CONSTRAINT valid_destination CHECK (
-        endpoint_destination_mesh IS NOT NULL OR
-        endpoint_destination_site IS NOT NULL);
-
 CREATE VIEW full_mesh_details AS SELECT
     mesh_name as meshname,
     mesh_longname,

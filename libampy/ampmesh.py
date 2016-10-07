@@ -631,7 +631,10 @@ class AmpMesh(object):
             print "source is neither mesh nor site"
             return
 
-        if self._is_mesh(dst):
+        if dst is None:
+            dst_site = None
+            dst_mesh = None
+        elif self._is_mesh(dst):
             dst_mesh = dst
             dst_site = None
             if self._flag_mesh_with_test(dst, schedule_id) is None:
