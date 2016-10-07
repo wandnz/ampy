@@ -97,15 +97,18 @@ class AmpTcpping(AmpIcmp):
             views[(source, dest)] = -1
             return
 
+        minport = None
         for p in self.portpreferences:
-            if any(p == int(found['text']) for found in ports['items']):
-                baseprop['port'] = p
-                break
+            for found in ports['items']:
+                if p == int(found['text']):
+                    baseprop['port'] = p
+                    break
+                if minport is None or int(found['text']) < minport:
+                    minport = int(found['text'])
 
         if 'port' not in baseprop:
             # Just use the lowest port number for now
-            ports.sort()
-            baseprop['port'] = int(ports['items'][0]['text'])
+            baseprop['port'] = minport
 
         sels = self.streammanager.find_selections(baseprop, "", "1", 30000, False)
         if sels is None:
