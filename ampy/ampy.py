@@ -409,11 +409,12 @@ class Ampy(object):
                     continue
                 alllabels += grouplabels
 
-            rec, tim = col.get_collection_recent(self.cache, alllabels,
+            result  = col.get_collection_recent(self.cache, alllabels,
                     duration, detail)
 
-            recentdata.update(rec)
-            timeouts += tim
+            if result is not None:
+                recentdata.update(result[0])
+                timeouts += result[1]
 
         return recentdata, timeouts
 

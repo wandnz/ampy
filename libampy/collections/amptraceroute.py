@@ -101,7 +101,7 @@ class AmpTraceroute(AmpIcmp):
         if 'aspath' not in data or data['aspath'] is None:
             return data
 
-        if detail in ['matrix', 'basic', 'raw']:
+        if detail in ['matrix', 'basic', 'raw', 'tooltiptext', 'spark']:
             return data
  
         pathlen = 0
@@ -180,7 +180,7 @@ class AmpAsTraceroute(AmpTraceroute):
         return []
     
     def detail_columns(self, detail):
-        if detail == "matrix" or detail == "basic" or detail == "raw":
+        if detail in ["matrix", "basic", "tooltiptext", "spark", "raw"]:
             aggfuncs = ["avg", "most_array"]
             aggcols = ["responses", "aspath"]
         elif detail == "hops-full" or detail == "hops-summary":
