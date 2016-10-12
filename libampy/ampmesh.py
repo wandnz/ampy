@@ -480,6 +480,19 @@ class AmpMesh(object):
         self._flag_meshes_with_test(schedule_id)
         return True
 
+    def enable_disable_test(self, schedule_id, enabled):
+        query = "UPDATE schedule SET schedule_enabled=%s WHERE schedule_id=%s"
+        params = (enabled,schedule_id)
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+                log("Error while changing status of scheduled test")
+                self.dblock.release()
+                return None
+        self.db.closecursor()
+        self._update_last_modified_schedule(schedule_id)
+        self.dblock.release()
+        return True
+
     def delete_test(self, schedule_id):
         query = """ DELETE FROM schedule WHERE schedule_id=%s """
         params = (schedule_id,)
@@ -787,7 +800,8 @@ class AmpMesh(object):
                     string_agg(endpoint_destination_mesh, ','
                         ORDER BY endpoint_destination_mesh) AS dest_mesh,
                     string_agg(endpoint_destination_site, ','
-                        ORDER BY endpoint_destination_site) AS dest_site
+                        ORDER BY endpoint_destination_site) AS dest_site,
+                    schedule_enabled
                     FROM endpoint JOIN schedule
                     ON schedule_id=endpoint_schedule_id
                     WHERE %s GROUP BY schedule_id
@@ -809,7 +823,7 @@ class AmpMesh(object):
             dest_meshes = [] if row[9] is None else row[9].split(",")
             source_sites = [] if row[8] is None else row[8].split(",")
             dest_sites = [] if row[10] is None else row[10].split(",")
-            schedule.append({'id':row[0], 'test':row[1], \
+            schedule.append({'id':row[0], 'test':row[1], 'enabled':row[11], \
                     'frequency':row[2], 'start':row[3], \
                     'end':row[4], 'period':row[5], 'args':row[6],
                     'source_mesh':source_meshes, 'source_site':source_sites,

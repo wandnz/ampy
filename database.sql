@@ -51,7 +51,7 @@ CREATE TABLE schedule (
     schedule_end INTEGER,
     schedule_period INTEGER, /* or TEXT? */
     schedule_args TEXT,
-    schedule_modified INTEGER NOT NULL
+    schedule_enabled BOOLEAN NOT NULL DEFAULT true
 );
 
 CREATE TABLE endpoint (
