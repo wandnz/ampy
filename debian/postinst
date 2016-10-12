@@ -63,6 +63,8 @@ case "$1" in
             if dpkg --compare-versions "$2" le-nl "2.6-1"; then
                 # remove constraint that is no longer needed
                 su postgres -c "psql -q -c \"ALTER TABLE endpoint DROP CONSTRAINT valid_destination\" -d ampmeta || true"
+                # remove table column that is no longer needed
+                su postgres -c "psql -q -c \"ALTER TABLE schedule DROP COLUMN schedule_modified\" -d ampmeta || true"
                 # add new column used to enable/disable tests
                 su postgres -c "psql -q -c \"ALTER TABLE schedule ADD COLUMN schedule_enabled BOOLEAN NOT NULL DEFAULT true\" -d ampmeta || true"
             fi

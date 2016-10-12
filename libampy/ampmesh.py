@@ -438,11 +438,11 @@ class AmpMesh(object):
     def schedule_new_test(self, src, dst, test, freq, start, end, period, args):
         query = """ INSERT INTO schedule (schedule_test, schedule_frequency,
                     schedule_start, schedule_end, schedule_period,
-                    schedule_args, schedule_modified)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    schedule_args)
+                    VALUES (%s, %s, %s, %s, %s, %s)
                     RETURNING schedule_id """
         # TODO sanity check arguments? make sure test exists etc
-        params = (test, freq, start, end, period, args, int(time.time()))
+        params = (test, freq, start, end, period, args)
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
@@ -462,11 +462,10 @@ class AmpMesh(object):
     def update_test(self, schedule_id, test, freq, start, end, period, args):
         query = """ UPDATE schedule SET schedule_test=%s,
                     schedule_frequency=%s, schedule_start=%s,
-                    schedule_end=%s, schedule_period=%s, schedule_args=%s,
-                    schedule_modified=%s WHERE schedule_id=%s """
+                    schedule_end=%s, schedule_period=%s, schedule_args=%s
+                    WHERE schedule_id=%s """
 
-        params = (test, freq, start, end, period, args, int(time.time()),
-                schedule_id)
+        params = (test, freq, start, end, period, args, schedule_id)
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
                 log("Error while updating test")
