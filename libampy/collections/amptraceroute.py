@@ -177,7 +177,31 @@ class AmpTraceroute(AmpIcmp):
         label = "%s to %s" % (groupparams['source'],
                 groupparams['destination'])
         return label, self.splits[groupparams['aggregation']]
-    
+   
+
+class AmpTraceroutePathlen(AmpTraceroute):
+    def __init__(self, colid, viewmanager, nntscconf, asnmanager):
+        super(AmpTraceroutePathlen, self).__init__(colid, viewmanager,
+                nntscconf, asnmanager)
+
+        self.collection_name = "amp-traceroute_pathlen"
+        self.viewstyle = "amp-traceroutelength"
+        self.default_aggregation = "FAMILY"
+
+    def detail_columns(self, detail):
+        if detail in ["matrix", "basic", "tooltiptext", "spark", "raw"]:
+            aggfuncs = ['mode']
+            aggcols = ['path_length']
+        else:
+            aggfuncs = ['smoke']
+            aggcols = ['path_length']
+
+        return aggcols, aggfuncs
+
+    def extra_blocks(self, detail):
+        if detail == "full":
+            return 2
+        return 0
 
 class AmpAsTraceroute(AmpTraceroute):
     def __init__(self, colid, viewmanager, nntscconf, asnmanager):
