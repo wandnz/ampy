@@ -435,14 +435,15 @@ class AmpMesh(object):
         return retdict
 
     # TODO move schedule stuff into a specific schedule source file?
-    def schedule_new_test(self, src, dst, test, freq, start, end, period, args):
+    def schedule_new_test(self, src, dst, test, freq, start, end, period,
+            mesh_offset, args):
         query = """ INSERT INTO schedule (schedule_test, schedule_frequency,
                     schedule_start, schedule_end, schedule_period,
-                    schedule_args)
-                    VALUES (%s, %s, %s, %s, %s, %s)
+                    schedule_args, schedule_mesh_offset)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
                     RETURNING schedule_id """
         # TODO sanity check arguments? make sure test exists etc
-        params = (test, freq, start, end, period, args)
+        params = (test, freq, start, end, period, args, mesh_offset)
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
@@ -459,13 +460,16 @@ class AmpMesh(object):
 
         return schedule_id
 
-    def update_test(self, schedule_id, test, freq, start, end, period, args):
+    def update_test(self, schedule_id, test, freq, start, end, period,
+            mesh_offset, args):
         query = """ UPDATE schedule SET schedule_test=%s,
                     schedule_frequency=%s, schedule_start=%s,
-                    schedule_end=%s, schedule_period=%s, schedule_args=%s
+                    schedule_end=%s, schedule_period=%s, schedule_args=%s,
+                    schedule_mesh_offset=%s
                     WHERE schedule_id=%s """
 
-        params = (test, freq, start, end, period, args, schedule_id)
+        params = (test, freq, start, end, period, args, mesh_offset,
+                schedule_id)
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
                 log("Error while updating test")
@@ -800,7 +804,7 @@ class AmpMesh(object):
                         ORDER BY endpoint_destination_mesh) AS dest_mesh,
                     string_agg(endpoint_destination_site, ','
                         ORDER BY endpoint_destination_site) AS dest_site,
-                    schedule_enabled
+                    schedule_enabled, schedule_mesh_offset
                     FROM endpoint JOIN schedule
                     ON schedule_id=endpoint_schedule_id
                     WHERE %s GROUP BY schedule_id
@@ -822,8 +826,8 @@ class AmpMesh(object):
             dest_meshes = [] if row[9] is None else row[9].split(",")
             source_sites = [] if row[8] is None else row[8].split(",")
             dest_sites = [] if row[10] is None else row[10].split(",")
-            schedule.append({'id':row[0], 'test':row[1], 'enabled':row[11], \
-                    'frequency':row[2], 'start':row[3], \
+            schedule.append({'id':row[0], 'test':row[1], 'enabled':row[11],
+                    'frequency':row[2], 'start':row[3], 'mesh_offset':row[12],
                     'end':row[4], 'period':row[5], 'args':row[6],
                     'source_mesh':source_meshes, 'source_site':source_sites,
                     'dest_mesh':dest_meshes, 'dest_site':dest_sites})
