@@ -846,7 +846,7 @@ class AmpMesh(object):
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
-                log("Error while updating test")
+                log("Error while updating mesh")
                 self.dblock.release()
                 return None
         self.db.closecursor()
@@ -862,7 +862,7 @@ class AmpMesh(object):
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
-                log("Error while updating test")
+                log("Error while adding mesh")
                 self.dblock.release()
                 return None
         self.db.closecursor()
@@ -875,7 +875,7 @@ class AmpMesh(object):
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
-                log("Error while updating test")
+                log("Error while deleting mesh")
                 self.dblock.release()
                 return None
         self.db.closecursor()
@@ -889,7 +889,7 @@ class AmpMesh(object):
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
-                log("Error while updating test")
+                log("Error while updating site")
                 self.dblock.release()
                 return None
         self.db.closecursor()
@@ -905,7 +905,7 @@ class AmpMesh(object):
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
-                log("Error while updating test")
+                log("Error while adding site")
                 self.dblock.release()
                 return None
         self.db.closecursor()
@@ -918,7 +918,7 @@ class AmpMesh(object):
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
-                log("Error while updating test")
+                log("Error while deleting site")
                 self.dblock.release()
                 return None
         self.db.closecursor()
@@ -940,7 +940,7 @@ class AmpMesh(object):
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
-                log("Error while updating test")
+                log("Error while adding mesh member")
                 self.dblock.release()
                 return None
         self.db.closecursor()
@@ -963,7 +963,7 @@ class AmpMesh(object):
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
-                log("Error while updating test")
+                log("Error while deleting mesh member")
                 self.dblock.release()
                 return None
         self.db.closecursor()
