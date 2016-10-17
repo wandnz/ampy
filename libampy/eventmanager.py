@@ -12,7 +12,7 @@ class EventManager(object):
     -------------
     fetch_specific_event:
         fetches a single known event from the database
-    fetch_events: 
+    fetch_events:
         fetch all events that occurred in a time period for a given set of
         stream labels
     fetch_groups:
@@ -23,7 +23,7 @@ class EventManager(object):
     """
 
     def __init__(self, eventdbconfig):
-        """ 
+        """
         Init function for the EventManager class
 
         Parameters:
@@ -31,14 +31,14 @@ class EventManager(object):
                 describe how to connect to the event database. See
                 the AmpyDatabase class for details on the possible parameters
         """
-    
+
         # Default database name is netevmon
         if eventdbconfig is None:
             self.disabled = True
             return
         else:
             self.disabled = False
-        
+
         if 'name' not in eventdbconfig:
             eventdbconfig['name'] = "netevmon"
 
@@ -82,7 +82,7 @@ class EventManager(object):
         return dict(result)
 
     def fetch_events(self, labels, start, end):
-        """ 
+        """
         Fetches all events for a given set of labels that occurred within a
         particular time period.
 
@@ -111,9 +111,9 @@ class EventManager(object):
             if 'streams' not in lab:
                 log("Error while fetching events: label has no associated streams")
                 return None
-          
+
             for s in lab['streams']:
-                
+
                 query = "SELECT count(*) FROM eventing.group_membership WHERE"
                 query += " stream = %s"
                 params = (s,)
@@ -122,15 +122,15 @@ class EventManager(object):
                     log("Error while querying for events")
                     self.dblock.release()
                     return None
-               
+
                 if self.db.cursor.fetchone()[0] == 0:
-                    continue 
-                
+                    continue
+
                 stable = "eventing.events_str%s" % (s)
                 query = "SELECT * FROM " + stable
                 query += " WHERE ts_started >= %s AND ts_started <= %s"
-                
-                params = (start, end) 
+
+                params = (start, end)
 
                 if self.db.executequery(query, params) == -1:
                     log("Error while querying for events")
@@ -183,12 +183,12 @@ class EventManager(object):
             log("Error while querying event groups")
             self.dblock.release()
             return None
-        
+
         groups = []
-        
+
         for row in self.db.cursor.fetchall():
             groups.append(dict(row))
-        self.db.closecursor() 
+        self.db.closecursor()
         self.dblock.release()
         return groups
 
@@ -233,8 +233,8 @@ class EventManager(object):
 
             query = "SELECT * from eventing.events_str%s" % (str(stream))
             query += " WHERE event_id=%s"
-            params = (str(evid),) 
-            
+            params = (str(evid),)
+
             if self.db.executequery(query, params) == -1:
                 log("Error while querying for event group member (%s,%s)" % \
                         (str(stream), str(evid)))
@@ -246,7 +246,7 @@ class EventManager(object):
             events[-1]['stream'] = stream
             events[-1]['collection'] = colname
 
-        self.db.closecursor() 
+        self.db.closecursor()
         self.dblock.release()
         return sorted(events, key=lambda s: s['ts_started'])
 

@@ -28,25 +28,25 @@ class AmpyDatabase(object):
         The database cursor may be used to access the query result.
     closecursor:
         Closes the database cursor. Should be called after processing of a
-        query result is complete. 
-    commit: 
+        query result is complete.
+    commit:
         Commits the current transaction. Only necessary if the database has
         not been configured to auto-commit.
     """
 
     def __init__(self, dbconf, autocommit=False, name=None):
-        """ 
+        """
         Init function for the AmpyDatabase class.
 
         Parameters:
-          dbconf -- a dictionary describing the configuration options 
+          dbconf -- a dictionary describing the configuration options
                 necessary for connecting to the database.
           autocommit -- a boolean flag indicating whether the transaction
                 should be automatically committed after each query.
-          name -- if not None, the database connection will use a 
-                server-side cursor for queries with the given name. 
+          name -- if not None, the database connection will use a
+                server-side cursor for queries with the given name.
                 Otherwise, a client-side cursor will be used.
-        
+
         Database configuration options:
           name: the name of the database to connect to. Mandatory.
           user: the username to use when connecting. Defaults to the user
@@ -73,7 +73,7 @@ class AmpyDatabase(object):
             connstr += " password=%s" % (dbconf["password"])
         if "host" in dbconf:
             connstr += " host=%s" % (dbconf["host"])
- 
+
         self.connstr = connstr
 
     def destroy(self):
@@ -136,8 +136,8 @@ class AmpyDatabase(object):
         Executes the given query against the current database.
 
         Parameters:
-          query -- the query to run as a parameterised string 
-          params -- a tuple containing the parameters to substitute into 
+          query -- the query to run as a parameterised string
+          params -- a tuple containing the parameters to substitute into
                     the query when run
 
         Returns:
@@ -248,7 +248,7 @@ class AmpyDatabase(object):
         don't bother calling this.
 
         Returns:
-          0 if successful, -1 if some database error prevents us from 
+          0 if successful, -1 if some database error prevents us from
           committing.
         """
         if self.conn is None:
@@ -285,7 +285,7 @@ class AmpyDatabase(object):
                 log(e)
             return -1
         return 0
-    
+
     def _createcursor(self):
         """
         Creates a cursor using our current database connection

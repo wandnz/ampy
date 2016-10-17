@@ -293,7 +293,6 @@ class AmpMesh(object):
         epcount = self.db.cursor.rowcount
         self.db.closecursor()
 
-    
         params = ("%" + term + "%", pagesize, offset)
 
         if self.db.executequery(epquery, params) == -1:

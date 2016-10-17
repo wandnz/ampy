@@ -9,7 +9,7 @@ class StreamManager(object):
     to find streams that match a given set of selection criteria. It is also
     used to find possible selection options based on earlier selections, e.g.
     fetching the destinations for a selected source.
-    
+
     Searching is also supported in the opposite direction, so that the
     properties can be found for a given stream id.
 
@@ -39,8 +39,8 @@ class StreamManager(object):
                        each subsequent property will be the next level.
 
         The keylist should be ordered in the way you would expect users to
-        make selections on the modal dialog for the collection. 
-        
+        make selections on the modal dialog for the collection.
+
         An example keylist for AmpIcmp would be:
         ['source', 'destination', 'packet_size', 'family']
         """
@@ -55,7 +55,7 @@ class StreamManager(object):
 
         Parameters:
           streamid -- the id number of the stream being added
-          storage -- any additional data that should be stored with the 
+          storage -- any additional data that should be stored with the
                      streamid in the hierarchy, e.g. an IP address for ICMP
                      streams. If None, no extra storage is used.
           properties -- a dictionary describing the stream properties for the
@@ -110,7 +110,7 @@ class StreamManager(object):
 
     def find_stream_properties(self, streamid):
         """
-        Returns the properties required to find the given stream id in 
+        Returns the properties required to find the given stream id in
         the stream hierarchy.
 
         In other words, returns the stream properties for the given stream id.
@@ -119,7 +119,7 @@ class StreamManager(object):
           streamid -- the id of the stream to find the properties for.
 
         Returns:
-            None if the stream id is not in the hierarchy, otherwise a 
+            None if the stream id is not in the hierarchy, otherwise a
             dictionary of properties to values for the stream.
         """
         if streamid not in self.streams:
@@ -131,12 +131,12 @@ class StreamManager(object):
         """
         Finds all streams that match a given set of stream properties.
 
-        Note: this is a recursive function. If you are calling this 
+        Note: this is a recursive function. If you are calling this
         function, make sure that you do NOT provide values for any parameters
         other than the 'properties' parameter.
 
         Parameters:
-          properties -- a dictionary containing the stream properties 
+          properties -- a dictionary containing the stream properties
           searching -- the hierarchy dictionary that is currently being
                        searched. If None, the function will search at the
                        top hierarchy level.
@@ -148,7 +148,7 @@ class StreamManager(object):
         Returns:
             a list of streams that matched the given criteria. If there
             was additional data stored with the stream ID, the list items
-            are tuples where the first element of the tuple is the stream id 
+            are tuples where the first element of the tuple is the stream id
             and the second is the stored 'extra' data for the stream.
             Otherwise, the list items are just stream ids (no tuple at all).
 
@@ -191,17 +191,17 @@ class StreamManager(object):
             if val not in searching:
                 return found
 
-            # Recurse down to the next hierarchy level    
-            found = self.find_streams(properties, searching[val], 
+            # Recurse down to the next hierarchy level
+            found = self.find_streams(properties, searching[val],
                     index + 1, found)
             return found
 
         # If we get here, the stream property at this level was not in the
-        # provided set of parameters so we will treat it as a wildcard 
+        # provided set of parameters so we will treat it as a wildcard
         # and traverse all of the entries at this hierarchy level
         for k, nextdict in searching.iteritems():
             found = self.find_streams(properties, nextdict, index + 1, found)
-        
+
         return found
 
     def find_selections(self, selected, term, pageno, pagesize,
@@ -219,7 +219,7 @@ class StreamManager(object):
                         is not present in the hierarchy.
 
         Returns:
-          a tuple of two items : the name of the stream property being 
+          a tuple of two items : the name of the stream property being
           returned and the list of possible values for that property.
 
         Example:
@@ -227,7 +227,7 @@ class StreamManager(object):
           To get the list of possible sources, selected should be an empty
           dictionary. To get the list of destinations for a given source S,
           selected should be {'source':S}. To get the list of packet sizes for
-          a given source S and dest D, selected should be {'source':S, 
+          a given source S and dest D, selected should be {'source':S,
           'dest':D} etc. etc.
 
         This function will always return a list of values from the highest
@@ -235,7 +235,7 @@ class StreamManager(object):
         i.e. all preceding stream properties must be provided to get a list
         of possible values at a particular level.
         """
-        
+
         requested = None
         curr = self.basedict
 
@@ -265,7 +265,7 @@ class StreamManager(object):
             curr = curr[val]
 
         if requested is None:
-            # Reached the end of the hierarchy, make sure we don't 
+            # Reached the end of the hierarchy, make sure we don't
             # accidentally return the stream id list
             return None, []
 
@@ -292,11 +292,8 @@ class StreamManager(object):
                     break
 
         res = {'maxitems': len(result), 'items': filtered}
-            
-        return requested, res
 
-        
-    
+        return requested, res
 
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :

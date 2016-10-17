@@ -811,12 +811,11 @@ class Ampy(object):
         return tabview
 
     def get_stream_properties(self, collection, stream):
-        
         col = self._getcol(collection)
         if col == None:
             log("Error while fetching stream properties")
             return None
-        
+
         # Find the stream in our stream hierarchy
         streamprops = col.find_stream(stream)
         if streamprops is None:
@@ -1142,7 +1141,7 @@ class Ampy(object):
                     toquery.add(aslabel)
 
             if asname is not None:
-                result[a] = asname 
+                result[a] = asname
 
         queried = self.asmanager.queryASNames(toquery)
 
@@ -1498,7 +1497,7 @@ class Ampy(object):
         # First two options must be the source and destination meshes
         sourcemesh = options[0]
         destmesh = options[1]
-        
+
         # Third option describes the direction / family / etc that we are
         # currently looking at
         split = options[2]

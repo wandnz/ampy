@@ -7,12 +7,12 @@ class ViewManager(object):
     Class for interacting with the views database.
 
     A view is a unique identifier for a particular graph and consists
-    of one or more stream groups. 
-    
-    A stream group describes a line or a set of lines to be drawn on a 
+    of one or more stream groups.
+
+    A stream group describes a line or a set of lines to be drawn on a
     graph which have many stream properties in common. In many cases, a
     stream group will aggregate together multiple streams into a single
-    line, e.g. all amp-icmp streams for a source-dest pair where the 
+    line, e.g. all amp-icmp streams for a source-dest pair where the
     target address was an IPv4 address. An aggregation method may also
     combine all results into a single line or create one line per stream.
     Each line for a stream group will consist of one or more streams.
@@ -25,12 +25,12 @@ class ViewManager(object):
       that all of the streams in the group belong to and therefore the
       module that must be used to operate on that group. There is a clear
       one-to-one mapping of group collection to collection module.
-      Groups from the amp-icmp collection use the amp-icmp module, for 
+      Groups from the amp-icmp collection use the amp-icmp module, for
       instance.
 
       However, it makes sense for some collections to be shown on the
       same graph. For example, amp-icmp, amp-dns and amp-tcpping are
-      all latency measurements and are therefore directly comparable. 
+      all latency measurements and are therefore directly comparable.
       In this case, we use 'amp-latency' to describe a view that can
       consist of groups from any available latency collection. However,
       there is no 'amp-latency' module in ampy -- each group is still
@@ -50,10 +50,10 @@ class ViewManager(object):
       get_view_groups:
         Returns the description strings for all groups that belong to a view.
       get_group_id:
-        Searches for a group that matches a given description. If one does 
+        Searches for a group that matches a given description. If one does
         not exist, a new group is created.
       get_view_id
-        Searches for a view that contains a given set of groups. If one does 
+        Searches for a view that contains a given set of groups. If one does
         not exist, a new view is created.
       add_groups_to_view:
         Returns the id of the view that results from adding new groups to
@@ -75,14 +75,14 @@ class ViewManager(object):
     def __init__(self, viewdbconfig):
         """
         Init function for the ViewManager class.
-        
+
         Parameters:
           viewdbconfig -- dictionary containing configuration parameters
                           describing how to connect to the views database.
                           See the AmpyDatabase class for details on possible
                           configuration parameters.
         """
-        
+
         # Use 'views' as the default database name
         if 'name' not in viewdbconfig:
             viewdbconfig['name'] = "views"
@@ -94,7 +94,7 @@ class ViewManager(object):
 
     def get_view_groups(self, viewstyle, viewid):
         """
-        Queries the views database to find the set of groups that belong 
+        Queries the views database to find the set of groups that belong
         to a given view.
 
         Parameters:
@@ -114,7 +114,7 @@ class ViewManager(object):
         if viewid == 0:
             return groups
 
-        query = """SELECT collection, group_id, group_description FROM 
+        query = """SELECT collection, group_id, group_description FROM
                 groups WHERE group_id IN (SELECT unnest(view_groups)
                 FROM views WHERE collection=%s AND view_id=%s) """
         params = (viewstyle, viewid)
@@ -139,7 +139,6 @@ class ViewManager(object):
                 groups[row['collection']] = \
                     [(row['group_id'], row['group_description'])]
 
-        
         self.db.closecursor()
         self.dblock.release()
         return groups
@@ -160,7 +159,7 @@ class ViewManager(object):
 
         """
 
-        query = """SELECT group_id FROM groups WHERE collection=%s AND 
+        query = """SELECT group_id FROM groups WHERE collection=%s AND
                 group_description=%s"""
         params = (collection, description)
 
@@ -179,7 +178,7 @@ class ViewManager(object):
         if self.db.cursor.rowcount == 0:
             # No groups found that matched the description, so create a
             # a new group and return its id
-            query = """INSERT INTO groups (collection, group_description) 
+            query = """INSERT INTO groups (collection, group_description)
                     VALUES (%s, %s) RETURNING group_id
                     """
             if self.db.executequery(query, params) == -1:
@@ -192,7 +191,6 @@ class ViewManager(object):
         self.dblock.release()
         return group_id
 
-        
     def get_view_id(self, viewstyle, groups):
         """
         Queries the views database for a view that contains the given
@@ -209,7 +207,7 @@ class ViewManager(object):
 
         """
         # Create view if it doesn't exist
-        query = """SELECT view_id FROM views WHERE collection=%s AND 
+        query = """SELECT view_id FROM views WHERE collection=%s AND
                 view_groups=%s"""
         params = (viewstyle, groups)
 
@@ -228,7 +226,7 @@ class ViewManager(object):
         if self.db.cursor.rowcount == 0:
             # No groups found that matched the description, so create a
             # a new group and return its id
-            query = """INSERT INTO views (collection, view_groups) 
+            query = """INSERT INTO views (collection, view_groups)
                     VALUES (%s, %s) RETURNING view_id
                     """
             if self.db.executequery(query, params) == -1:
@@ -251,7 +249,7 @@ class ViewManager(object):
           collection -- the collection that the new groups belong to
           viewid -- the ID number of the view being modified. A view id of
                     zero represents an empty view (i.e. with no groups)
-          descriptions -- a list of strings describing the groups to be 
+          descriptions -- a list of strings describing the groups to be
                           added to the view
 
         Returns:
@@ -282,13 +280,12 @@ class ViewManager(object):
             if groupid not in existing:
                 existing.append(groupid)
                 existing.sort()
-        
+
         # Work out the view id for the new set of groups
         newview = self.get_view_id(viewstyle, existing)
         if newview is None:
             return None
         return newview
-
 
     def remove_group_from_view(self, viewstyle, viewid, groupid):
         """

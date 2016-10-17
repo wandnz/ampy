@@ -529,7 +529,6 @@ class Collection(object):
         iteratively load more options as the user scrolls, rather than trying
         to load and insert all of the possible options into a dropdown at once
         which can be quite laggy if there are many possible options to present.
- 
 
         Parameters:
           selected -- a dictionary of stream properties with known values
