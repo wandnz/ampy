@@ -1,6 +1,6 @@
+from operator import itemgetter
 from libnntscclient.logger import *
 from libampy.collection import Collection
-from operator import itemgetter
 
 class RRDMuninbytes(Collection):
     def __init__(self, colid, viewmanager, nntscconf):
@@ -76,7 +76,7 @@ class RRDMuninbytes(Collection):
 
     def _generate_label(self, baselabel, search, direction, lookup):
         key = baselabel + "_" + direction
-        search['direction'] =  direction
+        search['direction'] = direction
         shortlabel = direction
 
         if lookup:

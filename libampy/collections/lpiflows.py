@@ -1,6 +1,6 @@
+from operator import itemgetter
 from libnntscclient.logger import *
 from libampy.collection import Collection
-from operator import itemgetter
 
 class LPIFlows(Collection):
     def __init__(self, colid, viewmanager, nntscconf):
@@ -74,7 +74,7 @@ class LPIFlows(Collection):
 
     def _generate_label(self, baselabel, search, direction, lookup):
         key = baselabel + "_" + direction
-        search['dir'] =  direction
+        search['dir'] = direction
         shortlabel = direction
 
         if lookup:

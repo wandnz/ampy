@@ -1,4 +1,5 @@
-import time, re
+import time
+import re
 from threading import Lock
 
 from libampy.nntsc import NNTSCConnection
@@ -605,7 +606,8 @@ class Collection(object):
             found = self.streammanager.find_selections(selected, term, page, pagesize, logmissing)
             if found is None:
                 if logmissing:
-                    log("Failed to get selection options for collection %s" % (self.collection_name))
+                    log("Failed to get selection options for collection %s" % (
+                                self.collection_name))
                 return found
 
             key, options = found
@@ -697,7 +699,6 @@ class Collection(object):
         """
         recent = {}
         timeouts = []
-        uncached = {}
         querylabels = {}
         end = int(time.time())
         start = end - duration
@@ -908,9 +909,6 @@ class Collection(object):
 
         if len(blocks) == 0:
             return notcached, cached
-
-        start = blocks[0]['start']
-        end = blocks[-1]['end']
 
         for label in labels:
             # Check which blocks are cached and which are not

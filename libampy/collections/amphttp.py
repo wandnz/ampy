@@ -1,6 +1,5 @@
 from libnntscclient.logger import *
 from libampy.collection import Collection
-from operator import itemgetter
 
 class AmpHttp(Collection):
     def __init__(self, colid, viewmanager, nntscconf):
@@ -146,7 +145,7 @@ class AmpHttp(Collection):
 
         baselabel = 'group_%s' % (groupid)
 
-        for k,v in gps.iteritems():
+        for k, v in gps.iteritems():
             if k in self.integerproperties:
                 gps[k] = int(v)
 
@@ -167,7 +166,7 @@ class AmpHttp(Collection):
 
     def update_matrix_groups(self, source, dest, split, groups, views,
             viewmanager, viewstyle):
-        groupprops = { 'source': source, 'destination': dest }
+        groupprops = {'source': source, 'destination': dest}
 
         label = "%s_%s_ipv4" % (source, dest)
         streams = self.streammanager.find_streams(groupprops)
@@ -182,7 +181,7 @@ class AmpHttp(Collection):
         for s in streams:
             props = self.streammanager.find_stream_properties(s)
 
-            proplist = [ props[x] for x in self.groupproperties]
+            proplist = [props[x] for x in self.groupproperties]
             cellgroup = self.create_group_from_list(proplist)
 
             if cellgroup is None:

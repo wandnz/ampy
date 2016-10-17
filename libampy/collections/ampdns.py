@@ -1,6 +1,6 @@
+from operator import itemgetter
 from libnntscclient.logger import *
 from libampy.collection import Collection
-from operator import itemgetter
 
 class AmpDns(Collection):
 
@@ -86,7 +86,7 @@ class AmpDns(Collection):
         if lookup:
             streams = self.streammanager.find_streams(search)
             if streams is None:
-                log ("Failed to find streams for label %s, %s" % \
+                log("Failed to find streams for label %s, %s" % \
                         (baselabel, self.collection_name))
                 return None
 
@@ -273,7 +273,7 @@ class AmpDns(Collection):
             # as long as there are properties that need setting, keep setting
             # them until we get a stream id (that hopefully has recent data!)
             while len(props) > 0:
-                for prop,values in props.iteritems():
+                for prop, values in props.iteritems():
                     # prefer the default values, but if they aren't present
                     # then pick the first option available
                     if prop in self.defaults and \
@@ -319,9 +319,9 @@ class AmpDns(Collection):
             cellview = -1
 
         if cellview is None:
-            views[(source,dest)] = -1
+            views[(source, dest)] = -1
         else:
-            views[(source,dest)] = cellview
+            views[(source, dest)] = cellview
 
         # Add the two new groups
         if len(v4streams) > 0:

@@ -1,8 +1,5 @@
 from libnntscclient.logger import *
-from libampy.collection import Collection
 from libampy.collections.ampicmp import AmpIcmp
-import re, socket
-from operator import itemgetter
 
 class AmpTraceroute(AmpIcmp):
     def __init__(self, colid, viewmanager, nntscconf, asnmanager):

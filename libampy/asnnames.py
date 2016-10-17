@@ -1,7 +1,5 @@
 from libampy.database import AmpyDatabase
 from libnntscclient.logger import *
-import socket
-import psycopg2
 
 class ASNManager(object):
 
@@ -14,7 +12,7 @@ class ASNManager(object):
         self.dbconfig = asdbconfig
         self.db = AmpyDatabase(asdbconfig, True)
         self.db.connect(15)
-        self.cache = cache;
+        self.cache = cache
 
     def queryDatabase(self, asn):
 
@@ -54,7 +52,7 @@ class ASNManager(object):
             log("Error while counting ASNs in the database")
             return (0, {})
         ascount = self.db.cursor.fetchone()[0]
-        self.db.closecursor();
+        self.db.closecursor()
 
         query = """SELECT * FROM asmap WHERE CAST(asn AS TEXT) ILIKE
                 %s OR asname ILIKE %s ORDER BY asn LIMIT %s OFFSET %s"""
@@ -69,9 +67,9 @@ class ASNManager(object):
             asstring = "AS%s %s" % (row[0], row[1])
             allasns.append({'id': str(row[0]), 'text': asstring})
 
-            if (len(allasns) > pagesize):
+            if len(allasns) > pagesize:
                 break
-        self.db.closecursor();
+        self.db.closecursor()
         return ascount, allasns
 
 

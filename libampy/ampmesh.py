@@ -302,7 +302,7 @@ class AmpMesh(object):
 
         for row in self.db.cursor:
             matched.append({'id': row[0], 'text': row[0]})
-            if (len(matched) > pagesize):
+            if len(matched) > pagesize:
                 break
 
         self.db.closecursor()
@@ -446,9 +446,9 @@ class AmpMesh(object):
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
-                log("Error while scheduling new test")
-                self.dblock.release()
-                return None
+            log("Error while scheduling new test")
+            self.dblock.release()
+            return None
 
         schedule_id = self.db.cursor.fetchone()['schedule_id']
         self.db.closecursor()
@@ -471,9 +471,9 @@ class AmpMesh(object):
                 schedule_id)
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
-                log("Error while updating test")
-                self.dblock.release()
-                return None
+            log("Error while updating test")
+            self.dblock.release()
+            return None
         self.db.closecursor()
         self._update_last_modified_schedule(schedule_id)
         self.dblock.release()
@@ -484,12 +484,12 @@ class AmpMesh(object):
 
     def enable_disable_test(self, schedule_id, enabled):
         query = "UPDATE schedule SET schedule_enabled=%s WHERE schedule_id=%s"
-        params = (enabled,schedule_id)
+        params = (enabled, schedule_id)
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
-                log("Error while changing status of scheduled test")
-                self.dblock.release()
-                return None
+            log("Error while changing status of scheduled test")
+            self.dblock.release()
+            return None
         self.db.closecursor()
         self._update_last_modified_schedule(schedule_id)
         self.dblock.release()
@@ -500,9 +500,9 @@ class AmpMesh(object):
         params = (schedule_id,)
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
-                log("Error while deleting scheduled test")
-                self.dblock.release()
-                return None
+            log("Error while deleting scheduled test")
+            self.dblock.release()
+            return None
 
         self.db.closecursor()
         self.dblock.release()
@@ -514,9 +514,9 @@ class AmpMesh(object):
         if lock:
             self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
-                log("Error while querying is_mesh()")
-                self.dblock.release()
-                return None
+            log("Error while querying is_mesh()")
+            self.dblock.release()
+            return None
 
         count = self.db.cursor.fetchone()['count']
         self.db.closecursor()
@@ -531,9 +531,9 @@ class AmpMesh(object):
         if lock:
             self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
-                log("Error while querying is_site()")
-                self.dblock.release()
-                return None
+            log("Error while querying is_site()")
+            self.dblock.release()
+            return None
 
         count = self.db.cursor.fetchone()['count']
         self.db.closecursor()
@@ -548,9 +548,9 @@ class AmpMesh(object):
         params = (name.split('!', 1)[0], name.split('!', 1)[0])
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
-                log("Error while inserting new site")
-                self.dblock.release()
-                return None
+            log("Error while inserting new site")
+            self.dblock.release()
+            return None
 
         self.db.closecursor()
         self.dblock.release()
@@ -561,9 +561,9 @@ class AmpMesh(object):
         params = (mesh,)
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
-                log("Error while updating mesh")
-                self.dblock.release()
-                return None
+            log("Error while updating mesh")
+            self.dblock.release()
+            return None
 
         self.db.closecursor()
         self.dblock.release()
@@ -586,9 +586,9 @@ class AmpMesh(object):
         params = (mesh, schedule_id, mesh)
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
-                log("Error while updating meshtests")
-                self.dblock.release()
-                return None
+            log("Error while updating meshtests")
+            self.dblock.release()
+            return None
 
         self.db.closecursor()
         self.dblock.release()
@@ -603,9 +603,9 @@ class AmpMesh(object):
         params = (schedule_id,)
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
-                log("Error while fetching schedule meshes")
-                self.dblock.release()
-                return None
+            log("Error while fetching schedule meshes")
+            self.dblock.release()
+            return None
 
         meshes = []
         for row in self.db.cursor.fetchall():
@@ -669,9 +669,9 @@ class AmpMesh(object):
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
-                log("Error while inserting new test endpoints")
-                self.dblock.release()
-                return None
+            log("Error while inserting new test endpoints")
+            self.dblock.release()
+            return None
         self.db.closecursor()
         self._update_last_modified_schedule(schedule_id)
         self.dblock.release()
@@ -701,9 +701,9 @@ class AmpMesh(object):
         params = (schedule_id, src, dst)
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
-                log("Error while deleting endpoints")
-                self.dblock.release()
-                return None
+            log("Error while deleting endpoints")
+            self.dblock.release()
+            return None
 
         self.db.closecursor()
         self._update_last_modified_schedule(schedule_id)
@@ -845,9 +845,9 @@ class AmpMesh(object):
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
-                log("Error while updating mesh")
-                self.dblock.release()
-                return None
+            log("Error while updating mesh")
+            self.dblock.release()
+            return None
         self.db.closecursor()
         self.dblock.release()
         return True
@@ -861,9 +861,9 @@ class AmpMesh(object):
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
-                log("Error while adding mesh")
-                self.dblock.release()
-                return None
+            log("Error while adding mesh")
+            self.dblock.release()
+            return None
         self.db.closecursor()
         self.dblock.release()
         return True
@@ -874,9 +874,9 @@ class AmpMesh(object):
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
-                log("Error while deleting mesh")
-                self.dblock.release()
-                return None
+            log("Error while deleting mesh")
+            self.dblock.release()
+            return None
         self.db.closecursor()
         self.dblock.release()
         return True
@@ -888,9 +888,9 @@ class AmpMesh(object):
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
-                log("Error while updating site")
-                self.dblock.release()
-                return None
+            log("Error while updating site")
+            self.dblock.release()
+            return None
         self.db.closecursor()
         self.dblock.release()
         return True
@@ -904,9 +904,9 @@ class AmpMesh(object):
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
-                log("Error while adding site")
-                self.dblock.release()
-                return None
+            log("Error while adding site")
+            self.dblock.release()
+            return None
         self.db.closecursor()
         self.dblock.release()
         return True
@@ -917,9 +917,9 @@ class AmpMesh(object):
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
-                log("Error while deleting site")
-                self.dblock.release()
-                return None
+            log("Error while deleting site")
+            self.dblock.release()
+            return None
         self.db.closecursor()
         self.dblock.release()
         return True
@@ -939,9 +939,9 @@ class AmpMesh(object):
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
-                log("Error while adding mesh member")
-                self.dblock.release()
-                return None
+            log("Error while adding mesh member")
+            self.dblock.release()
+            return None
         self.db.closecursor()
 
         # update the site so it will fetch tests belonging to the new mesh
@@ -962,9 +962,9 @@ class AmpMesh(object):
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
-                log("Error while deleting mesh member")
-                self.dblock.release()
-                return None
+            log("Error while deleting mesh member")
+            self.dblock.release()
+            return None
         self.db.closecursor()
 
         # update the site so it will remove tests belonging to the new mesh

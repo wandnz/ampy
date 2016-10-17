@@ -1,6 +1,6 @@
+from operator import itemgetter
 from libnntscclient.logger import *
 from libampy.collection import Collection
-from operator import itemgetter
 
 class LPIUsers(Collection):
     def __init__(self, colid, viewmanager, nntscconf):

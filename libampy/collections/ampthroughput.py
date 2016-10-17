@@ -1,6 +1,6 @@
+from operator import itemgetter
 from libnntscclient.logger import *
 from libampy.collection import Collection
-from operator import itemgetter
 
 class AmpThroughput(Collection):
     def __init__(self, colid, viewmanager, nntscconf):
@@ -163,7 +163,7 @@ class AmpThroughput(Collection):
     def _generate_direction_labels(self, baselabel, search, direction, family,
             lookup):
         key = baselabel + "_" + direction
-        search['direction'] =  direction
+        search['direction'] = direction
 
         if direction in self.dirlabels:
             shortlabel = self.dirlabels[direction]

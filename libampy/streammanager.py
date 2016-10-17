@@ -1,5 +1,5 @@
-from libnntscclient.logger import *
 import re
+from libnntscclient.logger import *
 
 class StreamManager(object):
     """

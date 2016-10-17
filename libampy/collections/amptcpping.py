@@ -1,6 +1,5 @@
 from libnntscclient.logger import *
 from libampy.collections.ampicmp import AmpIcmp
-from operator import itemgetter
 
 class AmpTcpping(AmpIcmp):
     def __init__(self, colid, viewmanager, nntscconf):
@@ -65,7 +64,7 @@ class AmpTcpping(AmpIcmp):
         groupparams = self.parse_group_description(description)
         if groupparams is None:
             log("Failed to parse group description to generate legend label")
-            return none
+            return None
 
         label = "%s to %s:%s TCP" % (groupparams['source'],
                 groupparams['destination'], groupparams['port'])

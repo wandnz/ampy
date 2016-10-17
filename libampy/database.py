@@ -1,6 +1,5 @@
 import psycopg2
 import psycopg2.extras
-import string
 from libnntscclient.logger import *
 
 # Generic psycopg2 database code largely borrowed from NNTSC

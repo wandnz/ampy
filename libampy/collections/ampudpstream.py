@@ -1,6 +1,5 @@
 from libnntscclient.logger import *
 from libampy.collections.ampthroughput import AmpThroughput
-from operator import itemgetter
 
 class AmpUdpstream(AmpThroughput):
 
@@ -26,7 +25,7 @@ class AmpUdpstream(AmpThroughput):
     def extra_blocks(self, detail):
         if detail in ["jitter", "full"]:
             return 2
-        return 0;
+        return 0
 
     def detail_columns(self, detail):
         if detail == "jitter" or detail == "jitter-summary" or detail == "raw":
@@ -173,14 +172,15 @@ class AmpUdpstream(AmpThroughput):
 
         baseprop = {'source': source, 'destination': dest,
                 'dscp': self.default_dscp, 'packet_size': self.default_size,
-                'packet_spacing': self.default_spacing }
-        sels = self.streammanager.find_selections(baseprop, "", "1", 30000, False)
+                'packet_spacing': self.default_spacing}
+        sels = self.streammanager.find_selections(baseprop, "", "1", 30000,
+                False)
         if sels is None:
             return None
 
         req, counts = sels
         if req != "packet_count":
-            log("Unable to find suitable packet counters for %s matrix cell %s to %s" \
+            log("Unable to find packet counter for %s matrix cell %s to %s" % \
                     (self.collection_name, source, dest))
             return None
 
@@ -189,10 +189,10 @@ class AmpUdpstream(AmpThroughput):
             return
 
         poss = [c['text'] for c in counts['items']]
-        baseprop['packet_count'] = max(poss);
+        baseprop['packet_count'] = max(poss)
 
-        v4 = self._matrix_group_streams(baseprop, "out", "ipv4", groups);
-        v6 = self._matrix_group_streams(baseprop, "out", "ipv6", groups);
+        v4 = self._matrix_group_streams(baseprop, "out", "ipv4", groups)
+        v6 = self._matrix_group_streams(baseprop, "out", "ipv6", groups)
 
         if v4 == 0 and v6 == 0:
             views[(source, dest)] = -1

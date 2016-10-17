@@ -1,7 +1,7 @@
-import socket, sys
+import socket
 from libnntscclient.protocol import *
-from libnntscclient.nntscclient import NNTSCClient
 from libnntscclient.logger import *
+from libnntscclient.nntscclient import NNTSCClient
 
 class NNTSCConnection(object):
     """
@@ -290,7 +290,6 @@ class NNTSCConnection(object):
             return None
 
         data = {}
-        freq = 0
         count = 0
 
         while count < len(labels):

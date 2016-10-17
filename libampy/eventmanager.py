@@ -1,8 +1,6 @@
-import datetime
-
+from threading import Lock
 from libampy.database import AmpyDatabase
 from libnntscclient.logger import *
-from threading import Lock
 
 class EventManager(object):
     """
@@ -169,8 +167,6 @@ class EventManager(object):
           the event database.
         """
 
-        #start_dt = datetime.datetime.fromtimestamp(start)
-        #end_dt = datetime.datetime.fromtimestamp(end)
         if self.disabled:
             return []
 

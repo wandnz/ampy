@@ -1,5 +1,4 @@
 from libnntscclient.logger import *
-from operator import itemgetter
 from libampy.collections.lpipackets import LPIPackets
 
 class LPIBytes(LPIPackets):

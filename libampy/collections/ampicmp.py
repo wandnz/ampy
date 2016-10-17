@@ -1,6 +1,6 @@
+from operator import itemgetter
 from libnntscclient.logger import *
 from libampy.collection import Collection
-from operator import itemgetter
 
 class AmpIcmp(Collection):
     def __init__(self, colid, viewmanager, nntscconf):
@@ -156,7 +156,7 @@ class AmpIcmp(Collection):
     def update_matrix_groups(self, source, dest, split, groups, views,
             viewmanager, viewstyle):
 
-        baseprop = {'source':source, 'destination':dest }
+        baseprop = {'source':source, 'destination':dest}
 
         sels = self.streammanager.find_selections(baseprop, "", "1", 30000, False)
         if sels is None:
