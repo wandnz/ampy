@@ -32,7 +32,7 @@ class RRDSmokeping(Collection):
         return label, ""
 
     def create_group_description(self, properties):
-        
+
         for p in self.groupproperties:
             if p not in properties:
                 log("Required group property '%s' not present in %s group" % \
@@ -43,7 +43,7 @@ class RRDSmokeping(Collection):
                 tuple([properties[x] for x in self.groupproperties])
 
     def parse_group_description(self, description):
-    
+
         regex = "SOURCE (?P<source>[.a-zA-Z0-9-]+) "
         regex += "TARGET (?P<host>\S+)"
 
@@ -58,7 +58,7 @@ class RRDSmokeping(Collection):
         return keydict
 
     def group_to_labels(self, groupid, description, lookup=True):
-        
+
         label = "group_%s" % (groupid)
 
         groupparams = self.parse_group_description(description)
@@ -79,5 +79,5 @@ class RRDSmokeping(Collection):
 
         return [{'labelstring':label, 'streams':streams, \
                 'shortlabel':groupparams['host']}]
-       
+
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :

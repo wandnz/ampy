@@ -6,10 +6,10 @@ class AmpDns(Collection):
 
     def __init__(self, colid, viewmanager, nntscconf):
         super(AmpDns, self).__init__(colid, viewmanager, nntscconf)
-        self.streamproperties = ['source', 'destination', 'recurse', 
+        self.streamproperties = ['source', 'destination', 'recurse',
                 'query', 'query_type', 'query_class', 'udp_payload_size',
                 'dnssec', 'nsid']
-        self.groupproperties = ['source', 'destination', 'query', 
+        self.groupproperties = ['source', 'destination', 'query',
                 'query_type', 'query_class', 'udp_payload_size',
                 'flags', 'aggregation']
         self.integerproperties = ['udp_payload_size']
@@ -24,7 +24,6 @@ class AmpDns(Collection):
             "dnssec": False,
         }
 
-    
     def detail_columns(self, detail):
         if detail == "matrix" or detail == "basic":
             aggfuncs = ["avg", "stddev", "count", "count"]
@@ -42,7 +41,7 @@ class AmpDns(Collection):
         if (end - start) / 60.0 < 200:
             return 60
 
-        return super(AmpDns, self).calculate_binsize(start, end, detail) 
+        return super(AmpDns, self).calculate_binsize(start, end, detail)
 
     def prepare_stream_for_storage(self, stream):
         if 'address' not in stream:
@@ -80,10 +79,10 @@ class AmpDns(Collection):
                 groupparams['query_type'], groupparams['udp_payload_size'],
                 flags)
         return label, agg
-   
+
     def _lookup_streams(self, search, lookup, baselabel):
         streams = []
-    
+
         if lookup:
             streams = self.streammanager.find_streams(search)
             if streams is None:
@@ -113,7 +112,7 @@ class AmpDns(Collection):
         else:
             famstreams = []
 
-        return {'labelstring':key, 'streams':famstreams, 
+        return {'labelstring':key, 'streams':famstreams,
                 'shortlabel':shortlabel}
 
     def group_to_labels(self, groupid, description, lookup=True):
@@ -142,16 +141,15 @@ class AmpDns(Collection):
             search['dnssec'] = True
         if groupparams["flags"][2] == "T":
             search['nsid'] = True
-       
 
         if groupparams['aggregation'] == "FULL":
             streams = self._lookup_streams(search, lookup, baselabel)
             if streams is None:
                 return None
-            
+
             # Discard the addresses stored with each stream
             streams = [item[0] for item in streams]
-            lab = {'labelstring':baselabel, 'streams':streams, 
+            lab = {'labelstring':baselabel, 'streams':streams,
                     'shortlabel':'All instances'}
             labels.append(lab)
         elif groupparams['aggregation'] in ["FAMILY", "IPV4", "IPV6"]:
@@ -178,7 +176,7 @@ class AmpDns(Collection):
                     return None
                 address = store['address']
                 nextlab = {'labelstring':baselabel + "_" + address,
-                        'streams':[sid], 
+                        'streams':[sid],
                         'shortlabel':'%s (%s)' % (groupparams['destination'], \
                                 address)}
                 labels.append(nextlab)
@@ -186,7 +184,6 @@ class AmpDns(Collection):
         return sorted(labels, key=itemgetter('shortlabel'))
 
     def create_group_description(self, properties):
-        
         # Put in a suitable aggregation method if one is not present, i.e.
         # we are converting a stream into a group
         if 'aggregation' not in properties:
@@ -204,8 +201,7 @@ class AmpDns(Collection):
 
         return "FROM %s TO %s OPTION %s %s %s %s %s %s" % \
                 tuple([properties[x] for x in self.groupproperties])
-        
-           
+
     def parse_group_description(self, description):
         regex = "FROM (?P<source>[.a-zA-Z0-9-]+) "
         regex += "TO (?P<destination>[.a-zA-Z0-9-:]+) "
@@ -213,7 +209,7 @@ class AmpDns(Collection):
         regex += "(?P<class>[A-Z]+) "
         regex += "(?P<size>[0-9]+) (?P<flags>[TF]+) "
         regex += "(?P<split>[A-Z0-9]+)"
-        
+
         parts = self._apply_group_regex(regex, description)
         if parts is None:
             return None
@@ -317,7 +313,7 @@ class AmpDns(Collection):
             cellgroups.add(groupdesc)
 
         if len(cellgroups) != 0:
-            cellview = viewmanager.add_groups_to_view(viewstyle, 
+            cellview = viewmanager.add_groups_to_view(viewstyle,
                     self.collection_name, 0, list(cellgroups))
         else:
             cellview = -1
@@ -340,7 +336,6 @@ class AmpDns(Collection):
                 'streams':v6streams
             })
 
-            
     def _create_flag_string(self, properties):
 
         flags = ""

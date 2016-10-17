@@ -90,21 +90,21 @@ class LPIUsers(Collection):
         search = {'source':groupparams['source'],
                   'protocol':groupparams['protocol']
         }
-        
+
         if groupparams['metric'] in ['OBSERVED', 'BOTH']:
             lab = self._generate_label(baselabel, search, 'observed', lookup)
             if lab is None:
                 return None
-            
-            labels.append({'labelstring':lab[0], 'streams':lab[1], 
+
+            labels.append({'labelstring':lab[0], 'streams':lab[1],
                     'shortlabel':lab[2]})
 
         if groupparams['metric'] in ['ACTIVE', 'BOTH']:
             lab = self._generate_label(baselabel, search, 'active', lookup)
             if lab is None:
                 return None
-            
-            labels.append({'labelstring':lab[0], 'streams':lab[1], 
+
+            labels.append({'labelstring':lab[0], 'streams':lab[1],
                     'shortlabel':lab[2]})
 
         return sorted(labels, key=itemgetter('shortlabel'))

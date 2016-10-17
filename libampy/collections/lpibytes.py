@@ -20,7 +20,7 @@ class LPIBytes(LPIPackets):
             data['mbps'] = None
         else:
             data['mbps'] = ((float(data['bytes']) * 8.0) / 1000000.0) / freq
-        
+
         return data
 
     def format_list_data(self, datalist, freq, detail):

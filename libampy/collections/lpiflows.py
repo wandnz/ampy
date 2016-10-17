@@ -103,21 +103,21 @@ class LPIFlows(Collection):
                   'user':groupparams['user'],
                   'metric':groupparams['metric']
         }
-        
+
         if groupparams['dir'] in ['IN', 'BOTH']:
             lab = self._generate_label(baselabel, search, 'in', lookup)
             if lab is None:
                 return None
-            
-            labels.append({'labelstring':lab[0], 'streams':lab[1], 
+
+            labels.append({'labelstring':lab[0], 'streams':lab[1],
                     'shortlabel':lab[2]})
 
         if groupparams['dir'] in ['OUT', 'BOTH']:
             lab = self._generate_label(baselabel, search, 'out', lookup)
             if lab is None:
                 return None
-            
-            labels.append({'labelstring':lab[0], 'streams':lab[1], 
+
+            labels.append({'labelstring':lab[0], 'streams':lab[1],
                     'shortlabel':lab[2]})
 
         return sorted(labels, key=itemgetter('shortlabel'))

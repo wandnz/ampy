@@ -187,7 +187,7 @@ class AmpUdpstream(AmpThroughput):
         if counts == {} or 'items' not in counts:
             views[(source, dest)] = -1
             return
-        
+
         poss = [c['text'] for c in counts['items']]
         baseprop['packet_count'] = max(poss);
 
@@ -211,7 +211,7 @@ class AmpUdpstream(AmpThroughput):
         views[(source, dest)] = v
 
         return
-    
+
     def _matrix_group_streams(self, baseprops, direction, family, groups):
 
         baseprops['direction'] = direction

@@ -49,7 +49,7 @@ class RRDMuninbytes(Collection):
                         (p, self.collection_name))
                 return None
 
-        # If properties describe a stream, we'll need to convert the 
+        # If properties describe a stream, we'll need to convert the
         # direction to upper case.
         properties['direction'] = properties['direction'].upper()
 
@@ -99,8 +99,8 @@ class RRDMuninbytes(Collection):
             return None
 
         baselabel = 'group_%s' % (groupid)
-        
-        search = {'switch':groupparams['switch'], 
+
+        search = {'switch':groupparams['switch'],
                   'interfacelabel':groupparams['interfacelabel']
         }
 
@@ -109,16 +109,16 @@ class RRDMuninbytes(Collection):
             if sentlabel is None:
                 return None
 
-            labels.append({'labelstring':sentlabel[0], 'streams':sentlabel[1], 
+            labels.append({'labelstring':sentlabel[0], 'streams':sentlabel[1],
                     'shortlabel':sentlabel[2]})
 
         if groupparams['direction'] in ['RECEIVED', 'BOTH']:
-            recvlabel = self._generate_label(baselabel, search, "received", 
+            recvlabel = self._generate_label(baselabel, search, "received",
                     lookup)
             if recvlabel is None:
                 return None
 
-            labels.append({'labelstring':recvlabel[0], 'streams':recvlabel[1], 
+            labels.append({'labelstring':recvlabel[0], 'streams':recvlabel[1],
                     'shortlabel':recvlabel[2]})
 
         return sorted(labels, key=itemgetter('shortlabel'))

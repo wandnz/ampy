@@ -30,8 +30,8 @@ class AmpTcpping(AmpIcmp):
 
         return "FROM %s TO %s PORT %s SIZE %s %s" % ( \
                 properties['source'], properties['destination'],
-                properties['port'], 
-                properties['packet_size'], properties['aggregation'].upper()) 
+                properties['port'],
+                properties['packet_size'], properties['aggregation'].upper())
 
     def parse_group_description(self, description):
         regex =  "FROM (?P<source>[.a-zA-Z0-9-]+) "
@@ -75,9 +75,8 @@ class AmpTcpping(AmpIcmp):
         return {'source':groupparams['source'],
                 'destination':groupparams['destination'],
                 'port':int(groupparams['port']),
-                'packet_size':groupparams['packet_size']}        
+                'packet_size':groupparams['packet_size']}
 
-   
     def update_matrix_groups(self, source, dest, split, groups, views,
             viewmanager, viewstyle):
 

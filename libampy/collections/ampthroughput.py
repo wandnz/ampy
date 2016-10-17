@@ -6,7 +6,7 @@ class AmpThroughput(Collection):
     def __init__(self, colid, viewmanager, nntscconf):
         super(AmpThroughput, self).__init__(colid, viewmanager, nntscconf)
 
-        self.streamproperties = ['source', 'destination',  
+        self.streamproperties = ['source', 'destination',
                 'duration', 'writesize', 'tcpreused', 'direction', 'family']
         self.groupproperties = self.streamproperties
         self.integerproperties = ['duration', 'writesize']
@@ -29,7 +29,7 @@ class AmpThroughput(Collection):
         # Hard to pre-determine a suitable binsize for throughput tests
         # as the measurement frequency is likely to change from test to test.
         # Problem is, if we choose a bad binsize we can easily end up in a
-        # situation where we think there's a gap in the data when there 
+        # situation where we think there's a gap in the data when there
         # really isn't
         if (end - start) / 3600 < 200:
             return 3600
@@ -60,7 +60,7 @@ class AmpThroughput(Collection):
                 reuse = "T"
             else:
                 reuse = "F"
-        
+
         if 'direction' not in properties:
             properties['direction'] = "BOTH"
         if 'family' not in properties and 'address' in properties:
@@ -78,7 +78,7 @@ class AmpThroughput(Collection):
         properties['family'] = properties['family'].upper()
 
         return "FROM %s TO %s DURATION %s WRITESIZE %s %s DIRECTION %s FAMILY %s" \
-                % (properties['source'], properties['destination'], 
+                % (properties['source'], properties['destination'],
                    properties['duration'], properties['writesize'], reuse,
                    properties['direction'], properties['family'])
 
@@ -104,7 +104,7 @@ class AmpThroughput(Collection):
             family = "IPv4/IPv6"
         else:
             family = ""
-        
+
         durationsecs = gps['duration'] / 1000.0
         kilobytes = gps['writesize'] / 1024.0
 
@@ -115,7 +115,7 @@ class AmpThroughput(Collection):
             dirstr = " Download"
         else:
             dirstr = " Upload"
-    
+
         label = "%s : %s for %.1f secs, %.1f kB writes" % (source, dest,
                 durationsecs, kilobytes)
 
@@ -160,7 +160,7 @@ class AmpThroughput(Collection):
 
         return keydict
 
-    def _generate_direction_labels(self, baselabel, search, direction, family, 
+    def _generate_direction_labels(self, baselabel, search, direction, family,
             lookup):
         key = baselabel + "_" + direction
         search['direction'] =  direction
@@ -177,7 +177,7 @@ class AmpThroughput(Collection):
             if lab is None:
                 return None
             labels.append(lab)
-        
+
         if family in ["BOTH", "FAMILY", "IPV6"]:
             lab = self._generate_family_label(key, search, "IPv6", lookup)
             if lab is None:
@@ -205,7 +205,7 @@ class AmpThroughput(Collection):
                 labels.append(lab)
 
         return labels
-                    
+
     def _generate_family_label(self, baselabel, search, family, lookup):
         key = baselabel + "_" + family
         search['family'] = family.lower()
@@ -243,7 +243,7 @@ class AmpThroughput(Collection):
         del search['family']
 
         if groupparams['direction'] in ['IN', 'BOTH']:
-            lab = self._generate_direction_labels(baselabel, search, 'in', 
+            lab = self._generate_direction_labels(baselabel, search, 'in',
                     groupparams['family'], lookup)
             if lab is None:
                 return None
@@ -251,7 +251,7 @@ class AmpThroughput(Collection):
 
 
         if groupparams['direction'] in ['OUT', 'BOTH']:
-            lab = self._generate_direction_labels(baselabel, search, 'out', 
+            lab = self._generate_direction_labels(baselabel, search, 'out',
                     groupparams['family'], lookup)
             if lab is None:
                 return None
@@ -261,8 +261,8 @@ class AmpThroughput(Collection):
 
     def update_matrix_groups(self, source, dest, split, groups, views,
             viewmanager, viewstyle):
-        groupprops = {'source': source, 'destination': dest, 
-                'duration':self.default_duration, 
+        groupprops = {'source': source, 'destination': dest,
+                'duration':self.default_duration,
                 'writesize': self.default_writesize, 'tcpreused': False,
                 }
 
@@ -290,7 +290,7 @@ class AmpThroughput(Collection):
 
         if tputin4 != 0 or tputout4 != 0:
             # XXX this could become a function
-            cg = self.create_group_from_list([source, dest, 
+            cg = self.create_group_from_list([source, dest,
                     self.default_duration,
                     self.default_writesize, False, split, "IPV4"])
             if cg is None:
@@ -307,7 +307,7 @@ class AmpThroughput(Collection):
                 views[(source, dest, "ipv4")] = viewid
 
         if tputin6 != 0 or tputout6 != 0:
-            cg = self.create_group_from_list([source, dest, 
+            cg = self.create_group_from_list([source, dest,
                     self.default_duration,
                     self.default_writesize, False, split, "IPV6"])
             if cg is None:
