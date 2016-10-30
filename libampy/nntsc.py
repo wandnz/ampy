@@ -226,6 +226,25 @@ class NNTSCConnection(object):
         self._disconnect()
         return streams
 
+    def request_matrix(self, colid, labels, start, end, aggregators):
+        
+        if self.client == None:
+            self._connect()
+
+        if self.client == None:
+            log("Unable to connect to NNTSC exporter to request matrix data")
+            return None
+
+        result = self.client.request_matrix(colid, labels, start, end,
+                aggregators[0], aggregators[1])
+
+        if result == -1:
+            log("Failed to request matrix data for collection %d" % (colid))
+            self._disconnect()
+            return None
+
+        return self._parse_nntsc_history(colid, labels)
+
     def request_history(self, colid, labels, start, end, binsize, aggregators,
             groupcols):
         """
@@ -288,6 +307,10 @@ class NNTSCConnection(object):
             log("Failed to request aggregate data for collection %d" % (colid))
             self._disconnect()
             return None
+
+        return self._parse_nntsc_history(colid, labels)
+
+    def _parse_nntsc_history(self, colid, labels):
 
         data = {}
         count = 0

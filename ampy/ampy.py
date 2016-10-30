@@ -12,6 +12,7 @@ from libnntscclient.logger import *
 
 from libampy.collections.ampicmp import AmpIcmp
 from libampy.collections.amptraceroute import AmpTraceroute, AmpAsTraceroute
+from libampy.collections.amptraceroute import AmpTraceroutePathlen
 from libampy.collections.ampdns import AmpDns
 from libampy.collections.amphttp import AmpHttp
 from libampy.collections.amptcpping import AmpTcpping
@@ -415,11 +416,12 @@ class Ampy(object):
                     continue
                 alllabels += grouplabels
 
-            rec, tim = col.get_collection_recent(self.cache, alllabels,
+            result  = col.get_collection_recent(self.cache, alllabels,
                     duration, detail)
 
-            recentdata.update(rec)
-            timeouts += tim
+            if result is not None:
+                recentdata.update(result[0])
+                timeouts += result[1]
 
         return recentdata, timeouts
 
@@ -1370,6 +1372,8 @@ class Ampy(object):
             newcol = AmpAsTraceroute(colid, self.viewmanager, self.nntscconfig, self.asmanager)
         if collection == "amp-traceroute":
             newcol = AmpTraceroute(colid, self.viewmanager, self.nntscconfig, self.asmanager)
+        if collection == "amp-traceroute_pathlen":
+            newcol = AmpTraceroutePathlen(colid, self.viewmanager, self.nntscconfig, self.asmanager)
         if collection == "amp-dns":
             newcol = AmpDns(colid, self.viewmanager, self.nntscconfig)
         if collection == "amp-http":

@@ -49,7 +49,7 @@ class AmpUdpstream(AmpThroughput):
             aggmethods = ['sum', 'sum', 'avg', 'stddev', 'count']
             return (aggcols, aggmethods)
 
-        if detail == "basic":
+        if detail in ['basic', 'tooltiptext', 'spark']:
             aggcols = ['packets_sent', 'packets_recvd', 'mean_rtt']
             aggmethods = ['sum', 'sum', 'avg']
             return (aggcols, aggmethods)

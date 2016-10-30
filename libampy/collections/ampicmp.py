@@ -26,7 +26,7 @@ class AmpIcmp(Collection):
         if detail == "matrix":
             aggfuncs = ["avg", "stddev", "count", "sum", "sum"]
             aggcols = ["median", "median", "median", "loss", "results"]
-        elif detail == "basic":
+        elif detail == "basic" or detail == "spark" or detail == "tooltiptext":
             aggfuncs = ["avg", "sum", "sum"]
             aggcols = ["median", "loss", "results"]
         else:

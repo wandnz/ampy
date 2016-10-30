@@ -1108,8 +1108,13 @@ class Collection(object):
             return None
 
         nntsc = NNTSCConnection(self.nntscconf)
-        history = nntsc.request_history(self.colid, labels, start, end,
-                binsize, aggregators, groupcols)
+
+        if detail == "matrix" or detail == "tooltiptext":
+            history = nntsc.request_matrix(self.colid, labels, start, end,
+                    aggregators)
+        else:
+            history = nntsc.request_history(self.colid, labels, start, end,
+                    binsize, aggregators, groupcols)
         if history is None:
             log("Failed to fetch history for collection %s" % (self.collection_name))
             return None
