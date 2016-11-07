@@ -1,3 +1,17 @@
+ampy (2.7-1) unstable; urgency=low
+
+  * Allow None as a valid test target (e.g. for http test).
+  * Fix bug where legend labels for amp-traceroute hop count graphs were wrong.
+  * Update traceroute graph types to use the same legend generation code.
+  * Fix bug where ASN queries will fail due to a null cursor.
+  * Use correct test name "tput" not "throughput" in the meshtests table.
+  * Allow test schedule items to be enabled and disabled.
+  * Fix failure when a TCP ping matrix stream doesn't use a standard port.
+  * Add an inter-test gap to wait between members of a mesh running a test.
+  * Add support for new graph types used for the InfluxDB backed matrix.
+
+ -- Brendon Jones <brendonj@waikato.ac.nz>  Tue,  8 Nov 2016 11:57:30 +1300
+
 ampy (2.6-1) unstable; urgency=low
 
   * Split address family suffix from test target names before querying database.
