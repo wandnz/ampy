@@ -67,6 +67,8 @@ case "$1" in
                 su postgres -c "psql -q -c \"ALTER TABLE schedule DROP COLUMN schedule_modified\" -d ampmeta || true"
                 # add new column used to enable/disable tests
                 su postgres -c "psql -q -c \"ALTER TABLE schedule ADD COLUMN schedule_enabled BOOLEAN NOT NULL DEFAULT true\" -d ampmeta || true"
+                # add new column used to offset tests in a mesh
+                su postgres -c "psql -q -c \"ALTER TABLE schedule ADD COLUMN schedule_mesh_offset integer NOT NULL DEFAULT 0\" -d ampmeta || true"
             fi
         fi
     ;;
