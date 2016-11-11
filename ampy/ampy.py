@@ -311,15 +311,11 @@ class Ampy(object):
         """
         return self.ampmesh.get_source_schedule(source, schedule_id)
 
-    def schedule_new_amp_test(self, src, dst, test, freq, start, end,
-            period, mesh_offset, args):
-        return self.ampmesh.schedule_new_test(src, dst, test, freq, start, end,
-                period, mesh_offset, args)
+    def schedule_new_amp_test(self, settings):
+        return self.ampmesh.schedule_new_test(settings)
 
-    def update_amp_test(self, schedule_id, test, freq, start, end,
-            period, mesh_offset, args):
-        return self.ampmesh.update_test(schedule_id, test, freq, start, end,
-                period, mesh_offset, args)
+    def update_amp_test(self, schedule_id, settings):
+        return self.ampmesh.update_test(schedule_id, settings)
 
     def is_amp_test_enabled(self, schedule_id):
         return self.ampmesh.get_enable_status(schedule_id)

@@ -23,6 +23,11 @@ class AmpMesh(object):
         substring in their AMP name
     """
 
+    # XXX seriously, make the schedule stuff its own class.
+    # XXX this needs to be accessible by ampweb
+    SCHEDULE_OPTIONS = ["source", "destination", "frequency", "start", "end",
+                        "period", "mesh_offset", "args"]
+
     def __init__(self, ampdbconfig):
         """
         Init function for the AmpMesh class.
@@ -433,16 +438,20 @@ class AmpMesh(object):
         self.dblock.release()
         return retdict
 
+
     # TODO move schedule stuff into a specific schedule source file?
-    def schedule_new_test(self, src, dst, test, freq, start, end, period,
-            mesh_offset, args):
+    def schedule_new_test(self, settings):
         query = """ INSERT INTO schedule (schedule_test, schedule_frequency,
                     schedule_start, schedule_end, schedule_period,
                     schedule_args, schedule_mesh_offset)
                     VALUES (%s, %s, %s, %s, %s, %s, %s)
                     RETURNING schedule_id """
         # TODO sanity check arguments? make sure test exists etc
-        params = (test, freq, start, end, period, args, mesh_offset)
+        params = (
+            settings["test"], settings["frequency"], settings["start"],
+            settings["end"], settings["period"], settings["args"],
+            settings["mesh_offset"]
+        )
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
@@ -455,22 +464,30 @@ class AmpMesh(object):
         self.dblock.release()
 
         # add the initial set of endpoints for this test
-        self.add_endpoints_to_test(schedule_id, src, dst)
+        self.add_endpoints_to_test(schedule_id, settings["source"],
+                settings["destination"])
 
         return schedule_id
 
-    def update_test(self, schedule_id, test, freq, start, end, period,
-            mesh_offset, args):
-        query = """ UPDATE schedule SET schedule_test=%s,
-                    schedule_frequency=%s, schedule_start=%s,
-                    schedule_end=%s, schedule_period=%s, schedule_args=%s,
-                    schedule_mesh_offset=%s
-                    WHERE schedule_id=%s """
 
-        params = (test, freq, start, end, period, args, mesh_offset,
-                schedule_id)
+    def update_test(self, schedule_id, settings):
+        changes = []
+        params = []
+
+        for option in self.SCHEDULE_OPTIONS:
+            if option in settings:
+                changes.append("schedule_%s=%%s" % option)
+                params.append(settings[option])
+
+        # no valid options were set, do nothing and report that we did it ok
+        if len(changes) < 1:
+            return True
+
+        query = "UPDATE schedule SET "+",".join(changes)+" WHERE schedule_id=%s"
+        params.append(schedule_id)
+
         self.dblock.acquire()
-        if self.db.executequery(query, params) == -1:
+        if self.db.executequery(query, tuple(params)) == -1:
             log("Error while updating test")
             self.dblock.release()
             return None
