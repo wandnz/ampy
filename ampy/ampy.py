@@ -321,6 +321,9 @@ class Ampy(object):
         return self.ampmesh.update_test(schedule_id, test, freq, start, end,
                 period, mesh_offset, args)
 
+    def is_amp_test_enabled(self, schedule_id):
+        return self.ampmesh.get_enable_status(schedule_id)
+
     def enable_amp_test(self, schedule_id):
         return self.ampmesh.enable_disable_test(schedule_id, True)
 

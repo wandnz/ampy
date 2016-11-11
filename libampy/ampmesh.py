@@ -482,6 +482,25 @@ class AmpMesh(object):
         self._flag_meshes_with_test(schedule_id)
         return True
 
+    def get_enable_status(self, schedule_id):
+        query = "SELECT schedule_enabled FROM schedule WHERE schedule_id=%s"
+        params = (schedule_id,)
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+            log("Error while querying status of scheduled test")
+            self.dblock.release()
+            return None
+
+        result = self.db.cursor.fetchone()
+        if result is None:
+            self.db.closecursor()
+            self.dblock.release()
+            return None
+
+        self.db.closecursor()
+        self.dblock.release()
+        return result[0]
+
     def enable_disable_test(self, schedule_id, enabled):
         query = "UPDATE schedule SET schedule_enabled=%s WHERE schedule_id=%s"
         params = (enabled, schedule_id)
