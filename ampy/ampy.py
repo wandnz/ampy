@@ -311,6 +311,9 @@ class Ampy(object):
         """
         return self.ampmesh.get_source_schedule(source, schedule_id)
 
+    def get_amp_schedule_by_id(self, schedule_id):
+        return self.ampmesh.get_schedule_by_id(schedule_id)
+
     def schedule_new_amp_test(self, settings):
         return self.ampmesh.schedule_new_test(settings)
 

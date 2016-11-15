@@ -788,6 +788,12 @@ class AmpMesh(object):
     def get_destination_schedule(self, destination, schedule_id=None,lock=True):
         return self._get_endpoint_schedule(None, destination, schedule_id, lock)
 
+    def get_schedule_by_id(self, schedule_id, lock=True):
+        schedule = self._get_endpoint_schedule(None, None, schedule_id, lock)
+        if schedule is None or len(schedule) == 0:
+            return None
+        return schedule[0]
+
     def _get_endpoint_schedule(self, src, dst, schedule_id, lock):
         """
         Fetch all scheduled tests that involve the given endpoints
