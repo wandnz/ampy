@@ -67,6 +67,18 @@ ALTER TABLE endpoint ADD CONSTRAINT valid_source CHECK (
         endpoint_source_mesh IS NOT NULL OR
         endpoint_source_site IS NOT NULL);
 
+/*
+ * Don't allow duplicate combinations of sources and destinations. Can't do
+ * it with a normal unique constraint due to some of the fields being NULL.
+ */
+CREATE UNIQUE INDEX unique_endpoints on endpoint (
+    endpoint_schedule_id,
+    COALESCE(endpoint_source_mesh, '-1'),
+    COALESCE(endpoint_source_site, '-1'),
+    COALESCE(endpoint_destination_mesh, '-1'),
+    COALESCE(endpoint_destination_site, '-1'),
+);
+
 CREATE VIEW full_mesh_details AS SELECT
     mesh_name as meshname,
     mesh_longname,
