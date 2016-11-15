@@ -663,16 +663,11 @@ class AmpMesh(object):
         return self._sitequery(query, None)
 
     def add_endpoints_to_test(self, schedule_id, src, dst):
-        # TODO avoid duplicate rows - set unique constraint?
-        query = """ INSERT INTO endpoint (endpoint_schedule_id,
-                    endpoint_source_mesh, endpoint_source_site,
-                    endpoint_destination_mesh, endpoint_destination_site)
-                    VALUES (%s, %s, %s, %s, %s) """
         if self._is_mesh(src):
             src_mesh = src
             src_site = None
             if self._flag_mesh_as_source(src) is None:
-                return
+                return None
         elif self._is_site(src):
             src_site = src
             src_mesh = None
@@ -680,7 +675,7 @@ class AmpMesh(object):
             # those meshes also be set as source meshes?
         else:
             print "source is neither mesh nor site"
-            return
+            return None
 
         if dst is None:
             dst_site = None
@@ -689,7 +684,7 @@ class AmpMesh(object):
             dst_mesh = dst
             dst_site = None
             if self._flag_mesh_with_test(dst, schedule_id) is None:
-                return
+                return None
         elif self._is_site(dst):
             dst_site = dst
             dst_mesh = None
@@ -699,19 +694,53 @@ class AmpMesh(object):
             dst_site = dst
             dst_mesh = None
             if self._add_basic_site(dst) is None:
-                return
+                return None
 
-        params = (schedule_id, src_mesh, src_site, dst_mesh, dst_site)
+        params = [schedule_id, src_mesh, src_site, dst_mesh, dst_site]
+        subquery = "SELECT 1 FROM endpoint WHERE endpoint_schedule_id=%s"
+        params.append(schedule_id)
+
+        if src_mesh:
+            subquery += " AND endpoint_source_mesh=%s"
+            params.append(src_mesh)
+        else:
+            subquery += " AND endpoint_source_mesh is NULL"
+
+        if src_site:
+            subquery += " AND endpoint_source_site=%s"
+            params.append(src_site)
+        else:
+            subquery += " AND endpoint_source_site is NULL"
+
+        if dst_mesh:
+            subquery += " AND endpoint_destination_mesh=%s"
+            params.append(dst_mesh)
+        else:
+            subquery += " AND endpoint_destination_mesh is NULL"
+
+        if dst_site:
+            subquery += " AND endpoint_destination_site=%s"
+            params.append(dst_site)
+        else:
+            subquery += " AND endpoint_destination_site is NULL"
+
+        query = """ INSERT INTO endpoint (endpoint_schedule_id,
+                    endpoint_source_mesh, endpoint_source_site,
+                    endpoint_destination_mesh, endpoint_destination_site)
+                    SELECT %%s, %%s, %%s, %%s, %%s WHERE NOT EXISTS (%s) """ % (
+                    subquery)
 
         self.dblock.acquire()
-        if self.db.executequery(query, params) == -1:
+        if self.db.executequery(query, tuple(params)) == -1:
             log("Error while inserting new test endpoints")
             self.dblock.release()
             return None
+        count = self.db.cursor.rowcount
         self.db.closecursor()
-        self._update_last_modified_schedule(schedule_id)
+        if count > 0:
+            self._update_last_modified_schedule(schedule_id)
         self.dblock.release()
-        return True # XXX
+        return True
 
     def delete_endpoints(self, schedule_id, src, dst):
         query = """ DELETE FROM endpoint WHERE endpoint_schedule_id=%s """
@@ -724,7 +753,7 @@ class AmpMesh(object):
             query += " AND endpoint_source_site=%s"
         else:
             print "source is neither mesh nor site"
-            return
+            return None
 
         if self._is_mesh(dst):
             query += " AND endpoint_destination_mesh=%s"
@@ -732,7 +761,7 @@ class AmpMesh(object):
             query += " AND endpoint_destination_site=%s"
         else:
             print "destination is neither mesh nor site"
-            return
+            return None
 
         params = (schedule_id, src, dst)
         self.dblock.acquire()
