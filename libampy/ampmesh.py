@@ -446,12 +446,16 @@ class AmpMesh(object):
                     schedule_args, schedule_mesh_offset)
                     VALUES (%s, %s, %s, %s, %s, %s, %s)
                     RETURNING schedule_id """
+
         # TODO sanity check arguments? make sure test exists etc
-        params = (
-            settings["test"], settings["frequency"], settings["start"],
-            settings["end"], settings["period"], settings["args"],
-            settings["mesh_offset"]
-        )
+        try:
+            params = (
+                settings["test"], settings["frequency"], settings["start"],
+                settings["end"], settings["period"], settings["args"],
+                settings["mesh_offset"]
+            )
+        except KeyError:
+            return None
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
