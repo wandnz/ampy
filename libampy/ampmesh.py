@@ -25,8 +25,8 @@ class AmpMesh(object):
 
     # XXX seriously, make the schedule stuff its own class.
     # XXX this needs to be accessible by ampweb
-    SCHEDULE_OPTIONS = ["source", "destination", "frequency", "start", "end",
-                        "period", "mesh_offset", "args"]
+    SCHEDULE_OPTIONS = ["test", "source", "destination", "frequency", "start",
+                        "end", "period", "mesh_offset", "args"]
 
     def __init__(self, ampdbconfig):
         """
