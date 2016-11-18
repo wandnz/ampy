@@ -161,7 +161,7 @@ class Ampy(object):
         """
         return self.savedcoldata.keys()
 
-    def get_meshes(self, endpoint, amptest=None, site=None):
+    def get_meshes(self, endpoint, amptest=None, site=None, public=None):
         """
         Fetches all source or destination meshes.
 
@@ -188,7 +188,7 @@ class Ampy(object):
             description -- a string describing the purpose of the mesh in
                            reasonable detail
         """
-        return self.ampmesh.get_meshes(endpoint, amptest, site)
+        return self.ampmesh.get_meshes(endpoint, amptest, site, public)
 
     def get_matrix_members(self, sourcemesh, destmesh):
         """
@@ -344,14 +344,14 @@ class Ampy(object):
     def update_amp_site(self, ampname, longname, loc, description):
         return self.ampmesh.update_site(ampname, longname, loc, description)
 
-    def update_amp_mesh(self, ampname, longname, description):
-        return self.ampmesh.update_mesh(ampname, longname, description)
+    def update_amp_mesh(self, ampname, longname, description, public):
+        return self.ampmesh.update_mesh(ampname, longname, description, public)
 
     def add_amp_site(self, ampname, longname, location, description):
         return self.ampmesh.add_site(ampname, longname, location, description)
 
-    def add_amp_mesh(self, ampname, longname, description):
-        return self.ampmesh.add_mesh(ampname, longname, description)
+    def add_amp_mesh(self, ampname, longname, description, public):
+        return self.ampmesh.add_mesh(ampname, longname, description, public)
 
     def delete_amp_site(self, ampname):
         return self.ampmesh.delete_site(ampname)

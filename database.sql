@@ -13,7 +13,8 @@ CREATE TABLE mesh (
     mesh_description TEXT,
     mesh_is_src BOOLEAN NOT NULL,
     mesh_is_dst BOOLEAN NOT NULL,
-    mesh_active BOOLEAN DEFAULT true
+    mesh_active BOOLEAN DEFAULT true,
+    mesh_public BOOLEAN DEFAULT false
 );
 
 CREATE TABLE member (
@@ -36,7 +37,8 @@ CREATE VIEW active_mesh_members AS SELECT
     member_meshname as meshname,
     member_ampname as ampname,
     mesh_is_src,
-    mesh_is_dst
+    mesh_is_dst,
+    mesh_public as public
     FROM mesh, member, site
     WHERE mesh.mesh_name=member.member_meshname
     AND member.member_ampname=site.site_ampname
@@ -86,7 +88,8 @@ CREATE VIEW full_mesh_details AS SELECT
     mesh_is_src,
     mesh_is_dst,
     mesh_active,
-    meshtests_test
+    meshtests_test,
+    mesh_public
     FROM mesh, meshtests
     WHERE mesh.mesh_name = meshtests.meshtests_name
     AND mesh_active = true;

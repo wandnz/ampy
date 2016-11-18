@@ -108,7 +108,7 @@ class AmpMesh(object):
         params = (mesh,)
         return self._meshquery(query, params)
 
-    def get_meshes(self, endpoint, amptest=None, site=None):
+    def get_meshes(self, endpoint, amptest=None, site=None, public=None):
         """
         Fetches all source or destination meshes.
 
@@ -152,13 +152,18 @@ class AmpMesh(object):
 
         # XXX count isnt always sensible? if WHERE is involved
         query = """ SELECT %s as mesh_name, mesh_longname,
-                    mesh_description, count(active_mesh_members.*)
+                    mesh_description, count(active_mesh_members.*), mesh_public
                     FROM %s WHERE mesh_active = true """ % (meshname, table)
 
         # if site is set then only return meshes that it belongs to
         if site is not None:
             query += " AND ampname = %s "
             params.append(site)
+
+        # if public is set then filter meshes by the appropriate value
+        if public is not None:
+            query += " AND public = %s "
+            params.append(public)
 
         # if test is set then only return destination meshes that the test is
         # performed to (ignored for source meshes)
@@ -176,7 +181,7 @@ class AmpMesh(object):
             # is set, though this doesn't play that well with amptest being set
             pass
 
-        query += " GROUP BY mesh_name, mesh_longname, mesh_description ORDER BY mesh_longname"
+        query += " GROUP BY mesh_name, mesh_longname, mesh_description, mesh_public ORDER BY mesh_longname"
 
         self.dblock.acquire()
         if self.db.executequery(query, tuple(params)) == -1:
@@ -187,7 +192,7 @@ class AmpMesh(object):
         meshes = []
         for row in self.db.cursor.fetchall():
             meshes.append({'ampname':row[0], 'longname':row[1], \
-                    'description':row[2], 'count':row[3]})
+                    'description':row[2], 'count':row[3], 'public':row[4]})
 
         self.db.closecursor()
         self.dblock.release()
@@ -412,11 +417,13 @@ class AmpMesh(object):
             "src": False,
             "dst": False,
             "active": False,
+            "public": False,
             "unknown": True
         }
         query = """ SELECT mesh_name AS ampname, mesh_longname AS longname,
                     mesh_description AS description, mesh_is_src AS is_src,
-                    mesh_is_dst AS is_dst, mesh_active AS active
+                    mesh_is_dst AS is_dst, mesh_active AS active,
+                    mesh_public AS public
                     FROM mesh WHERE mesh_name = %s
                     """
         params = (mesh,)
@@ -913,10 +920,11 @@ class AmpMesh(object):
 
     # TODO if we want to be able to update the ampname then we probably need
     # to add an id field that won't change
-    def update_mesh(self, ampname, longname, description):
-        query = """ UPDATE mesh SET mesh_longname=%s, mesh_description=%s
+    def update_mesh(self, ampname, longname, description, public):
+        query = """ UPDATE mesh SET mesh_longname=%s, mesh_description=%s,
+                    mesh_public=%s
                     WHERE mesh_name=%s """
-        params = (longname, description, ampname)
+        params = (longname, description, public, ampname)
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
@@ -927,12 +935,13 @@ class AmpMesh(object):
         self.dblock.release()
         return True
 
-    def add_mesh(self, ampname, longname, description):
+    def add_mesh(self, ampname, longname, description, public):
         # XXX currently all new meshes are created as destinations
         query = """ INSERT INTO mesh (mesh_name, mesh_longname,
-                        mesh_description, mesh_is_src, mesh_is_dst, mesh_active
-                    ) VALUES (%s, %s, %s, false, true, true) """
-        params = (ampname, longname, description)
+                        mesh_description, mesh_is_src, mesh_is_dst,
+                        mesh_active, mesh_public
+                    ) VALUES (%s, %s, %s, false, true, true, %s) """
+        params = (ampname, longname, description, public)
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
