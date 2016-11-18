@@ -502,13 +502,16 @@ class AmpMesh(object):
             log("Error while updating test")
             self.dblock.release()
             return None
+        count = self.db.cursor.rowcount
         self.db.closecursor()
-        self._update_last_modified_schedule(schedule_id)
+        if count > 0:
+            self._update_last_modified_schedule(schedule_id)
         self.dblock.release()
 
         # flag the mesh with the appropriate test if it changed and is new
-        self._flag_meshes_with_test(schedule_id)
-        return True
+        if count > 0 and "test" in settings:
+            self._flag_meshes_with_test(schedule_id)
+        return count > 0
 
     def get_enable_status(self, schedule_id):
         query = "SELECT schedule_enabled FROM schedule WHERE schedule_id=%s"
@@ -523,6 +526,7 @@ class AmpMesh(object):
         if result is None:
             self.db.closecursor()
             self.dblock.release()
+            # XXX this should be false but then that gets confused with disabled
             return None
 
         self.db.closecursor()
@@ -537,10 +541,12 @@ class AmpMesh(object):
             log("Error while changing status of scheduled test")
             self.dblock.release()
             return None
+        count = self.db.cursor.rowcount
         self.db.closecursor()
-        self._update_last_modified_schedule(schedule_id)
+        if count > 0:
+            self._update_last_modified_schedule(schedule_id)
         self.dblock.release()
-        return True
+        return count > 0
 
     def delete_test(self, schedule_id):
         query = """ DELETE FROM schedule WHERE schedule_id=%s """
@@ -551,9 +557,10 @@ class AmpMesh(object):
             self.dblock.release()
             return None
 
+        count = self.db.cursor.rowcount
         self.db.closecursor()
         self.dblock.release()
-        return True
+        return count > 0
 
     def _is_mesh(self, name, lock=True):
         query = """ SELECT COUNT(*) FROM mesh WHERE mesh_name = %s """
@@ -751,7 +758,7 @@ class AmpMesh(object):
         if count > 0:
             self._update_last_modified_schedule(schedule_id)
         self.dblock.release()
-        return True
+        return count > 0
 
     def delete_endpoints(self, schedule_id, src, dst):
         query = """ DELETE FROM endpoint WHERE endpoint_schedule_id=%s """
@@ -780,12 +787,12 @@ class AmpMesh(object):
             log("Error while deleting endpoints")
             self.dblock.release()
             return None
-
+        count = self.db.cursor.rowcount
         self.db.closecursor()
-        self._update_last_modified_schedule(schedule_id)
+        if count > 0:
+            self._update_last_modified_schedule(schedule_id)
         self.dblock.release()
-
-        return True
+        return count > 0
 
     # TODO
     # XXX expects the db lock to be held by caller, so we can update
@@ -830,8 +837,10 @@ class AmpMesh(object):
 
     def get_schedule_by_id(self, schedule_id, lock=True):
         schedule = self._get_endpoint_schedule(None, None, schedule_id, lock)
-        if schedule is None or len(schedule) == 0:
+        if schedule is None:
             return None
+        if len(schedule) == 0:
+            return {}
         return schedule[0]
 
     def _get_endpoint_schedule(self, src, dst, schedule_id, lock):
@@ -961,9 +970,10 @@ class AmpMesh(object):
             log("Error while deleting mesh")
             self.dblock.release()
             return None
+        count = self.db.cursor.rowcount
         self.db.closecursor()
         self.dblock.release()
-        return True
+        return count > 0
 
     def update_site(self, ampname, longname, location, description):
         query = """ UPDATE site SET site_longname=%s, site_location=%s,
@@ -1004,9 +1014,10 @@ class AmpMesh(object):
             log("Error while deleting site")
             self.dblock.release()
             return None
+        count = self.db.cursor.rowcount
         self.db.closecursor()
         self.dblock.release()
-        return True
+        return count > 0
 
     def add_mesh_member(self, meshname, ampname):
         if self._is_mesh(ampname):
