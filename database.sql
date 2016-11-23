@@ -78,7 +78,7 @@ CREATE UNIQUE INDEX unique_endpoints on endpoint (
     COALESCE(endpoint_source_mesh, '-1'),
     COALESCE(endpoint_source_site, '-1'),
     COALESCE(endpoint_destination_mesh, '-1'),
-    COALESCE(endpoint_destination_site, '-1'),
+    COALESCE(endpoint_destination_site, '-1')
 );
 
 CREATE VIEW full_mesh_details AS SELECT
