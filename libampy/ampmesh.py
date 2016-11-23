@@ -226,6 +226,12 @@ class AmpMesh(object):
         self.dblock.release()
         return sites
 
+    def get_sites(self):
+        query = """ SELECT site_ampname AS ampname, site_longname AS longname,
+                    site_location AS location, site_description AS description
+                    FROM site ORDER BY longname """
+        return self._sitequery(query, None)
+
     def get_sources(self):
         """
         Fetches all known sources.

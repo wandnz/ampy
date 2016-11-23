@@ -213,6 +213,18 @@ class Ampy(object):
 
         return (sources, dests)
 
+    def get_amp_sites(self):
+        """
+        Fetches all known AMP sites.
+
+        Parameters:
+          None
+
+        Returns:
+          a list of all AMP sites
+        """
+        return self.ampmesh.get_sites()
+
     def get_amp_sources(self):
         """
         Fetches all known AMP sources.
