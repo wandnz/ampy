@@ -23,6 +23,11 @@ class AmpMesh(object):
         substring in their AMP name
     """
 
+    # XXX seriously, make the schedule stuff its own class.
+    # XXX this needs to be accessible by ampweb
+    SCHEDULE_OPTIONS = ["test", "source", "destination", "frequency", "start",
+                        "end", "period", "mesh_offset", "args"]
+
     def __init__(self, ampdbconfig):
         """
         Init function for the AmpMesh class.
@@ -103,7 +108,7 @@ class AmpMesh(object):
         params = (mesh,)
         return self._meshquery(query, params)
 
-    def get_meshes(self, endpoint, amptest=None, site=None):
+    def get_meshes(self, endpoint, amptest=None, site=None, public=None):
         """
         Fetches all source or destination meshes.
 
@@ -147,13 +152,18 @@ class AmpMesh(object):
 
         # XXX count isnt always sensible? if WHERE is involved
         query = """ SELECT %s as mesh_name, mesh_longname,
-                    mesh_description, count(active_mesh_members.*)
+                    mesh_description, count(active_mesh_members.*), mesh_public
                     FROM %s WHERE mesh_active = true """ % (meshname, table)
 
         # if site is set then only return meshes that it belongs to
         if site is not None:
             query += " AND ampname = %s "
             params.append(site)
+
+        # if public is set then filter meshes by the appropriate value
+        if public is not None:
+            query += " AND public = %s "
+            params.append(public)
 
         # if test is set then only return destination meshes that the test is
         # performed to (ignored for source meshes)
@@ -171,7 +181,7 @@ class AmpMesh(object):
             # is set, though this doesn't play that well with amptest being set
             pass
 
-        query += " GROUP BY mesh_name, mesh_longname, mesh_description ORDER BY mesh_longname"
+        query += " GROUP BY mesh_name, mesh_longname, mesh_description, mesh_public ORDER BY mesh_longname"
 
         self.dblock.acquire()
         if self.db.executequery(query, tuple(params)) == -1:
@@ -182,7 +192,7 @@ class AmpMesh(object):
         meshes = []
         for row in self.db.cursor.fetchall():
             meshes.append({'ampname':row[0], 'longname':row[1], \
-                    'description':row[2], 'count':row[3]})
+                    'description':row[2], 'count':row[3], 'public':row[4]})
 
         self.db.closecursor()
         self.dblock.release()
@@ -215,6 +225,12 @@ class AmpMesh(object):
         self.db.closecursor()
         self.dblock.release()
         return sites
+
+    def get_sites(self):
+        query = """ SELECT site_ampname AS ampname, site_longname AS longname,
+                    site_location AS location, site_description AS description
+                    FROM site ORDER BY longname """
+        return self._sitequery(query, None)
 
     def get_sources(self):
         """
@@ -407,11 +423,13 @@ class AmpMesh(object):
             "src": False,
             "dst": False,
             "active": False,
+            "public": False,
             "unknown": True
         }
         query = """ SELECT mesh_name AS ampname, mesh_longname AS longname,
                     mesh_description AS description, mesh_is_src AS is_src,
-                    mesh_is_dst AS is_dst, mesh_active AS active
+                    mesh_is_dst AS is_dst, mesh_active AS active,
+                    mesh_public AS public
                     FROM mesh WHERE mesh_name = %s
                     """
         params = (mesh,)
@@ -433,16 +451,24 @@ class AmpMesh(object):
         self.dblock.release()
         return retdict
 
+
     # TODO move schedule stuff into a specific schedule source file?
-    def schedule_new_test(self, src, dst, test, freq, start, end, period,
-            mesh_offset, args):
+    def schedule_new_test(self, settings):
         query = """ INSERT INTO schedule (schedule_test, schedule_frequency,
                     schedule_start, schedule_end, schedule_period,
                     schedule_args, schedule_mesh_offset)
                     VALUES (%s, %s, %s, %s, %s, %s, %s)
                     RETURNING schedule_id """
+
         # TODO sanity check arguments? make sure test exists etc
-        params = (test, freq, start, end, period, args, mesh_offset)
+        try:
+            params = (
+                settings["test"], settings["frequency"], settings["start"],
+                settings["end"], settings["period"], settings["args"],
+                settings["mesh_offset"]
+            )
+        except KeyError:
+            return None
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
@@ -455,32 +481,63 @@ class AmpMesh(object):
         self.dblock.release()
 
         # add the initial set of endpoints for this test
-        self.add_endpoints_to_test(schedule_id, src, dst)
+        self.add_endpoints_to_test(schedule_id, settings["source"],
+                settings["destination"])
 
         return schedule_id
 
-    def update_test(self, schedule_id, test, freq, start, end, period,
-            mesh_offset, args):
-        query = """ UPDATE schedule SET schedule_test=%s,
-                    schedule_frequency=%s, schedule_start=%s,
-                    schedule_end=%s, schedule_period=%s, schedule_args=%s,
-                    schedule_mesh_offset=%s
-                    WHERE schedule_id=%s """
 
-        params = (test, freq, start, end, period, args, mesh_offset,
-                schedule_id)
+    def update_test(self, schedule_id, settings):
+        changes = []
+        params = []
+
+        for option in self.SCHEDULE_OPTIONS:
+            if option in settings:
+                changes.append("schedule_%s=%%s" % option)
+                params.append(settings[option])
+
+        # no valid options were set, do nothing and report that we did it ok
+        if len(changes) < 1:
+            return True
+
+        query = "UPDATE schedule SET "+",".join(changes)+" WHERE schedule_id=%s"
+        params.append(schedule_id)
+
         self.dblock.acquire()
-        if self.db.executequery(query, params) == -1:
+        if self.db.executequery(query, tuple(params)) == -1:
             log("Error while updating test")
             self.dblock.release()
             return None
+        count = self.db.cursor.rowcount
         self.db.closecursor()
-        self._update_last_modified_schedule(schedule_id)
+        if count > 0:
+            self._update_last_modified_schedule(schedule_id)
         self.dblock.release()
 
         # flag the mesh with the appropriate test if it changed and is new
-        self._flag_meshes_with_test(schedule_id)
-        return True
+        if count > 0 and "test" in settings:
+            self._flag_meshes_with_test(schedule_id)
+        return count > 0
+
+    def get_enable_status(self, schedule_id):
+        query = "SELECT schedule_enabled FROM schedule WHERE schedule_id=%s"
+        params = (schedule_id,)
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+            log("Error while querying status of scheduled test")
+            self.dblock.release()
+            return None
+
+        result = self.db.cursor.fetchone()
+        if result is None:
+            self.db.closecursor()
+            self.dblock.release()
+            # XXX this should be false but then that gets confused with disabled
+            return None
+
+        self.db.closecursor()
+        self.dblock.release()
+        return result[0]
 
     def enable_disable_test(self, schedule_id, enabled):
         query = "UPDATE schedule SET schedule_enabled=%s WHERE schedule_id=%s"
@@ -490,10 +547,12 @@ class AmpMesh(object):
             log("Error while changing status of scheduled test")
             self.dblock.release()
             return None
+        count = self.db.cursor.rowcount
         self.db.closecursor()
-        self._update_last_modified_schedule(schedule_id)
+        if count > 0:
+            self._update_last_modified_schedule(schedule_id)
         self.dblock.release()
-        return True
+        return count > 0
 
     def delete_test(self, schedule_id):
         query = """ DELETE FROM schedule WHERE schedule_id=%s """
@@ -504,9 +563,10 @@ class AmpMesh(object):
             self.dblock.release()
             return None
 
+        count = self.db.cursor.rowcount
         self.db.closecursor()
         self.dblock.release()
-        return True
+        return count > 0
 
     def _is_mesh(self, name, lock=True):
         query = """ SELECT COUNT(*) FROM mesh WHERE mesh_name = %s """
@@ -627,16 +687,11 @@ class AmpMesh(object):
         return self._sitequery(query, None)
 
     def add_endpoints_to_test(self, schedule_id, src, dst):
-        # TODO avoid duplicate rows - set unique constraint?
-        query = """ INSERT INTO endpoint (endpoint_schedule_id,
-                    endpoint_source_mesh, endpoint_source_site,
-                    endpoint_destination_mesh, endpoint_destination_site)
-                    VALUES (%s, %s, %s, %s, %s) """
         if self._is_mesh(src):
             src_mesh = src
             src_site = None
             if self._flag_mesh_as_source(src) is None:
-                return
+                return None
         elif self._is_site(src):
             src_site = src
             src_mesh = None
@@ -644,7 +699,7 @@ class AmpMesh(object):
             # those meshes also be set as source meshes?
         else:
             print "source is neither mesh nor site"
-            return
+            return None
 
         if dst is None:
             dst_site = None
@@ -653,7 +708,7 @@ class AmpMesh(object):
             dst_mesh = dst
             dst_site = None
             if self._flag_mesh_with_test(dst, schedule_id) is None:
-                return
+                return None
         elif self._is_site(dst):
             dst_site = dst
             dst_mesh = None
@@ -663,19 +718,53 @@ class AmpMesh(object):
             dst_site = dst
             dst_mesh = None
             if self._add_basic_site(dst) is None:
-                return
+                return None
 
-        params = (schedule_id, src_mesh, src_site, dst_mesh, dst_site)
+        params = [schedule_id, src_mesh, src_site, dst_mesh, dst_site]
+        subquery = "SELECT 1 FROM endpoint WHERE endpoint_schedule_id=%s"
+        params.append(schedule_id)
+
+        if src_mesh:
+            subquery += " AND endpoint_source_mesh=%s"
+            params.append(src_mesh)
+        else:
+            subquery += " AND endpoint_source_mesh is NULL"
+
+        if src_site:
+            subquery += " AND endpoint_source_site=%s"
+            params.append(src_site)
+        else:
+            subquery += " AND endpoint_source_site is NULL"
+
+        if dst_mesh:
+            subquery += " AND endpoint_destination_mesh=%s"
+            params.append(dst_mesh)
+        else:
+            subquery += " AND endpoint_destination_mesh is NULL"
+
+        if dst_site:
+            subquery += " AND endpoint_destination_site=%s"
+            params.append(dst_site)
+        else:
+            subquery += " AND endpoint_destination_site is NULL"
+
+        query = """ INSERT INTO endpoint (endpoint_schedule_id,
+                    endpoint_source_mesh, endpoint_source_site,
+                    endpoint_destination_mesh, endpoint_destination_site)
+                    SELECT %%s, %%s, %%s, %%s, %%s WHERE NOT EXISTS (%s) """ % (
+                    subquery)
 
         self.dblock.acquire()
-        if self.db.executequery(query, params) == -1:
+        if self.db.executequery(query, tuple(params)) == -1:
             log("Error while inserting new test endpoints")
             self.dblock.release()
             return None
+        count = self.db.cursor.rowcount
         self.db.closecursor()
-        self._update_last_modified_schedule(schedule_id)
+        if count > 0:
+            self._update_last_modified_schedule(schedule_id)
         self.dblock.release()
-        return True # XXX
+        return count > 0
 
     def delete_endpoints(self, schedule_id, src, dst):
         query = """ DELETE FROM endpoint WHERE endpoint_schedule_id=%s """
@@ -688,7 +777,7 @@ class AmpMesh(object):
             query += " AND endpoint_source_site=%s"
         else:
             print "source is neither mesh nor site"
-            return
+            return None
 
         if self._is_mesh(dst):
             query += " AND endpoint_destination_mesh=%s"
@@ -696,7 +785,7 @@ class AmpMesh(object):
             query += " AND endpoint_destination_site=%s"
         else:
             print "destination is neither mesh nor site"
-            return
+            return None
 
         params = (schedule_id, src, dst)
         self.dblock.acquire()
@@ -704,12 +793,12 @@ class AmpMesh(object):
             log("Error while deleting endpoints")
             self.dblock.release()
             return None
-
+        count = self.db.cursor.rowcount
         self.db.closecursor()
-        self._update_last_modified_schedule(schedule_id)
+        if count > 0:
+            self._update_last_modified_schedule(schedule_id)
         self.dblock.release()
-
-        return True
+        return count > 0
 
     # TODO
     # XXX expects the db lock to be held by caller, so we can update
@@ -751,6 +840,14 @@ class AmpMesh(object):
 
     def get_destination_schedule(self, destination, schedule_id=None,lock=True):
         return self._get_endpoint_schedule(None, destination, schedule_id, lock)
+
+    def get_schedule_by_id(self, schedule_id, lock=True):
+        schedule = self._get_endpoint_schedule(None, None, schedule_id, lock)
+        if schedule is None:
+            return None
+        if len(schedule) == 0:
+            return {}
+        return schedule[0]
 
     def _get_endpoint_schedule(self, src, dst, schedule_id, lock):
         """
@@ -838,10 +935,11 @@ class AmpMesh(object):
 
     # TODO if we want to be able to update the ampname then we probably need
     # to add an id field that won't change
-    def update_mesh(self, ampname, longname, description):
-        query = """ UPDATE mesh SET mesh_longname=%s, mesh_description=%s
+    def update_mesh(self, ampname, longname, description, public):
+        query = """ UPDATE mesh SET mesh_longname=%s, mesh_description=%s,
+                    mesh_public=%s
                     WHERE mesh_name=%s """
-        params = (longname, description, ampname)
+        params = (longname, description, public, ampname)
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
@@ -852,12 +950,13 @@ class AmpMesh(object):
         self.dblock.release()
         return True
 
-    def add_mesh(self, ampname, longname, description):
+    def add_mesh(self, ampname, longname, description, public):
         # XXX currently all new meshes are created as destinations
         query = """ INSERT INTO mesh (mesh_name, mesh_longname,
-                        mesh_description, mesh_is_src, mesh_is_dst, mesh_active
-                    ) VALUES (%s, %s, %s, false, true, true) """
-        params = (ampname, longname, description)
+                        mesh_description, mesh_is_src, mesh_is_dst,
+                        mesh_active, mesh_public
+                    ) VALUES (%s, %s, %s, false, true, true, %s) """
+        params = (ampname, longname, description, public)
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
@@ -877,9 +976,10 @@ class AmpMesh(object):
             log("Error while deleting mesh")
             self.dblock.release()
             return None
+        count = self.db.cursor.rowcount
         self.db.closecursor()
         self.dblock.release()
-        return True
+        return count > 0
 
     def update_site(self, ampname, longname, location, description):
         query = """ UPDATE site SET site_longname=%s, site_location=%s,
@@ -920,9 +1020,10 @@ class AmpMesh(object):
             log("Error while deleting site")
             self.dblock.release()
             return None
+        count = self.db.cursor.rowcount
         self.db.closecursor()
         self.dblock.release()
-        return True
+        return count > 0
 
     def add_mesh_member(self, meshname, ampname):
         if self._is_mesh(ampname):

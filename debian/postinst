@@ -59,6 +59,8 @@ case "$1" in
             install_database "ampmeta" "database.sql.gz"
             install_database "amp-asdb" "asdb-full.sql.gz"
         else
+            # TODO can any of this be moved into other files rather than
+            # included directly in the postinst script
             # upgrading an existing install
             if dpkg --compare-versions "$2" le-nl "2.6-1"; then
                 # remove constraint that is no longer needed
@@ -69,6 +71,50 @@ case "$1" in
                 su postgres -c "psql -q -c \"ALTER TABLE schedule ADD COLUMN schedule_enabled BOOLEAN NOT NULL DEFAULT true\" -d ampmeta || true"
                 # add new column used to offset tests in a mesh
                 su postgres -c "psql -q -c \"ALTER TABLE schedule ADD COLUMN schedule_mesh_offset integer NOT NULL DEFAULT 0\" -d ampmeta || true"
+            fi
+
+            if dpkg --compare-versions "$2" le-nl "2.7-1"; then
+                # add the new unique constraint for endpoints
+                su postgres -c "psql -q -c \
+                \"CREATE UNIQUE INDEX unique_endpoints on endpoint (    \
+                    endpoint_schedule_id,                               \
+                    COALESCE(endpoint_source_mesh, '-1'),               \
+                    COALESCE(endpoint_source_site, '-1'),               \
+                    COALESCE(endpoint_destination_mesh, '-1'),          \
+                    COALESCE(endpoint_destination_site, '-1')           \
+                );\" -d ampmeta || true"
+
+                # add the public flag to the mesh table
+                su postgres -c "psql -q -c \"ALTER TABLE mesh ADD COLUMN mesh_public BOOLEAN DEFAULT false\" -d ampmeta || true"
+
+                # update the views to add the new column. Unfortunately they
+                # have to be replaced entirely rather than altered
+                su postgres -c "psql -q -c \
+                \"CREATE OR REPLACE VIEW active_mesh_members AS SELECT  \
+                    member_meshname as meshname,                        \
+                    member_ampname as ampname,                          \
+                    mesh_is_src,                                        \
+                    mesh_is_dst,                                        \
+                    mesh_public as public                               \
+                    FROM mesh, member, site                             \
+                    WHERE mesh.mesh_name=member.member_meshname         \
+                    AND member.member_ampname=site.site_ampname         \
+                    AND mesh_active=true                                \
+                    AND site_active=true;\" -d ampmeta || true"
+
+                su postgres -c "psql -q -c \
+                \"CREATE OR REPLACE VIEW full_mesh_details AS SELECT    \
+                mesh_name as meshname,                                  \
+                mesh_longname,                                          \
+                mesh_description,                                       \
+                mesh_is_src,                                            \
+                mesh_is_dst,                                            \
+                mesh_active,                                            \
+                meshtests_test,                                         \
+                mesh_public                                             \
+                FROM mesh, meshtests                                    \
+                WHERE mesh.mesh_name = meshtests.meshtests_name         \
+                AND mesh_active = true;\" -d ampmeta || true"
             fi
         fi
     ;;

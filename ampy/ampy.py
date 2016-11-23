@@ -161,7 +161,7 @@ class Ampy(object):
         """
         return self.savedcoldata.keys()
 
-    def get_meshes(self, endpoint, amptest=None, site=None):
+    def get_meshes(self, endpoint, amptest=None, site=None, public=None):
         """
         Fetches all source or destination meshes.
 
@@ -188,7 +188,7 @@ class Ampy(object):
             description -- a string describing the purpose of the mesh in
                            reasonable detail
         """
-        return self.ampmesh.get_meshes(endpoint, amptest, site)
+        return self.ampmesh.get_meshes(endpoint, amptest, site, public)
 
     def get_matrix_members(self, sourcemesh, destmesh):
         """
@@ -212,6 +212,18 @@ class Ampy(object):
             return None
 
         return (sources, dests)
+
+    def get_amp_sites(self):
+        """
+        Fetches all known AMP sites.
+
+        Parameters:
+          None
+
+        Returns:
+          a list of all AMP sites
+        """
+        return self.ampmesh.get_sites()
 
     def get_amp_sources(self):
         """
@@ -311,15 +323,17 @@ class Ampy(object):
         """
         return self.ampmesh.get_source_schedule(source, schedule_id)
 
-    def schedule_new_amp_test(self, src, dst, test, freq, start, end,
-            period, mesh_offset, args):
-        return self.ampmesh.schedule_new_test(src, dst, test, freq, start, end,
-                period, mesh_offset, args)
+    def get_amp_schedule_by_id(self, schedule_id):
+        return self.ampmesh.get_schedule_by_id(schedule_id)
 
-    def update_amp_test(self, schedule_id, test, freq, start, end,
-            period, mesh_offset, args):
-        return self.ampmesh.update_test(schedule_id, test, freq, start, end,
-                period, mesh_offset, args)
+    def schedule_new_amp_test(self, settings):
+        return self.ampmesh.schedule_new_test(settings)
+
+    def update_amp_test(self, schedule_id, settings):
+        return self.ampmesh.update_test(schedule_id, settings)
+
+    def is_amp_test_enabled(self, schedule_id):
+        return self.ampmesh.get_enable_status(schedule_id)
 
     def enable_amp_test(self, schedule_id):
         return self.ampmesh.enable_disable_test(schedule_id, True)
@@ -342,14 +356,14 @@ class Ampy(object):
     def update_amp_site(self, ampname, longname, loc, description):
         return self.ampmesh.update_site(ampname, longname, loc, description)
 
-    def update_amp_mesh(self, ampname, longname, description):
-        return self.ampmesh.update_mesh(ampname, longname, description)
+    def update_amp_mesh(self, ampname, longname, description, public):
+        return self.ampmesh.update_mesh(ampname, longname, description, public)
 
     def add_amp_site(self, ampname, longname, location, description):
         return self.ampmesh.add_site(ampname, longname, location, description)
 
-    def add_amp_mesh(self, ampname, longname, description):
-        return self.ampmesh.add_mesh(ampname, longname, description)
+    def add_amp_mesh(self, ampname, longname, description, public):
+        return self.ampmesh.add_mesh(ampname, longname, description, public)
 
     def delete_amp_site(self, ampname):
         return self.ampmesh.delete_site(ampname)
