@@ -3,4 +3,4 @@ CREATE TABLE asmap (
    asname TEXT NOT NULL
 );
 
-GRANT ALL ON ALL TABLES IN SCHEMA public to "www-data";
+GRANT ALL ON ALL TABLES IN SCHEMA public to "ampweb";

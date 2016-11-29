@@ -53,7 +53,7 @@ case "$1" in
             fi
 
             # create the databases and install the schemas if they don't exist
-            create_database_user "www-data"
+            create_database_user "ampweb"
             create_database_user "cuz"
             install_database "views" "views.sql.gz"
             install_database "ampmeta" "database.sql.gz"
@@ -115,6 +115,42 @@ case "$1" in
                 FROM mesh, meshtests                                    \
                 WHERE mesh.mesh_name = meshtests.meshtests_name         \
                 AND mesh_active = true;\" -d ampmeta || true"
+
+                # update the permissions for the new ampweb user - amp-asdb
+                su postgres -c "psql -q -c \
+                    \"GRANT ALL ON ALL TABLES IN SCHEMA public TO       \
+                    \\\"ampweb\\\";\" -d amp-asdb || true"
+                su postgres -c "psql -q -c \
+                    \"REVOKE ALL ON ALL TABLES IN SCHEMA public FROM    \
+                    \\\"www-data\\\";\" -d amp-asdb || true"
+
+                # update the permissions for the new ampweb user - ampmeta
+                su postgres -c "psql -q -c \
+                    \"GRANT ALL ON ALL TABLES IN SCHEMA public TO       \
+                    \\\"ampweb\\\";\" -d ampmeta || true"
+                su postgres -c "psql -q -c \
+                    \"GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO    \
+                    \\\"ampweb\\\";\" -d ampmeta || true"
+                su postgres -c "psql -q -c \
+                    \"REVOKE ALL ON ALL TABLES IN SCHEMA public FROM    \
+                    \\\"www-data\\\";\" -d ampmeta || true"
+                su postgres -c "psql -q -c \
+                    \"REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM \
+                    \\\"www-data\\\";\" -d ampmeta || true"
+
+                # update the permissions for the new ampweb user - views
+                su postgres -c "psql -q -c \
+                    \"GRANT ALL ON ALL TABLES IN SCHEMA public TO       \
+                    \\\"ampweb\\\";\" -d views || true"
+                su postgres -c "psql -q -c \
+                    \"GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO    \
+                    \\\"ampweb\\\";\" -d views || true"
+                su postgres -c "psql -q -c \
+                    \"REVOKE ALL ON ALL TABLES IN SCHEMA public FROM    \
+                    \\\"www-data\\\";\" -d views || true"
+                su postgres -c "psql -q -c \
+                    \"REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM \
+                    \\\"www-data\\\";\" -d views || true"
             fi
         fi
     ;;

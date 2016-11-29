@@ -36,5 +36,5 @@ ALTER TABLE userfilters ADD CONSTRAINT uniq_filter_id UNIQUE (user_id, filter_na
 
 
 /* TODO ampweb package should probably grant these permissions */
-GRANT ALL ON ALL TABLES IN SCHEMA public to "www-data";
-GRANT ALL ON ALL SEQUENCES IN SCHEMA public to "www-data";
+GRANT ALL ON ALL TABLES IN SCHEMA public to "ampweb";
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public to "ampweb";
