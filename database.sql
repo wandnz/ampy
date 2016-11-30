@@ -13,7 +13,8 @@ CREATE TABLE mesh (
     mesh_description TEXT,
     mesh_is_src BOOLEAN NOT NULL,
     mesh_is_dst BOOLEAN NOT NULL,
-    mesh_active BOOLEAN DEFAULT true
+    mesh_active BOOLEAN DEFAULT true,
+    mesh_public BOOLEAN DEFAULT false
 );
 
 CREATE TABLE member (
@@ -36,7 +37,8 @@ CREATE VIEW active_mesh_members AS SELECT
     member_meshname as meshname,
     member_ampname as ampname,
     mesh_is_src,
-    mesh_is_dst
+    mesh_is_dst,
+    mesh_public as public
     FROM mesh, member, site
     WHERE mesh.mesh_name=member.member_meshname
     AND member.member_ampname=site.site_ampname
@@ -59,13 +61,25 @@ CREATE TABLE endpoint (
     endpoint_schedule_id INTEGER NOT NULL REFERENCES schedule(schedule_id) ON DELETE CASCADE,
     endpoint_source_mesh TEXT REFERENCES mesh(mesh_name),
     endpoint_source_site TEXT REFERENCES site(site_ampname),
-    endpoint_destination_mesh TEXT REFERENCES mesh(mesh_name)/*,
-    endpoint_destination_site TEXT REFERENCES site(site_ampname)*/
+    endpoint_destination_mesh TEXT REFERENCES mesh(mesh_name),
+    endpoint_destination_site TEXT /*REFERENCES site(site_ampname)*/
 );
 
 ALTER TABLE endpoint ADD CONSTRAINT valid_source CHECK (
         endpoint_source_mesh IS NOT NULL OR
         endpoint_source_site IS NOT NULL);
+
+/*
+ * Don't allow duplicate combinations of sources and destinations. Can't do
+ * it with a normal unique constraint due to some of the fields being NULL.
+ */
+CREATE UNIQUE INDEX unique_endpoints on endpoint (
+    endpoint_schedule_id,
+    COALESCE(endpoint_source_mesh, '-1'),
+    COALESCE(endpoint_source_site, '-1'),
+    COALESCE(endpoint_destination_mesh, '-1'),
+    COALESCE(endpoint_destination_site, '-1')
+);
 
 CREATE VIEW full_mesh_details AS SELECT
     mesh_name as meshname,
@@ -74,7 +88,8 @@ CREATE VIEW full_mesh_details AS SELECT
     mesh_is_src,
     mesh_is_dst,
     mesh_active,
-    meshtests_test
+    meshtests_test,
+    mesh_public
     FROM mesh, meshtests
     WHERE mesh.mesh_name = meshtests.meshtests_name
     AND mesh_active = true;
