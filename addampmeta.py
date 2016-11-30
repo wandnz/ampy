@@ -14,7 +14,7 @@ def insert_mesh(db, params):
             print "Mesh parameters 4 and 5 must be either 't' or 'f' -- skipping"
             return None
 
-    query = "INSERT into mesh VALUES (%s, %s, %s, %s, %s, True)"
+    query = "INSERT into mesh VALUES (%s, %s, %s, %s, %s, True, True)"
     paramstup = tuple(params[0:5])
 
     try:
