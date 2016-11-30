@@ -184,6 +184,10 @@ class AmpTraceroutePathlen(AmpTraceroute):
         self.viewstyle = "amp-traceroutelength"
         self.default_aggregation = "FAMILY"
 
+    def get_maximum_view_groups(self):
+        return 0
+
+
     def detail_columns(self, detail):
         if detail in ["matrix", "basic", "tooltiptext", "spark", "raw"]:
             aggfuncs = ['mode']
