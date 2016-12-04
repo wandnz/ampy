@@ -769,9 +769,11 @@ class Collection(object):
           detail --  the level of detail, e.g. 'full', 'matrix'. This will
                      determine which data columns are queried and how they
                      are aggregated.
-          binsize -- the desired aggregation frequency. If None, this will
-                     be automatically calculated based on the time period
-                     that you asked for.
+          binsize -- the minimum desired aggregation frequency. -1 = no
+                     aggregation, None = let ampy choose. Note that if ampy
+                     suggests a larger binsize, then that will be preferred
+                     over this value.
+
 
         Returns:
           a dictionary keyed by label where each value is a list containing
@@ -779,8 +781,11 @@ class Collection(object):
           Returns None if an error occurs while fetching the data.
         """
 
-        if binsize is None:
-            binsize = self.calculate_binsize(start, end, detail)
+        if binsize != -1:
+            ampy_binsize = self.calculate_binsize(start, end, detail)
+
+            if binsize is None or ampy_binsize > binsize:
+                binsize = ampy_binsize
 
         # Break the time period down into blocks for caching purposes
         extra = self.extra_blocks(detail)

@@ -453,9 +453,12 @@ class Ampy(object):
           detail --  the level of detail, e.g. 'full', 'matrix'. This will
                      determine which data columns are queried and how they
                      are aggregated.
-          binsize -- the desired aggregation frequency. If None, this will
-                     be automatically calculated based on the time period
-                     that you asked for.
+          binsize -- the minimum desired aggregation frequency. This is
+                     automatically calculated based on the time period that
+                     you asked for, but you can use this option to ensure
+                     that the bins are not smaller than your expected data
+                     frequency. Set to None if you do not have a suitable
+                     minimum. Set to -1 if you want raw unaggregated data.
 
         Returns:
           a dictionary keyed by label where each value is a list containing
