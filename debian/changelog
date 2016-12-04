@@ -1,3 +1,16 @@
+ampy (2.8-1) unstable; urgency=low
+
+  * Add page size to amphttp matrix and tooltip data fetches.
+  * Add functions to get single test schedule item by ID.
+  * Add functions to get/set current status of a test schedule.
+  * Add functions to get all AMP sites.
+  * Update create/modify schedule functions to take a dictionary argument.
+  * Try to prevent duplicate endpoint pairs for a scheduled test.
+  * Add a "public" flag to meshes to control visibility on the matrix.
+  * Use the ampweb user rather than www-data to access databases etc.
+
+ -- Brendon Jones <brendonj@waikato.ac.nz>  Tue, 29 Nov 2016 16:00:40 +1300
+
 ampy (2.7-1) unstable; urgency=low
 
   * Allow None as a valid test target (e.g. for http test).
