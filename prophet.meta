@@ -14,7 +14,7 @@ mesh | google | Google | Google Services | f | t | latency,hops
 mesh | nzamp | New Zealand Amplets | Deployed Amplets | f | t | latency,hops
 mesh | ausweb | Australia Web | Australian Websites | f | t | latency
 
-mesh | httptest | Test HTTP |  Test HTTP Sites | f | t | http
+mesh | httptest | Test HTTP |  Test HTTP Sites | f | t | http,httpsize
 mesh | tputtest | Test Throughput | Test Throughput Sites | f | t | tput
  
 site | prophet | Prophet | Hamilton | Prophet Test Amplet | amptest

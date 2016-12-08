@@ -13,7 +13,7 @@ mesh | nzamp | New Zealand Amplets | Deployed Amplets | t | t | latency,hops
 mesh | nzresidential | New Zealand Residential | New Zealand Residential Connections | t | t | latency,hops
 mesh | nzbanks | NZ Banks | New Zealand Banks | f | t | latency,hops
 mesh | australia | AU Web | Australian Websites | f | t | latency,hops
-mesh | http | HTTP Tests | All HTTP Tests | f | t | http
+mesh | http | HTTP Tests | All HTTP Tests | f | t | http,httpsize
 
 site | ns1.dns.net.nz | ns1.dns.net.nz | | | nzdns | alldns
 site | ns2.dns.net.nz | ns2.dns.net.nz | | | nzdns | alldns
