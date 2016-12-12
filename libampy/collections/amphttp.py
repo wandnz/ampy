@@ -27,8 +27,8 @@ class AmpHttp(Collection):
 
     def detail_columns(self, detail):
         if detail in ['matrix', 'basic', 'spark', 'tooltiptext']:
-            aggs = ['avg', 'max']
-            cols = ['duration', 'bytes']
+            aggs = ['avg', 'stddev', 'max', 'avg', 'stddev']
+            cols = ['duration', 'duration', 'bytes', 'bytes', 'bytes']
         else:
             cols = ['server_count', 'object_count', 'duration', 'bytes']
             aggs = ['max', 'max', 'max', 'max']
