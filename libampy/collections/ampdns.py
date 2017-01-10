@@ -339,17 +339,17 @@ class AmpDns(Collection):
     def _create_flag_string(self, properties):
 
         flags = ""
-        if 'recurse' in properties and properties['recurse'] == True:
+        if 'recurse' in properties and properties['recurse'] is True:
             flags += "T"
         else:
             flags += "F"
 
-        if 'dnssec' in properties and properties['dnssec'] == True:
+        if 'dnssec' in properties and properties['dnssec'] is True:
             flags += "T"
         else:
             flags += "F"
 
-        if 'nsid' in properties and properties['nsid'] == True:
+        if 'nsid' in properties and properties['nsid'] is True:
             flags += "T"
         else:
             flags += "F"

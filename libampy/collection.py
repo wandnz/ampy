@@ -823,7 +823,7 @@ class Collection(object):
         # Any labels that were fully cached won't be touched by the previous
         # bit of code so we need to check the cached dictionary for any
         # labels that don't appear in the fetched data and process those too
-        for label, item in cached.iteritems():
+        for label in cached.iterkeys():
 
             # If the label is present in our returned data, we've already
             # processed it
@@ -834,7 +834,7 @@ class Collection(object):
             # Slightly repetitive code but seems silly to create a 10 parameter
             # function to run these few lines of code
             for b in blocks:
-                blockdata, ignored = self._next_block(b, cached[label],
+                blockdata, _ = self._next_block(b, cached[label],
                         [], 0, binsize, detail)
                 data[label] += blockdata
                 ignored = cache.store_block(b, blockdata, label, binsize,

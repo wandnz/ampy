@@ -199,7 +199,7 @@ class StreamManager(object):
         # If we get here, the stream property at this level was not in the
         # provided set of parameters so we will treat it as a wildcard
         # and traverse all of the entries at this hierarchy level
-        for k, nextdict in searching.iteritems():
+        for nextdict in searching.itervalues():
             found = self.find_streams(properties, nextdict, index + 1, found)
 
         return found

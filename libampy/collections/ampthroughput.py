@@ -56,7 +56,7 @@ class AmpThroughput(Collection):
 
     def create_group_description(self, properties):
         if 'tcpreused' in properties:
-            if properties['tcpreused'] == True:
+            if properties['tcpreused'] is True:
                 reuse = "T"
             else:
                 reuse = "F"
@@ -88,7 +88,7 @@ class AmpThroughput(Collection):
             log("Failed to parse group description to generate legend label")
             return None
 
-        if gps["tcpreused"] == True:
+        if gps["tcpreused"] is True:
             reuse = "+reuse"
         else:
             reuse = ""

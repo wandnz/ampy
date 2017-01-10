@@ -15,7 +15,7 @@ class LPIBytes(LPIPackets):
         if 'bytes' not in data:
             return data
 
-        if data['bytes'] == None:
+        if data['bytes'] is None:
             data['mbps'] = None
         else:
             data['mbps'] = ((float(data['bytes']) * 8.0) / 1000000.0) / freq
