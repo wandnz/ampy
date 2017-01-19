@@ -1,3 +1,4 @@
+import time
 import psycopg2
 import psycopg2.extras
 from libnntscclient.logger import *
@@ -101,7 +102,7 @@ class AmpyDatabase(object):
         """
         logmessage = False
 
-        while self.conn == None:
+        while self.conn is None:
             try:
                 self.conn = psycopg2.connect(self.connstr)
             except psycopg2.DatabaseError as e:

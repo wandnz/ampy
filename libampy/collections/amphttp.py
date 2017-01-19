@@ -54,19 +54,19 @@ class AmpHttp(Collection):
                         (p, self.collection_name))
                 return None
 
-            if p == 'persist' and properties[p] == True:
+            if p == 'persist' and properties[p] is True:
                 properties[p] = "PERSIST"
-            elif p == 'persist' and properties[p] == False:
+            elif p == 'persist' and properties[p] is False:
                 properties[p] = "NOPERSIST"
 
-            if p == 'pipelining' and properties[p] == True:
+            if p == 'pipelining' and properties[p] is True:
                 properties[p] = "PIPELINING"
-            elif p == 'pipelining' and properties[p] == False:
+            elif p == 'pipelining' and properties[p] is False:
                 properties[p] = "NOPIPELINING"
 
-            if p == 'caching' and properties[p] == True:
+            if p == 'caching' and properties[p] is True:
                 properties[p] = "CACHING"
-            elif p == 'caching' and properties[p] == False:
+            elif p == 'caching' and properties[p] is False:
                 properties[p] = "NOCACHING"
 
         return "FROM %s FETCH %s MC %s %s %s %s %s %s %s" % \
@@ -120,12 +120,12 @@ class AmpHttp(Collection):
             log("Failed to parse group description to generate legend label")
             return None
 
-        if gps["caching"] == True:
+        if gps["caching"] is True:
             cachelab = "+cached "
         else:
             cachelab = ""
 
-        if gps["pipelining"] == True:
+        if gps["pipelining"] is True:
             pipelab = "+pipelining "
         else:
             pipelab = ""

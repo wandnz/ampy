@@ -127,7 +127,7 @@ class Ampy(object):
 
         self.collections = {}
         self.savedcoldata = {}
-        self.started = False;
+        self.started = False
 
     def start(self):
         """
@@ -430,7 +430,7 @@ class Ampy(object):
                     continue
                 alllabels += grouplabels
 
-            result  = col.get_collection_recent(self.cache, alllabels,
+            result = col.get_collection_recent(self.cache, alllabels,
                     duration, detail)
 
             if result is not None:
@@ -441,7 +441,7 @@ class Ampy(object):
 
 
     def get_historic_data(self, viewstyle, view_id, start, end,
-            detail, binsize = None):
+            detail, binsize=None):
         """
         Fetches aggregated time series data for each label within a view.
 
@@ -584,7 +584,7 @@ class Ampy(object):
             a list of all the stream properties for the given collection
         """
         col = self._getcol(collection)
-        if col == None:
+        if col is None:
             log("Error while fetching selection options")
             return None
 
@@ -635,7 +635,7 @@ class Ampy(object):
         """
 
         col = self._getcol(collection)
-        if col == None:
+        if col is None:
             log("Error while fetching selection options")
             return None
 
@@ -688,13 +688,13 @@ class Ampy(object):
             return True
 
         groups = self._view_to_groups(viewstyle, view_id)
-        if groups == None:
+        if groups is None:
             log("Error while constructing tabview")
             return None
 
         # Make sure our target collection is also up-to-date
         tabcol = self._getcol(tabcollection)
-        if tabcol == None:
+        if tabcol is None:
             log("Error while constructing tabview")
             return None
 
@@ -770,13 +770,13 @@ class Ampy(object):
             return view_id
 
         groups = self._view_to_groups(viewstyle, view_id)
-        if groups == None:
+        if groups is None:
             log("Error while constructing tabview")
             return None
 
         # Make sure our target collection is also up-to-date
         tabcol = self._getcol(tabcollection)
-        if tabcol == None:
+        if tabcol is None:
             log("Error while constructing tabview")
             return None
 
@@ -831,7 +831,7 @@ class Ampy(object):
 
     def get_stream_properties(self, collection, stream):
         col = self._getcol(collection)
-        if col == None:
+        if col is None:
             log("Error while fetching stream properties")
             return None
 
@@ -882,7 +882,7 @@ class Ampy(object):
         streamprops = None
         for c in possibles:
             col = self._getcol(c)
-            if col == None:
+            if col is None:
                 continue
 
             # Find the stream in our stream hierarchy
@@ -953,7 +953,7 @@ class Ampy(object):
 
         if action == "add":
             col = self._getcol(collection, False)
-            if col == None:
+            if col is None:
                 return None
             # Allow options to be specified as a list or a dictionary. The
             # list format requires knowledge of special formatting for some
@@ -1016,7 +1016,7 @@ class Ampy(object):
         """
 
         col = self._getcol(collection)
-        if col == None:
+        if col is None:
             log("Error while fetching matrix data")
             return None
 
@@ -1053,7 +1053,7 @@ class Ampy(object):
         """
 
         groups = self._view_to_groups(viewstyle, view_id)
-        if groups == None:
+        if groups is None:
             log("Error while fetching events for a view")
             return None
 
@@ -1156,7 +1156,7 @@ class Ampy(object):
             else:
                 aslabel = "AS" + a
                 asname = self.cache.search_asname(aslabel)
-                if asname == None:
+                if asname is None:
                     toquery.add(aslabel)
 
             if asname is not None:

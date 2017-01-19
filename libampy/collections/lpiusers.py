@@ -63,7 +63,7 @@ class LPIUsers(Collection):
 
     def _generate_label(self, baselabel, search, metric, lookup):
         key = baselabel + "_" + metric
-        search['metric'] =  metric
+        search['metric'] = metric
         shortlabel = metric
 
         if lookup:

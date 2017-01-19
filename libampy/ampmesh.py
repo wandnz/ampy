@@ -1,6 +1,7 @@
+import time
+from threading import Lock
 from libampy.database import AmpyDatabase
 from libnntscclient.logger import *
-from threading import Lock
 
 class AmpMesh(object):
     """
