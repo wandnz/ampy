@@ -20,8 +20,8 @@ class AmpThroughput(Collection):
 
     def detail_columns(self, detail):
 
-        aggfuncs = ["sum", "sum", "sum"]
-        aggcols = ["bytes", "packets", "runtime"]
+        aggfuncs = ["sum", "sum", "sum", "stddev"]
+        aggcols = ["bytes", "packets", "runtime", "rate"]
 
         return aggcols, aggfuncs
 

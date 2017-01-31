@@ -24,8 +24,8 @@ class AmpIcmp(Collection):
     def detail_columns(self, detail):
         # the matrix view expects both the mean and stddev for the latency
         if detail == "matrix":
-            aggfuncs = ["avg", "stddev", "count", "sum", "sum"]
-            aggcols = ["median", "median", "median", "loss", "results"]
+            aggfuncs = ["avg", "stddev", "count", "sum", "sum", "stddev"]
+            aggcols = ["median", "median", "median", "loss", "results", "lossrate"]
         elif detail == "basic" or detail == "spark" or detail == "tooltiptext":
             aggfuncs = ["avg", "sum", "sum"]
             aggcols = ["median", "loss", "results"]
