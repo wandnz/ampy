@@ -26,8 +26,8 @@ class AmpDns(Collection):
 
     def detail_columns(self, detail):
         if detail in ['matrix', 'basic', 'spark', 'tooltiptext']:
-            aggfuncs = ["avg", "stddev", "count", "count"]
-            aggcols = ["rtt", "rtt", "rtt", "timestamp"]
+            aggfuncs = ["avg", "stddev", "count", "count", "stddev"]
+            aggcols = ["rtt", "rtt", "rtt", "timestamp", "lossrate"]
         elif detail == "full" or detail == "raw" or detail == "summary":
             aggfuncs = ["smoke", "count", "count"]
             aggcols = ["rtt", "rtt", "timestamp"]
