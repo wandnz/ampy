@@ -458,7 +458,7 @@ class Collection(object):
 
         return self.streammanager.find_stream_properties(streamid)
 
-    def update_matrix_groups(self, source, dest, split, groups, views,
+    def update_matrix_groups(self, cache, source, dest, split, groups, views,
             viewmanager, viewstyle):
         """
         Finds all groups (and labels and streams) that must be queried to
@@ -468,6 +468,8 @@ class Collection(object):
         function.
 
         Parameters:
+          cache -- the memcache to use for storing/fetching previously
+                   derived matrix views
           source -- the source for the matrix cell
           dest -- the destination for the matrix cell
           split -- the family or direction to show in the cell

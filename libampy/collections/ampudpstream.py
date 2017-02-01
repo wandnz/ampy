@@ -167,7 +167,7 @@ class AmpUdpstream(AmpThroughput):
 
         return keydict
 
-    def update_matrix_groups(self, source, dest, split, groups, views,
+    def update_matrix_groups(self, cache, source, dest, split, groups, views,
             viewmanager, viewstyle):
 
         baseprop = {'source': source, 'destination': dest,
@@ -205,10 +205,21 @@ class AmpUdpstream(AmpThroughput):
         else:
             split = "FAMILY"
 
-
+        cachelabel = "_".join([viewstyle, self.collection_name, source,
+                dest, split, "out"])
+        v = cache.search_matrix_view(cachelabel)
+        if v is not None:
+            views[(source, dest)] = v
+            return
+        
         v = self._add_matrix_group(baseprop, "OUT", split, viewmanager,
                 viewstyle)
+        if v == -1:
+            cachetime = 300
+        else:
+            cachetime = 0
         views[(source, dest)] = v
+        cache.store_matrix_view(cachelabel, v, cachetime)
 
         return
 

@@ -76,7 +76,7 @@ class AmpTcpping(AmpIcmp):
                 'port':int(groupparams['port']),
                 'packet_size':groupparams['packet_size']}
 
-    def update_matrix_groups(self, source, dest, split, groups, views,
+    def update_matrix_groups(self, cache, source, dest, split, groups, views,
             viewmanager, viewstyle):
 
         baseprop = {'source':source, 'destination':dest}
@@ -158,6 +158,14 @@ class AmpTcpping(AmpIcmp):
         else:
             split = "FAMILY"
 
+        cachelabel = "_".join([self.collection_name, viewstyle, source, dest,
+                str(baseprop['port']), baseprop['packet_size'], split])
+
+        viewid = cache.search_matrix_view(cachelabel)
+        if viewid is not None:
+            views[(source, dest)] = viewid
+            return
+
         cellgroup = self.create_group_from_list([source, dest, \
                 baseprop['port'], baseprop['packet_size'], split])
 
@@ -170,8 +178,10 @@ class AmpTcpping(AmpIcmp):
                 self.collection_name, 0, [cellgroup])
         if viewid is None:
             views[(source, dest)] = -1
+            cache.store_matrix_view(cachelabel, -1, 300)
         else:
             views[(source, dest)] = viewid
+            cache.store_matrix_view(cachelabel, viewid, 0)
 
 
 

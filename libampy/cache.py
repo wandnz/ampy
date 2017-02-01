@@ -440,6 +440,18 @@ class AmpyCache(object):
         cachekey = self._view_groups_cache_key(viewid)
         return self._cachefetch(cachekey, "view groups")
 
+    def store_matrix_view(self, label, viewid, cachetime):
+
+        cachekey = "matv_" + label
+        if len(cachekey) > 250:
+            log("WARNING: matrix view cache key %s too long" % (cachekey))
+
+        self._cachestore(cachekey, viewid, cachetime, "matrix view")
+
+    def search_matrix_view(self, label):
+        cachekey = "matv_" + label
+        return self._cachefetch(cachekey, "matrix view")
+
     def _cachestore(self, key, data, cachetime, errorstr):
         """
         Internal helper function for storing a cache entry.

@@ -1545,7 +1545,7 @@ class Ampy(object):
         # streams.
         for s in sources:
             for d in destinations:
-                col.update_matrix_groups(s, d, split, groups, views,
+                col.update_matrix_groups(self.cache, s, d, split, groups, views,
                         self.viewmanager, viewstyle)
 
         return groups, sources, destinations, views

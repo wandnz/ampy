@@ -259,7 +259,7 @@ class AmpThroughput(Collection):
 
         return sorted(labels, key=itemgetter('shortlabel'))
 
-    def update_matrix_groups(self, source, dest, split, groups, views,
+    def update_matrix_groups(self, cache, source, dest, split, groups, views,
             viewmanager, viewstyle):
         groupprops = {'source': source, 'destination': dest,
                 'duration':self.default_duration,
@@ -298,13 +298,21 @@ class AmpThroughput(Collection):
                         (self.collection_name))
                 return None
 
-            viewid = viewmanager.add_groups_to_view(viewstyle,
-                    self.collection_name, 0, [cg])
-
-            if viewid is None:
-                views[(source, dest, "ipv4")] = -1
-            else:
+            cachelabel = "_".join([viewstyle, self.collection_name,
+                    source, dest, split, "IPV4"])
+            viewid = cache.search_matrix_view(cachelabel)
+            if viewid is not None:
                 views[(source, dest, "ipv4")] = viewid
+            else:
+                viewid = viewmanager.add_groups_to_view(viewstyle,
+                        self.collection_name, 0, [cg])
+
+                if viewid is None:
+                    views[(source, dest, "ipv4")] = -1
+                    cache.store_matrix_view(cachelabel, -1, 300)
+                else:
+                    views[(source, dest, "ipv4")] = viewid
+                    cache.store_matrix_view(cachelabel, viewid, 0)
 
         if tputin6 != 0 or tputout6 != 0:
             cg = self.create_group_from_list([source, dest,
@@ -315,13 +323,21 @@ class AmpThroughput(Collection):
                         (self.collection_name))
                 return None
 
-            viewid = viewmanager.add_groups_to_view(viewstyle,
-                    self.collection_name, 0, [cg])
-
-            if viewid is None:
-                views[(source, dest, "ipv6")] = -1
-            else:
+            cachelabel = "_".join([viewstyle, self.collection_name,
+                    source, dest, split, "IPV6"])
+            viewid = cache.search_matrix_view(cachelabel)
+            if viewid is not None:
                 views[(source, dest, "ipv6")] = viewid
+            else:
+                viewid = viewmanager.add_groups_to_view(viewstyle,
+                        self.collection_name, 0, [cg])
+
+                if viewid is None:
+                    views[(source, dest, "ipv6")] = -1
+                    cache.store_matrix_view(cachelabel, -1, 300)
+                else:
+                    views[(source, dest, "ipv6")] = viewid
+                    cache.store_matrix_view(cachelabel, viewid, 0)
 
 
     def _matrix_group_streams(self, baseprops, direction, family, groups):

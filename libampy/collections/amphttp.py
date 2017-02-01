@@ -164,7 +164,7 @@ class AmpHttp(Collection):
 
         return labels
 
-    def update_matrix_groups(self, source, dest, split, groups, views,
+    def update_matrix_groups(self, cache, source, dest, split, groups, views,
             viewmanager, viewstyle):
         groupprops = {'source': source, 'destination': dest}
 
@@ -190,11 +190,20 @@ class AmpHttp(Collection):
                 break
             cgs.append(cellgroup)
 
+        cachelabel = "_".join([viewstyle, self.collection_name, 
+                source, dest])
+        viewid = cache.search_matrix_view(cachelabel)
+        if viewid is not None:
+            views[(source, dest)] = viewid
+            return
+
         viewid = viewmanager.add_groups_to_view(viewstyle,
                 self.collection_name, 0, cgs)
         if viewid is None:
             views[(source, dest)] = -1
+            cache.store_matrix_view(cachelabel, -1, 300)
         else:
             views[(source, dest)] = viewid
+            cache.store_matrix_view(cachelabel, viewid, 0)
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :

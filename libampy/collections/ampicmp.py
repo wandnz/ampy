@@ -153,7 +153,7 @@ class AmpIcmp(Collection):
 
         return keydict
 
-    def update_matrix_groups(self, source, dest, split, groups, views,
+    def update_matrix_groups(self, cache, source, dest, split, groups, views,
             viewmanager, viewstyle):
 
         baseprop = {'source':source, 'destination':dest}
@@ -195,6 +195,14 @@ class AmpIcmp(Collection):
         else:
             split = "FAMILY"
 
+        cachelabel = "_".join([viewstyle, self.collection_name, source, dest,
+                split, baseprop['packet_size']])
+
+        viewid = cache.search_matrix_view(cachelabel)
+        if viewid is not None:
+            views[(source, dest)] = viewid
+            return
+
         cellgroup = self.create_group_from_list([source, dest,
                 baseprop['packet_size'], split])
         if cellgroup is None:
@@ -206,10 +214,10 @@ class AmpIcmp(Collection):
                 self.collection_name, 0, [cellgroup])
         if viewid is None:
             views[(source, dest)] = -1
+            cache.store_matrix_view(cachelabel, -1, 300)
         else:
             views[(source, dest)] = viewid
-
-
+            cache.store_matrix_view(cachelabel, viewid, 0)
 
 
     def translate_group(self, groupprops):

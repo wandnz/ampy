@@ -234,7 +234,7 @@ class AmpDns(Collection):
 
         return keydict
 
-    def update_matrix_groups(self, source, dest, split, groups, views,
+    def update_matrix_groups(self, cache, source, dest, split, groups, views,
             viewmanager, viewstyle):
 
         # Firstly, we want to try to populate our matrix cell using streams
@@ -262,6 +262,7 @@ class AmpDns(Collection):
         # us from finding a stream without recursion
         streams = self.streammanager.find_streams(groupprops)
 
+        cachetime = 0
         if len(streams) == 0:
             # no streams without recursion, try with recursion
             groupprops['recurse'] = True
@@ -282,8 +283,12 @@ class AmpDns(Collection):
                         groupprops[prop] = self.defaults[prop]
                     else:
                         groupprops[prop] = values['items'][0]['text']
+                        cachetime = 300
                 props = self.get_selections(groupprops, "", "1", 30000, False)
             streams = self.streammanager.find_streams(groupprops)
+
+        cachelabel = "_".join([viewstyle, self.collection_name, source,
+                dest, split, str(groupprops['recurse'])])
 
         v4streams = []
         v6streams = []
@@ -312,17 +317,6 @@ class AmpDns(Collection):
             groupdesc = self.create_group_description(streamprops)
             cellgroups.add(groupdesc)
 
-        if len(cellgroups) != 0:
-            cellview = viewmanager.add_groups_to_view(viewstyle,
-                    self.collection_name, 0, list(cellgroups))
-        else:
-            cellview = -1
-
-        if cellview is None:
-            views[(source, dest)] = -1
-        else:
-            views[(source, dest)] = cellview
-
         # Add the two new groups
         if len(v4streams) > 0:
             groups.append({
@@ -335,6 +329,24 @@ class AmpDns(Collection):
                 'labelstring':'%s_%s_ipv6' % (source, dest),
                 'streams':v6streams
             })
+
+        viewid = cache.search_matrix_view(cachelabel)
+        if viewid is not None:
+            views[(source, dest)] = viewid
+            return
+
+        if len(cellgroups) != 0:
+            cellview = viewmanager.add_groups_to_view(viewstyle,
+                    self.collection_name, 0, list(cellgroups))
+        else:
+            cellview = -1
+
+        if cellview is None:
+            views[(source, dest)] = -1
+            cache.store_matrix_view(cachelabel, -1, 300)
+        else:
+            views[(source, dest)] = cellview
+            cache.store_matrix_view(cachelabel, cellview, cachetime)
 
     def _create_flag_string(self, properties):
 
