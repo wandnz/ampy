@@ -19,10 +19,6 @@ from libampy.collections.amptcpping import AmpTcpping
 from libampy.collections.ampthroughput import AmpThroughput
 from libampy.collections.ampudpstream import AmpUdpstream
 from libampy.collections.rrdsmokeping import RRDSmokeping
-from libampy.collections.lpipackets import LPIPackets
-from libampy.collections.lpibytes import LPIBytes
-from libampy.collections.lpiflows import LPIFlows
-from libampy.collections.lpiusers import LPIUsers
 
 class Ampy(object):
     """
