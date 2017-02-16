@@ -1,17 +1,23 @@
 from operator import itemgetter
-from libnntscclient.logger import *
+from libnntscclient.logger import log
 from libampy.collection import Collection
 
 class AmpDns(Collection):
 
     def __init__(self, colid, viewmanager, nntscconf):
+        """
+        Initialise the DNS collection with the specific properties that this
+        property requires to display graphs.
+        """
         super(AmpDns, self).__init__(colid, viewmanager, nntscconf)
-        self.streamproperties = ['source', 'destination', 'recurse',
-                'query', 'query_type', 'query_class', 'udp_payload_size',
-                'dnssec', 'nsid']
-        self.groupproperties = ['source', 'destination', 'query',
-                'query_type', 'query_class', 'udp_payload_size',
-                'flags', 'aggregation']
+        self.streamproperties = [
+            'source', 'destination', 'recurse', 'query', 'query_type',
+            'query_class', 'udp_payload_size', 'dnssec', 'nsid'
+        ]
+        self.groupproperties = [
+            'source', 'destination', 'query', 'query_type', 'query_class',
+            'udp_payload_size', 'flags', 'aggregation'
+        ]
         self.integerproperties = ['udp_payload_size']
         self.collection_name = "amp-dns"
         self.viewstyle = "amp-latency"
@@ -25,10 +31,14 @@ class AmpDns(Collection):
         }
 
     def detail_columns(self, detail):
-        if detail in ['matrix', 'basic', 'spark', 'tooltiptext']:
+        """
+        Given a requested level of detail, returns the columns that should
+        be queried from a collection's data table.
+        """
+        if detail in ["matrix", "basic", "spark", "tooltiptext"]:
             aggfuncs = ["avg", "stddev", "count", "count", "stddev"]
             aggcols = ["rtt", "rtt", "rtt", "timestamp", "lossrate"]
-        elif detail == "full" or detail == "raw" or detail == "summary":
+        elif detail in ["full", "raw", "summary"]:
             aggfuncs = ["smoke", "count", "count"]
             aggcols = ["rtt", "rtt", "timestamp"]
         else:
@@ -38,17 +48,29 @@ class AmpDns(Collection):
         return aggcols, aggfuncs
 
     def calculate_binsize(self, start, end, detail):
+        """
+        Determines an appropriate binsize for a graph covering the
+        specified time period.
+        """
         if (end - start) / 60.0 < 200:
             return 60
 
         return super(AmpDns, self).calculate_binsize(start, end, detail)
 
     def prepare_stream_for_storage(self, stream):
+        """
+        Performs any necessary conversions on the stream properties so
+        that it can be inserted into a stream manager hierarchy.
+        """
         if 'address' not in stream:
             return stream, {}
-        return stream, {'address':stream['address']}
+        return stream, {'address': stream['address']}
 
     def get_legend_label(self, description):
+        """
+        Converts a group description string into an appropriate label for
+        placing on a graph legend.
+        """
         groupparams = self.parse_group_description(description)
         if groupparams is None:
             log("Failed to parse group description to generate legend label")
@@ -112,10 +134,17 @@ class AmpDns(Collection):
         else:
             famstreams = []
 
-        return {'labelstring':key, 'streams':famstreams,
-                'shortlabel':shortlabel}
+        return {
+            'labelstring': key,
+            'streams': famstreams,
+            'shortlabel': shortlabel
+        }
 
     def group_to_labels(self, groupid, description, lookup=True):
+        """
+        Converts a group description string into a set of labels describing
+        each of the lines that would need to be drawn on a graph for that group.
+        """
         labels = []
 
         groupparams = self.parse_group_description(description)
@@ -124,15 +153,16 @@ class AmpDns(Collection):
             return None
 
         baselabel = 'group_%s' % (groupid)
-        search = {'source':groupparams['source'],
-                'destination':groupparams['destination'],
-                'query':groupparams['query'],
-                'query_type':groupparams['query_type'],
-                'query_class':groupparams['query_class'],
-                'udp_payload_size':int(groupparams['udp_payload_size']),
-                'recurse':False,
-                'dnssec':False,
-                'nsid':False,
+        search = {
+            'source': groupparams['source'],
+            'destination': groupparams['destination'],
+            'query': groupparams['query'],
+            'query_type': groupparams['query_type'],
+            'query_class': groupparams['query_class'],
+            'udp_payload_size': int(groupparams['udp_payload_size']),
+            'recurse': False,
+            'dnssec': False,
+            'nsid': False,
         }
 
         if groupparams["flags"][0] == "T":
@@ -149,8 +179,11 @@ class AmpDns(Collection):
 
             # Discard the addresses stored with each stream
             streams = [item[0] for item in streams]
-            lab = {'labelstring':baselabel, 'streams':streams,
-                    'shortlabel':'All instances'}
+            lab = {
+                'labelstring': baselabel,
+                'streams': streams,
+                'shortlabel': 'All instances'
+            }
             labels.append(lab)
         elif groupparams['aggregation'] in ["FAMILY", "IPV4", "IPV6"]:
             if groupparams['aggregation'] != "IPV6":
@@ -175,15 +208,21 @@ class AmpDns(Collection):
                     log("Error: no address stored with stream id %s" % (sid))
                     return None
                 address = store['address']
-                nextlab = {'labelstring':baselabel + "_" + address,
-                        'streams':[sid],
-                        'shortlabel':'%s (%s)' % (groupparams['destination'], \
-                                address)}
+                nextlab = {
+                    'labelstring': baselabel + "_" + address,
+                    'streams': [sid],
+                    'shortlabel': '%s (%s)' % (groupparams['destination'], \
+                                address)
+                }
                 labels.append(nextlab)
 
         return sorted(labels, key=itemgetter('shortlabel'))
 
     def create_group_description(self, properties):
+        """
+        Converts a dictionary of stream or group properties into a string
+        describing the group.
+        """
         # Put in a suitable aggregation method if one is not present, i.e.
         # we are converting a stream into a group
         if 'aggregation' not in properties:
@@ -193,16 +232,20 @@ class AmpDns(Collection):
         if 'flags' not in properties:
             properties['flags'] = self._create_flag_string(properties)
 
-        for p in self.groupproperties:
-            if p not in properties:
+        for prop in self.groupproperties:
+            if prop not in properties:
                 log("Required group property '%s' not present in %s group" % \
-                        (p, self.collection_name))
+                        (prop, self.collection_name))
                 return None
 
         return "FROM %s TO %s OPTION %s %s %s %s %s %s" % \
                 tuple([properties[x] for x in self.groupproperties])
 
     def parse_group_description(self, description):
+        """
+        Converts a group description string into a dictionary mapping
+        group properties to their values.
+        """
         regex = "FROM (?P<source>[.a-zA-Z0-9-]+) "
         regex += "TO (?P<destination>[.a-zA-Z0-9-:]+) "
         regex += "OPTION (?P<query>[a-zA-Z0-9.]+) (?P<type>[A-Z]+) "
@@ -236,7 +279,10 @@ class AmpDns(Collection):
 
     def update_matrix_groups(self, cache, source, dest, split, groups, views,
             viewmanager, viewstyle):
-
+        """
+        Finds all of the groups that need to queried to populate a matrix cell,
+        including the stream ids of the group members.
+        """
         # Firstly, we want to try to populate our matrix cell using streams
         # where the target DNS server is the authoritative server, if
         # any such streams are available. This can be done by looking for
@@ -255,7 +301,9 @@ class AmpDns(Collection):
         # for each non-authoritative server but surely we can manage
         # to do this.
         groupprops = {
-            'source':source, 'destination':dest, 'recurse':False
+            'source': source,
+            'destination': dest,
+            'recurse': False
         }
 
         # TODO should check if there are missing properties that prevented
@@ -320,14 +368,14 @@ class AmpDns(Collection):
         # Add the two new groups
         if len(v4streams) > 0:
             groups.append({
-                'labelstring':'%s_%s_ipv4' % (source, dest),
-                'streams':v4streams
+                'labelstring': '%s_%s_ipv4' % (source, dest),
+                'streams': v4streams
             })
 
         if len(v6streams) > 0:
             groups.append({
-                'labelstring':'%s_%s_ipv6' % (source, dest),
-                'streams':v6streams
+                'labelstring': '%s_%s_ipv6' % (source, dest),
+                'streams': v6streams
             })
 
         viewid = cache.search_matrix_view(cachelabel)
@@ -349,7 +397,7 @@ class AmpDns(Collection):
             cache.store_matrix_view(cachelabel, cellview, cachetime)
 
     def _create_flag_string(self, properties):
-
+        """ Convert test flags into short string to use in test description """
         flags = ""
         if 'recurse' in properties and properties['recurse'] is True:
             flags += "T"
@@ -367,4 +415,5 @@ class AmpDns(Collection):
             flags += "F"
 
         return flags
+
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :

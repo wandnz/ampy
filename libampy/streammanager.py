@@ -1,5 +1,5 @@
 import re
-from libnntscclient.logger import *
+from libnntscclient.logger import log
 
 class StreamManager(object):
     """
@@ -294,6 +294,5 @@ class StreamManager(object):
         res = {'maxitems': len(result), 'items': filtered}
 
         return requested, res
-
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :

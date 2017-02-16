@@ -1,23 +1,23 @@
-from libnntscclient.logger import *
+from libnntscclient.logger import log
 from libampy.collections.ampthroughput import AmpThroughput
 
 class AmpUdpstream(AmpThroughput):
-
     def __init__(self, colid, viewmanager, nntscconf):
         super(AmpUdpstream, self).__init__(colid, viewmanager, nntscconf)
 
-        self.streamproperties = ['source', 'destination', 'dscp',
-                'packet_size', 'packet_spacing', 'packet_count', 'direction',
-                'family']
+        self.streamproperties = [
+            'source', 'destination', 'dscp', 'packet_size', 'packet_spacing',
+            'packet_count', 'direction', 'family'
+            ]
         self.groupproperties = self.streamproperties
-        self.integerproperties = ['packet_size', 'packet_spacing',
-                'packet_count']
+        self.integerproperties = [
+            'packet_size', 'packet_spacing', 'packet_count'
+        ]
         self.collection_name = "amp-udpstream"
         self.viewstyle = "amp-udpstream"
 
         self.default_size = 100
         self.default_spacing = 20000
-        self.default_count = 101
         self.default_dscp = "Default"
 
         self.dirlabels = {"in": "Inward", "out": "Outward"}
@@ -28,24 +28,27 @@ class AmpUdpstream(AmpThroughput):
         return 0
 
     def detail_columns(self, detail):
-        if detail == "jitter" or detail == "jitter-summary" or detail == "raw":
-            aggcols = ["min_jitter", "jitter_percentile_10",
-                    "jitter_percentile_20",
-                    "jitter_percentile_30",
-                    "jitter_percentile_40",
-                    "jitter_percentile_50",
-                    "jitter_percentile_60",
-                    "jitter_percentile_70",
-                    "jitter_percentile_80",
-                    "jitter_percentile_90",
-                    "jitter_percentile_100"
+        if detail in ["jitter", "jitter-summary", "raw"]:
+            aggcols = [
+                "min_jitter", "jitter_percentile_10",
+                "jitter_percentile_20",
+                "jitter_percentile_30",
+                "jitter_percentile_40",
+                "jitter_percentile_50",
+                "jitter_percentile_60",
+                "jitter_percentile_70",
+                "jitter_percentile_80",
+                "jitter_percentile_90",
+                "jitter_percentile_100"
             ]
             aggmethods = ['mean'] * len(aggcols)
             return (aggcols, aggmethods)
 
         if detail == "matrix":
-            aggcols = ['packets_sent', 'packets_recvd', 'mean_rtt', 'mean_rtt',
-                    'mean_rtt']
+            aggcols = [
+                'packets_sent', 'packets_recvd', 'mean_rtt', 'mean_rtt',
+                'mean_rtt'
+            ]
             aggmethods = ['sum', 'sum', 'avg', 'stddev', 'count']
             return (aggcols, aggmethods)
 
@@ -54,7 +57,7 @@ class AmpUdpstream(AmpThroughput):
             aggmethods = ['sum', 'sum', 'avg']
             return (aggcols, aggmethods)
 
-        return ( \
+        return (
             ["mean_jitter", "mean_rtt", "packets_recvd", "packets_sent"],
             ["mean", "mean", "sum", "sum"],
         )
@@ -74,9 +77,7 @@ class AmpUdpstream(AmpThroughput):
             binsize = 4800
         else:
             binsize = 14400
-
         return binsize
-
 
     def create_group_description(self, properties):
         if 'direction' not in properties:
@@ -85,10 +86,10 @@ class AmpUdpstream(AmpThroughput):
             properties['family'] = \
                     self._address_to_family(properties['address'])
 
-        for p in self.groupproperties:
-            if p not in properties:
+        for prop in self.groupproperties:
+            if prop not in properties:
                 log("Required group property '%s' not present in %s group" % \
-                        (p, self.collection_name))
+                        (prop, self.collection_name))
                 return None
 
         properties['direction'] = properties['direction'].upper()
@@ -100,35 +101,33 @@ class AmpUdpstream(AmpThroughput):
                    properties['packet_spacing'], properties['packet_count'],
                    properties['direction'], properties['family'])
 
-
     def get_legend_label(self, description):
-        gps = self.parse_group_description(description)
-        if gps is None:
+        groupparams = self.parse_group_description(description)
+        if groupparams is None:
             log("Failed to parse group description to generate %s legend label" % (self.collection_name))
             return None, ""
 
-        if gps['family'] == "IPV4":
+        if groupparams['family'] == "IPV4":
             family = "IPv4"
-        elif gps['family'] == "IPV6":
+        elif groupparams['family'] == "IPV6":
             family = "IPv6"
-        elif gps['family'] == "FAMILY":
+        elif groupparams['family'] == "FAMILY":
             family = "IPv4/IPv6"
         else:
             family = ""
 
-        if gps['direction'] == "BOTH":
+        if groupparams['direction'] == "BOTH":
             dirstr = ""
-        elif gps['direction'] == "IN":
+        elif groupparams['direction'] == "IN":
             dirstr = " Inward"
         else:
             dirstr = " Outward"
 
-        label = "%s : %s, %s %sB pkts, %s usec apart (DSCP %s)" % \
-                (gps['source'], \
-                gps['destination'], gps['packet_count'], gps['packet_size'], \
-                gps['packet_spacing'], gps['dscp'])
+        label = "%s : %s, %s %sB pkts, %s usec apart (DSCP %s)" % (
+                groupparams['source'], groupparams['destination'],
+                groupparams['packet_count'], groupparams['packet_size'],
+                groupparams['packet_spacing'], groupparams['dscp'])
         return label, "%s%s" % (family, dirstr)
-
 
     def parse_group_description(self, description):
         regex = "FROM (?P<source>[.a-zA-Z0-9-]+) "
@@ -170,9 +169,13 @@ class AmpUdpstream(AmpThroughput):
     def update_matrix_groups(self, cache, source, dest, split, groups, views,
             viewmanager, viewstyle):
 
-        baseprop = {'source': source, 'destination': dest,
-                'dscp': self.default_dscp, 'packet_size': self.default_size,
-                'packet_spacing': self.default_spacing}
+        baseprop = {
+            'source': source,
+            'destination': dest,
+            'dscp': self.default_dscp,
+            'packet_size': self.default_size,
+            'packet_spacing': self.default_spacing
+        }
         sels = self.streammanager.find_selections(baseprop, "", "1", 30000,
                 False)
         if sels is None:
@@ -191,10 +194,10 @@ class AmpUdpstream(AmpThroughput):
         poss = [c['text'] for c in counts['items']]
         baseprop['packet_count'] = max(poss)
 
-        v4 = self._matrix_group_streams(baseprop, "out", "ipv4", groups)
-        v6 = self._matrix_group_streams(baseprop, "out", "ipv6", groups)
+        ipv4 = self._matrix_group_streams(baseprop, "out", "ipv4", groups)
+        ipv6 = self._matrix_group_streams(baseprop, "out", "ipv6", groups)
 
-        if v4 == 0 and v6 == 0:
+        if ipv4 == 0 and ipv6 == 0:
             views[(source, dest)] = -1
             return
 
@@ -207,21 +210,19 @@ class AmpUdpstream(AmpThroughput):
 
         cachelabel = "_".join([viewstyle, self.collection_name, source,
                 dest, split, "out"])
-        v = cache.search_matrix_view(cachelabel)
-        if v is not None:
-            views[(source, dest)] = v
+        view = cache.search_matrix_view(cachelabel)
+        if view is not None:
+            views[(source, dest)] = view
             return
-        
-        v = self._add_matrix_group(baseprop, "OUT", split, viewmanager,
+
+        view = self._add_matrix_group(baseprop, "OUT", split, viewmanager,
                 viewstyle)
-        if v == -1:
+        if view == -1:
             cachetime = 300
         else:
             cachetime = 0
-        views[(source, dest)] = v
-        cache.store_matrix_view(cachelabel, v, cachetime)
-
-        return
+        views[(source, dest)] = view
+        cache.store_matrix_view(cachelabel, view, cachetime)
 
     def _matrix_group_streams(self, baseprops, direction, family, groups):
 
@@ -236,22 +237,22 @@ class AmpUdpstream(AmpThroughput):
                     'streams': [x[0] for x in streams]})
         return len(streams)
 
-
     def _add_matrix_group(self, props, split, family, viewmanager, viewstyle):
-        cg = self.create_group_from_list([props['source'], props['destination'],
-                props['dscp'], props['packet_size'], props['packet_spacing'],
-                props['packet_count'], split, family.upper()])
-        if cg is None:
+        cellgroup = self.create_group_from_list(
+            [props['source'], props['destination'],
+            props['dscp'], props['packet_size'], props['packet_spacing'],
+            props['packet_count'], split, family.upper()]
+        )
+        if cellgroup is None:
             log("Failed to create %s group for %s matrix cell" % \
                     (family, self.collection_name))
             return -1
 
         viewid = viewmanager.add_groups_to_view(viewstyle, \
-                self.collection_name, 0, [cg])
+                self.collection_name, 0, [cellgroup])
 
         if viewid is None:
             return -1
         return viewid
-
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :

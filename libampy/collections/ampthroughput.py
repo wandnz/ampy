@@ -1,13 +1,15 @@
 from operator import itemgetter
-from libnntscclient.logger import *
+from libnntscclient.logger import log
 from libampy.collection import Collection
 
 class AmpThroughput(Collection):
     def __init__(self, colid, viewmanager, nntscconf):
         super(AmpThroughput, self).__init__(colid, viewmanager, nntscconf)
 
-        self.streamproperties = ['source', 'destination',
-                'duration', 'writesize', 'tcpreused', 'direction', 'family']
+        self.streamproperties = [
+            'source', 'destination', 'duration', 'writesize', 'tcpreused',
+            'direction', 'family'
+        ]
         self.groupproperties = self.streamproperties
         self.integerproperties = ['duration', 'writesize']
         self.collection_name = "amp-throughput"
@@ -19,10 +21,8 @@ class AmpThroughput(Collection):
         self.dirlabels = {"in": "Download", "out": "Upload"}
 
     def detail_columns(self, detail):
-
         aggfuncs = ["sum", "sum", "sum", "stddev"]
         aggcols = ["bytes", "packets", "runtime", "rate"]
-
         return aggcols, aggfuncs
 
     def calculate_binsize(self, start, end, detail):
@@ -67,12 +67,11 @@ class AmpThroughput(Collection):
             properties['family'] = \
                     self._address_to_family(properties['address'])
 
-        for p in self.groupproperties:
-            if p not in properties:
+        for prop in self.groupproperties:
+            if prop not in properties:
                 log("Required group property '%s' not present in %s group" % \
-                        (p, self.collection_name))
+                        (prop, self.collection_name))
                 return None
-
 
         properties['direction'] = properties['direction'].upper()
         properties['family'] = properties['family'].upper()
@@ -83,35 +82,34 @@ class AmpThroughput(Collection):
                    properties['direction'], properties['family'])
 
     def get_legend_label(self, description):
-        gps = self.parse_group_description(description)
-        if gps is None:
+        groupparams = self.parse_group_description(description)
+        if groupparams is None:
             log("Failed to parse group description to generate legend label")
             return None
 
-        if gps["tcpreused"] is True:
+        if groupparams["tcpreused"] is True:
             reuse = "+reuse"
         else:
             reuse = ""
 
-        source = gps['source']
-        dest = gps['destination']
+        source = groupparams['source']
+        dest = groupparams['destination']
 
-        if gps['family'] == "IPV4":
+        if groupparams['family'] == "IPV4":
             family = "IPv4"
-        elif gps['family'] == "IPV6":
+        elif groupparams['family'] == "IPV6":
             family = "IPv6"
-        elif gps['family'] == "BOTH":
+        elif groupparams['family'] == "BOTH":
             family = "IPv4/IPv6"
         else:
             family = ""
 
-        durationsecs = gps['duration'] / 1000.0
-        kilobytes = gps['writesize'] / 1024.0
+        durationsecs = groupparams['duration'] / 1000.0
+        kilobytes = groupparams['writesize'] / 1024.0
 
-
-        if gps['direction'] == "BOTH":
+        if groupparams['direction'] == "BOTH":
             dirstr = ""
-        elif gps['direction'] == "IN":
+        elif groupparams['direction'] == "IN":
             dirstr = " Download"
         else:
             dirstr = " Upload"
@@ -173,16 +171,16 @@ class AmpThroughput(Collection):
         labels = []
 
         if family in ["BOTH", "FAMILY", "IPV4"]:
-            lab = self._generate_family_label(key, search, "IPv4", lookup)
-            if lab is None:
+            label = self._generate_family_label(key, search, "IPv4", lookup)
+            if label is None:
                 return None
-            labels.append(lab)
+            labels.append(label)
 
         if family in ["BOTH", "FAMILY", "IPV6"]:
-            lab = self._generate_family_label(key, search, "IPv6", lookup)
-            if lab is None:
+            label = self._generate_family_label(key, search, "IPv6", lookup)
+            if label is None:
                 return None
-            labels.append(lab)
+            labels.append(label)
 
         if family == "NONE":
             streams = self.streammanager.find_streams(search)
@@ -200,9 +198,12 @@ class AmpThroughput(Collection):
                 else:
                     streamlabel = "%s to %s" % (store['local'], store['remote'])
 
-                lab = {'labelstring':key + "_" + str(sid),
-                        'streams':[sid], 'shortlabel':streamlabel}
-                labels.append(lab)
+                label = {
+                    'labelstring': key + "_" + str(sid),
+                    'streams': [sid],
+                    'shortlabel': streamlabel
+                }
+                labels.append(label)
 
         return labels
 
@@ -225,8 +226,11 @@ class AmpThroughput(Collection):
         else:
             famstreams = []
 
-        return {'labelstring':key, 'streams':famstreams,
-                'shortlabel':shortlabel}
+        return {
+            'labelstring': key,
+            'streams': famstreams,
+            'shortlabel': shortlabel
+        }
 
     def group_to_labels(self, groupid, description, lookup=True):
         labels = []
@@ -243,34 +247,36 @@ class AmpThroughput(Collection):
         del search['family']
 
         if groupparams['direction'] in ['IN', 'BOTH']:
-            lab = self._generate_direction_labels(baselabel, search, 'in',
+            label = self._generate_direction_labels(baselabel, search, 'in',
                     groupparams['family'], lookup)
-            if lab is None:
+            if label is None:
                 return None
-            labels += lab
+            labels += label
 
 
         if groupparams['direction'] in ['OUT', 'BOTH']:
-            lab = self._generate_direction_labels(baselabel, search, 'out',
+            label = self._generate_direction_labels(baselabel, search, 'out',
                     groupparams['family'], lookup)
-            if lab is None:
+            if label is None:
                 return None
-            labels += lab
+            labels += label
 
         return sorted(labels, key=itemgetter('shortlabel'))
 
     def update_matrix_groups(self, cache, source, dest, split, groups, views,
             viewmanager, viewstyle):
-        groupprops = {'source': source, 'destination': dest,
-                'duration':self.default_duration,
-                'writesize': self.default_writesize, 'tcpreused': False,
-                }
+        groupprops = {
+            'source': source,
+            'destination': dest,
+            'duration': self.default_duration,
+            'writesize': self.default_writesize,
+            'tcpreused': False,
+        }
 
         tputin4 = self._matrix_group_streams(groupprops, "in", "ipv4", groups)
         tputout4 = self._matrix_group_streams(groupprops, "out", "ipv4", groups)
         tputin6 = self._matrix_group_streams(groupprops, "in", "ipv6", groups)
         tputout6 = self._matrix_group_streams(groupprops, "out", "ipv6", groups)
-
 
         if tputin4 == 0 and tputout4 == 0:
             views[(source, dest, "ipv4")] = -1
@@ -290,10 +296,10 @@ class AmpThroughput(Collection):
 
         if tputin4 != 0 or tputout4 != 0:
             # XXX this could become a function
-            cg = self.create_group_from_list([source, dest,
+            cellgroup = self.create_group_from_list([source, dest,
                     self.default_duration,
                     self.default_writesize, False, split, "IPV4"])
-            if cg is None:
+            if cellgroup is None:
                 log("Failed to create group for %s matrix cell" % \
                         (self.collection_name))
                 return None
@@ -305,7 +311,7 @@ class AmpThroughput(Collection):
                 views[(source, dest, "ipv4")] = viewid
             else:
                 viewid = viewmanager.add_groups_to_view(viewstyle,
-                        self.collection_name, 0, [cg])
+                        self.collection_name, 0, [cellgroup])
 
                 if viewid is None:
                     views[(source, dest, "ipv4")] = -1
@@ -315,10 +321,10 @@ class AmpThroughput(Collection):
                     cache.store_matrix_view(cachelabel, viewid, 0)
 
         if tputin6 != 0 or tputout6 != 0:
-            cg = self.create_group_from_list([source, dest,
+            cellgroup = self.create_group_from_list([source, dest,
                     self.default_duration,
                     self.default_writesize, False, split, "IPV6"])
-            if cg is None:
+            if cellgroup is None:
                 log("Failed to create group for %s matrix cell" % \
                         (self.collection_name))
                 return None
@@ -330,7 +336,7 @@ class AmpThroughput(Collection):
                 views[(source, dest, "ipv6")] = viewid
             else:
                 viewid = viewmanager.add_groups_to_view(viewstyle,
-                        self.collection_name, 0, [cg])
+                        self.collection_name, 0, [cellgroup])
 
                 if viewid is None:
                     views[(source, dest, "ipv6")] = -1
@@ -338,7 +344,6 @@ class AmpThroughput(Collection):
                 else:
                     views[(source, dest, "ipv6")] = viewid
                     cache.store_matrix_view(cachelabel, viewid, 0)
-
 
     def _matrix_group_streams(self, baseprops, direction, family, groups):
 
@@ -349,9 +354,11 @@ class AmpThroughput(Collection):
         streams = self.streammanager.find_streams(baseprops)
 
         if len(streams) > 0:
-            groups.append({'labelstring':label, 'streams': [x[0] for x in streams]})
+            groups.append({
+                'labelstring': label,
+                'streams': [x[0] for x in streams]
+            })
 
         return len(streams)
-
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :

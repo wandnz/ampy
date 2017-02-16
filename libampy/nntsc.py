@@ -1,7 +1,7 @@
 import socket
 import time
 from libnntscclient.protocol import *
-from libnntscclient.logger import *
+from libnntscclient.logger import log
 from libnntscclient.nntscclient import NNTSCClient
 
 class NNTSCConnection(object):
@@ -63,7 +63,7 @@ class NNTSCConnection(object):
         if self.client is not None:
             return self.client
         try:
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         except socket.error, msg:
             log("Failed to create socket: %s" % (msg[1]))
             return None
@@ -78,7 +78,7 @@ class NNTSCConnection(object):
                 time.sleep(30)
 
             try:
-                s.connect((self.host, self.port))
+                sock.connect((self.host, self.port))
                 connected = True
             except socket.error, msg:
                 log("Failed to connect to %s:%d -- %s" % (
@@ -89,7 +89,7 @@ class NNTSCConnection(object):
             log("Unable to connect to NNTSC after numerous attempts")
             return None
 
-        self.client = NNTSCClient(s)
+        self.client = NNTSCClient(sock)
         return self.client
 
     def _disconnect(self):
@@ -154,7 +154,6 @@ class NNTSCConnection(object):
 
         self._disconnect()
         return None
-
 
     def request_streams(self, colid, reqtype, boundary):
         """
@@ -371,6 +370,5 @@ class NNTSCConnection(object):
                     count += 1
         self._disconnect()
         return data
-
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :

@@ -1,6 +1,6 @@
 from threading import Lock
 from libampy.database import AmpyDatabase
-from libnntscclient.logger import *
+from libnntscclient.logger import log
 
 class ViewManager(object):
     """
@@ -268,10 +268,10 @@ class ViewManager(object):
         for vgs in groups.itervalues():
             existing += [x[0] for x in vgs]
 
-        for d in descriptions:
+        for description in descriptions:
 
             # Find the group ID for the group we are about to add
-            groupid = self.get_group_id(collection, d)
+            groupid = self.get_group_id(collection, description)
             if groupid is None:
                 return None
 

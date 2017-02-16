@@ -1,8 +1,7 @@
 from libampy.database import AmpyDatabase
-from libnntscclient.logger import *
+from libnntscclient.logger import log
 
 class ASNManager(object):
-
     def __init__(self, asdbconfig, cache):
         if asdbconfig is None:
             asdbconfig = {}
@@ -15,7 +14,6 @@ class ASNManager(object):
         self.cache = cache
 
     def queryDatabase(self, asn):
-
         if asn == "" or int(asn) < 0:
             return None
 
@@ -40,10 +38,7 @@ class ASNManager(object):
         return asname
 
     def getASNsByName(self, pagesize=30, offset=0, term=""):
-
         # sanitize the term so we don't get sql-injected
-
-
         query = """SELECT count(*) FROM asmap WHERE CAST(asn AS TEXT) ILIKE
                 %s OR asname ILIKE %s"""
         params = ("%" + term + "%", "%" + term + "%")
@@ -71,7 +66,6 @@ class ASNManager(object):
                 break
         self.db.closecursor()
         return ascount, allasns
-
 
     def queryASNames(self, toquery):
         asnames = {}

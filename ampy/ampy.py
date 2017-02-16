@@ -2,7 +2,6 @@ import operator
 
 from libampy.ampmesh import AmpMesh
 from libampy.viewmanager import ViewManager
-from libampy.collection import Collection
 from libampy.nntsc import NNTSCConnection
 from libampy.cache import AmpyCache
 from libampy.eventmanager import EventManager

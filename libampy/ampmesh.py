@@ -1,7 +1,7 @@
 import time
 from threading import Lock
 from libampy.database import AmpyDatabase
-from libnntscclient.logger import *
+from libnntscclient.logger import log
 
 class AmpMesh(object):
     """
@@ -806,7 +806,6 @@ class AmpMesh(object):
         self.dblock.release()
         return count > 0
 
-    # TODO
     # XXX expects the db lock to be held by caller, so we can update
     # this at the same time as the modifications get made
     # XXX do something useful with return values so we don't carry on after
@@ -928,11 +927,21 @@ class AmpMesh(object):
             dest_meshes = [] if row[9] is None else row[9].split(",")
             source_sites = [] if row[8] is None else row[8].split(",")
             dest_sites = [] if row[10] is None else row[10].split(",")
-            schedule.append({'id':row[0], 'test':row[1], 'enabled':row[11],
-                    'frequency':row[2], 'start':row[3], 'mesh_offset':row[12],
-                    'end':row[4], 'period':row[5], 'args':row[6],
-                    'source_mesh':source_meshes, 'source_site':source_sites,
-                    'dest_mesh':dest_meshes, 'dest_site':dest_sites})
+            schedule.append({
+                'id': row[0],
+                'test': row[1],
+                'enabled': row[11],
+                'frequency': row[2],
+                'start': row[3],
+                'mesh_offset': row[12],
+                'end':row[4],
+                'period':row[5],
+                'args':row[6],
+                'source_mesh': source_meshes,
+                'source_site': source_sites,
+                'dest_mesh': dest_meshes,
+                'dest_site': dest_sites
+            })
 
         self.db.closecursor()
         if lock:

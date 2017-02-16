@@ -1,20 +1,21 @@
-from libnntscclient.logger import *
+from libnntscclient.logger import log
 from libampy.collections.ampicmp import AmpIcmp
 
 class AmpTraceroute(AmpIcmp):
     def __init__(self, colid, viewmanager, nntscconf, asnmanager):
         super(AmpTraceroute, self).__init__(colid, viewmanager, nntscconf)
 
-        self.streamproperties = ['source', 'destination', 'packet_size',
-                'family']
-        self.groupproperties = ['source', 'destination', 'packet_size',
-                'aggregation']
+        self.streamproperties = [
+            'source', 'destination', 'packet_size', 'family'
+        ]
+        self.groupproperties = [
+            'source', 'destination', 'packet_size', 'aggregation'
+        ]
         self.collection_name = "amp-traceroute"
         self.default_packet_size = "60"
-        self.default_aggregation = "FAMILY"
         self.viewstyle = "amp-traceroute"
-
         self.asnmanager = asnmanager
+
     def group_columns(self, detail):
         if detail == "ippaths":
             return ['aspath', 'path']
@@ -40,7 +41,6 @@ class AmpTraceroute(AmpIcmp):
 
     def get_collection_history(self, cache, labels, start, end, detail,
             binsize):
-
         # Save the cache because we'll want it for our AS name lookups
         if detail != "ippaths":
             return super(AmpTraceroute, self).get_collection_history(cache,
@@ -78,8 +78,7 @@ class AmpTraceroute(AmpIcmp):
                 formatted = self.format_list_data(queryresult['data'],
                         queryresult['freq'], detail)
 
-                cachelabel = lab['labelstring'] + "_ippaths_" + \
-                        self.collection_name
+                cachelabel = label + "_ippaths_" + self.collection_name
                 if len(cachelabel) > 128:
                     log("Warning: ippath cache label %s is too long" % \
                             (cachelabel))
@@ -90,8 +89,8 @@ class AmpTraceroute(AmpIcmp):
 
     def format_list_data(self, datalist, freq, detail):
         reslist = []
-        for d in datalist:
-            reslist.append(self.format_single_data(d, freq, detail))
+        for data in datalist:
+            reslist.append(self.format_single_data(data, freq, detail))
         return reslist
 
     def format_single_data(self, data, freq, detail):
@@ -112,7 +111,6 @@ class AmpTraceroute(AmpIcmp):
 
             if asnsplit[1] == "-2":
                 aslabel = asname = "RFC 1918"
-
             elif asnsplit[1] == "-1":
                 aslabel = asname = "No response"
             elif asnsplit[1] == "0":
@@ -158,7 +156,6 @@ class AmpTraceroute(AmpIcmp):
         if 'aggregation' not in groupprops or groupprops['aggregation'] \
                     not in ["IPV4", "IPV6"]:
             return None
-
         return super(AmpTraceroute, self).translate_group(groupprops)
 
     def get_legend_label(self, description):
@@ -175,6 +172,7 @@ class AmpTraceroute(AmpIcmp):
                 groupparams['destination'])
         return label, self.splits[groupparams['aggregation']]
 
+
 class AmpTraceroutePathlen(AmpTraceroute):
     def __init__(self, colid, viewmanager, nntscconf, asnmanager):
         super(AmpTraceroutePathlen, self).__init__(colid, viewmanager,
@@ -182,11 +180,9 @@ class AmpTraceroutePathlen(AmpTraceroute):
 
         self.collection_name = "amp-traceroute_pathlen"
         self.viewstyle = "amp-traceroutelength"
-        self.default_aggregation = "FAMILY"
 
     def get_maximum_view_groups(self):
         return 0
-
 
     def detail_columns(self, detail):
         if detail in ["matrix", "basic", "tooltiptext", "spark", "raw"]:
@@ -203,13 +199,13 @@ class AmpTraceroutePathlen(AmpTraceroute):
             return 2
         return 0
 
+
 class AmpAsTraceroute(AmpTraceroute):
     def __init__(self, colid, viewmanager, nntscconf, asnmanager):
         super(AmpAsTraceroute, self).__init__(colid, viewmanager, nntscconf,
                 asnmanager)
         self.collection_name = "amp-astraceroute"
         self.viewstyle = "amp-astraceroute"
-        self.default_aggregation = "FAMILY"
 
     def get_maximum_view_groups(self):
         return 1
@@ -227,7 +223,6 @@ class AmpAsTraceroute(AmpTraceroute):
         else:
             aggfuncs = ["smoke"]
             aggcols = ["responses"]
-
         return aggcols, aggfuncs
 
     def extra_blocks(self, detail):
@@ -245,6 +240,6 @@ class AmpAsTraceroute(AmpTraceroute):
         if 'aggregation' not in groupprops or groupprops['aggregation'] \
                     not in ["IPV4", "IPV6"]:
             return None
-
         return super(AmpAsTraceroute, self).translate_group(groupprops)
+
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :

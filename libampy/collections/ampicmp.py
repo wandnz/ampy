@@ -1,23 +1,24 @@
 from operator import itemgetter
-from libnntscclient.logger import *
+from libnntscclient.logger import log
 from libampy.collection import Collection
 
 class AmpIcmp(Collection):
     def __init__(self, colid, viewmanager, nntscconf):
-
         super(AmpIcmp, self).__init__(colid, viewmanager, nntscconf)
-        self.streamproperties = ['source', 'destination', 'packet_size', \
-                'family']
-        self.groupproperties = ['source', 'destination', 'packet_size', \
-                'aggregation']
+        self.streamproperties = [
+            'source', 'destination', 'packet_size', 'family'
+        ]
+        self.groupproperties = [
+            'source', 'destination', 'packet_size', 'aggregation'
+        ]
         self.collection_name = "amp-icmp"
         self.splits = {
-                "FAMILY":"IPv4/IPv6",
-                "FULL":"All Addresses",
-                "IPV4":"IPv4",
-                "IPV6":"IPv6"}
+            "FAMILY":"IPv4/IPv6",
+            "FULL":"All Addresses",
+            "IPV4":"IPv4",
+            "IPV6":"IPv6"
+        }
         self.default_packet_size = "84"
-        self.default_aggregation = "FAMILY"
         self.viewstyle = "amp-latency"
         self.sizepreferences = [self.default_packet_size]
 
@@ -26,19 +27,17 @@ class AmpIcmp(Collection):
         if detail == "matrix":
             aggfuncs = ["avg", "stddev", "count", "sum", "sum", "stddev"]
             aggcols = ["median", "median", "median", "loss", "results", "lossrate"]
-        elif detail == "basic" or detail == "spark" or detail == "tooltiptext":
+        elif detail in ["basic", "spark", "tooltiptext"]:
             aggfuncs = ["avg", "sum", "sum"]
             aggcols = ["median", "loss", "results"]
         else:
             aggfuncs = ["avg", "smokearray", "sum", "sum"]
             aggcols = ["median", "rtts", "loss", "results"]
-
         return (aggcols, aggfuncs)
 
     def calculate_binsize(self, start, end, detail):
         if (end - start) / 60.0 < 200:
             return 60
-
         return super(AmpIcmp, self).calculate_binsize(start, end, detail)
 
     def get_legend_label(self, description):
@@ -67,16 +66,21 @@ class AmpIcmp(Collection):
                 log("Failed to find streams for label %s, %s" % \
                         (key, self.collection_name))
                 return None
-
         else:
             streams = []
 
-        return {'labelstring':key, 'streams':streams, 'shortlabel':shortlabel}
+        return {
+            'labelstring': key,
+            'streams': streams,
+            'shortlabel': shortlabel
+        }
 
     def _group_to_search(self, groupparams):
-        return {'source':groupparams['source'],
-                'destination':groupparams['destination'],
-                'packet_size':groupparams['packet_size']}
+        return {
+            'source': groupparams['source'],
+            'destination': groupparams['destination'],
+            'packet_size': groupparams['packet_size']
+        }
 
     def group_to_labels(self, groupid, description, lookup=True):
         labels = []
@@ -110,17 +114,16 @@ class AmpIcmp(Collection):
         return sorted(labels, key=itemgetter('shortlabel'))
 
     def create_group_description(self, properties):
-
         # If we're creating a description based on an existing group or
         # stream, we need to convert the 'family' into an appropriate
         # aggregation method.
         if 'family' in properties:
             properties['aggregation'] = properties['family'].upper()
 
-        for p in self.groupproperties:
-            if p not in properties:
+        for prop in self.groupproperties:
+            if prop not in properties:
                 log("Required group property '%s' not present in %s group" % \
-                    (p, self.collection_name))
+                    (prop, self.collection_name))
                 return None
 
         return "FROM %s TO %s OPTION %s %s" % ( \
@@ -128,7 +131,7 @@ class AmpIcmp(Collection):
                 properties['packet_size'], properties['aggregation'].upper())
 
     def parse_group_description(self, description):
-        regex =  "FROM (?P<source>[.a-zA-Z0-9-]+) "
+        regex = "FROM (?P<source>[.a-zA-Z0-9-]+) "
         regex += "TO (?P<destination>[.a-zA-Z0-9-]+) "
         regex += "OPTION (?P<option>[a-zA-Z0-9]+) "
         regex += "(?P<split>[A-Z0-9]+)"
@@ -156,7 +159,7 @@ class AmpIcmp(Collection):
     def update_matrix_groups(self, cache, source, dest, split, groups, views,
             viewmanager, viewstyle):
 
-        baseprop = {'source':source, 'destination':dest}
+        baseprop = {'source': source, 'destination': dest}
 
         sels = self.streammanager.find_selections(baseprop, "", "1", 30000, False)
         if sels is None:
@@ -172,19 +175,19 @@ class AmpIcmp(Collection):
             views[(source, dest)] = -1
             return
 
-        for s in self.sizepreferences:
-            if any(s == found['text'] for found in sizes['items']):
-                baseprop['packet_size'] = s
+        for size in self.sizepreferences:
+            if any(size == found['text'] for found in sizes['items']):
+                baseprop['packet_size'] = size
                 break
 
         if 'packet_size' not in baseprop:
             # Just use the lowest packet size for now
             baseprop['packet_size'] = sizes['items'][0]['text']
 
-        v4 = self._matrix_group_streams(baseprop, 'ipv4', groups)
-        v6 = self._matrix_group_streams(baseprop, 'ipv6', groups)
+        ipv4 = self._matrix_group_streams(baseprop, 'ipv4', groups)
+        ipv6 = self._matrix_group_streams(baseprop, 'ipv6', groups)
 
-        if v4 == 0 and v6 == 0:
+        if ipv4 == 0 and ipv6 == 0:
             views[(source, dest)] = -1
             return
 
@@ -206,8 +209,8 @@ class AmpIcmp(Collection):
         cellgroup = self.create_group_from_list([source, dest,
                 baseprop['packet_size'], split])
         if cellgroup is None:
-            log("Failed to create group for %s matrix cell" % \
-                    (self.collection_name))
+            log("Failed to create group for %s matrix cell" % (
+                        self.collection_name))
             return None
 
         viewid = viewmanager.add_groups_to_view(viewstyle,
@@ -219,22 +222,21 @@ class AmpIcmp(Collection):
             views[(source, dest)] = viewid
             cache.store_matrix_view(cachelabel, viewid, 0)
 
-
     def translate_group(self, groupprops):
-        defaultsize = self.default_packet_size
-
         if 'source' not in groupprops:
             return None
         if 'destination' not in groupprops:
             return None
 
         if 'packet_size' not in groupprops:
-            packetsize = defaultsize
+            packetsize = self.default_packet_size
         else:
             packetsize = groupprops['packet_size']
 
-        newprops = {'source':groupprops['source'],
-                'destination':groupprops['destination']}
+        newprops = {
+            'source': groupprops['source'],
+            'destination': groupprops['destination']
+        }
 
         sels = self.streammanager.find_selections(newprops, "", "1", 10000)
         if sels is None:
@@ -247,39 +249,33 @@ class AmpIcmp(Collection):
                     newprops['destination']))
             return None
 
-        if sizes is None or len(sizes['items']) == 0:
-            packetsize = defaultsize
-        else:
+        if sizes is not None and len(sizes['items']) > 0:
             packetsize = None
-            for i in sizes['items']:
-                if i['text'] == defaultsize:
-                    packetsize = defaultsize
+            for size in sizes['items']:
+                if size['text'] == self.default_packet_size:
+                    packetsize = self.default_packet_size
                     break
-                elif packetsize is None or int(i['text']) < packetsize:
-                    packetsize = i['text']
+                elif packetsize is None or int(size['text']) < packetsize:
+                    packetsize = size['text']
 
         if 'aggregation' not in groupprops:
-            agg = "FAMILY"
+            aggregation = "FAMILY"
         else:
-            agg = groupprops['aggregation']
+            aggregation = groupprops['aggregation']
 
-        newprops['aggregation'] = agg
+        newprops['aggregation'] = aggregation
         newprops['packet_size'] = packetsize
 
         return self.create_group_description(newprops)
 
-    def _matrix_group_streams(self, baseprops, family, groups):
-
-        baseprops['family'] = family
-        label = "%s_%s_%s" % (baseprops['source'], baseprops['destination'],
-                family)
-        streams = self.streammanager.find_streams(baseprops)
+    def _matrix_group_streams(self, props, family, groups):
+        props['family'] = family
+        label = "%s_%s_%s" % (props['source'], props['destination'], family)
+        streams = self.streammanager.find_streams(props)
 
         if len(streams) > 0:
-            groups.append({'labelstring':label, 'streams':streams})
+            groups.append({'labelstring': label, 'streams': streams})
 
         return len(streams)
 
-
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :
-

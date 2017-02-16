@@ -1,7 +1,7 @@
 import time
 import psycopg2
 import psycopg2.extras
-from libnntscclient.logger import *
+from libnntscclient.logger import log
 
 # Generic psycopg2 database code largely borrowed from NNTSC
 
@@ -238,7 +238,6 @@ class AmpyDatabase(object):
         self.cursor = None
         return 0
 
-
     def commit(self):
         """
         Commits the current transaction to the database.
@@ -310,6 +309,5 @@ class AmpyDatabase(object):
             return -1
 
         return 0
-
 
 # vim: set sw=4 tabstop=4 softtabstop=4 expandtab :
