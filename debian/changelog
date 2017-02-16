@@ -1,9 +1,23 @@
+ampy (2.11-1) unstable; urgency=low
+
+  * Cache matrix cell view ids.
+  * Update RRD Smokeping collection to match new stream / data layout.
+  * Removed rrd-muninbytes and lpi-* modules.
+
+ -- Brendon Jones <brendonj@waikato.ac.nz>  Thu, 16 Feb 2017 14:29:12 +1300
+
+ampy (2.10-1) unstable; urgency=low
+
+  * Include new loss and throughput rate stddevs in matrix fetches.
+
+ -- Brendon Jones <brendonj@waikato.ac.nz>  Wed,  1 Feb 2017 11:41:11 +1300
+
 ampy (2.9-1) unstable; urgency=low
 
   * Make sure HTTP matrix queries fetch all the required stats.
   * Update meshtests table for source meshes as well as destination ones.
 
- -- Brendon Jones <brendonj@waikato.ac.nz>  Thu, 19 Jan 2016 16:23:23 +1300
+ -- Brendon Jones <brendonj@waikato.ac.nz>  Thu, 19 Jan 2017 16:23:23 +1300
 
 ampy (2.8-1) unstable; urgency=low
 
