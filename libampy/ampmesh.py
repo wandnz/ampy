@@ -737,7 +737,7 @@ class AmpMesh(object):
             print "source is neither mesh nor site"
             return None
 
-        if dst is None:
+        if dst is None or len(dst) == 0:
             dst_site = None
             dst_mesh = None
         elif self._is_mesh(dst):
