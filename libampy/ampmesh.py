@@ -29,6 +29,7 @@
 #
 
 import time
+import re
 from threading import Lock
 from libampy.database import AmpyDatabase
 from libnntscclient.logger import log
@@ -75,7 +76,7 @@ class AmpMesh(object):
             ampdbconfig['name'] = 'amp2'
         self.dbconfig = ampdbconfig
         self.db = AmpyDatabase(ampdbconfig, True)
-        self.db.connect(15)
+        self.db.connect(15, encoding="UTF8")
         self.dblock = Lock()
 
     def _meshquery(self, query, params, lock=True):
@@ -222,8 +223,13 @@ class AmpMesh(object):
 
         meshes = []
         for row in self.db.cursor.fetchall():
-            meshes.append({'ampname':row[0], 'longname':row[1], \
-                    'description':row[2], 'count':row[3], 'public':row[4]})
+            meshes.append({
+                'ampname': row[0],
+                'longname': row[1].decode("utf-8") if row[1] else row[0],
+                'description': row[2].decode("utf-8") if row[2] else None,
+                'count': row[3],
+                'public': row[4]
+            })
 
         self.db.closecursor()
         self.dblock.release()
@@ -250,8 +256,12 @@ class AmpMesh(object):
             return None
 
         for row in self.db.cursor.fetchall():
-            sites.append({'ampname':row[0], 'longname':row[1], \
-                    'location':row[2], 'description':row[3]})
+            sites.append({
+                'ampname': row[0],
+                'longname': row[1].decode("utf-8") if row[1] else row[0],
+                'location': row[2].decode("utf-8") if row[2] else None,
+                'description': row[3].decode("utf-8") if row[3] else None,
+            })
 
         self.db.closecursor()
         self.dblock.release()
@@ -432,17 +442,25 @@ class AmpMesh(object):
             self.dblock.release()
             return None
 
-        result = self.db.cursor.fetchone()
-        if result is None:
+        row = self.db.cursor.fetchone()
+        if row is None:
             #log("Warning: unable to find site %s in amp database" % (site))
             self.db.closecursor()
             self.dblock.release()
             return unknown
 
-        retdict = dict(result)
+        result = {
+            'ampname': row[0],
+            'longname': row[1].decode("utf-8") if row[1] else row[0],
+            'location': row[2].decode("utf-8") if row[2] else None,
+            'description': row[3].decode("utf-8") if row[3] else None,
+            'active': row[4],
+            'last_schedule_update': row[5],
+        }
+
         self.db.closecursor()
         self.dblock.release()
-        return retdict
+        return result
 
     def get_mesh_info(self, mesh):
         """ Get more detailed and human readable information about a mesh """
@@ -471,16 +489,25 @@ class AmpMesh(object):
             self.dblock.release()
             return None
 
-        result = self.db.cursor.fetchone()
-        if result is None:
+        row = self.db.cursor.fetchone()
+        if row is None:
             self.db.closecursor()
             self.dblock.release()
             return unknown
 
-        retdict = dict(result)
+        result = {
+            'ampname': row[0],
+            'longname': row[1].decode("utf-8") if row[1] else row[0],
+            'description': row[2].decode("utf-8") if row[2] else None,
+            'is_src': row[3],
+            'is_dst': row[4],
+            'active': row[5],
+            'public': row[6],
+        }
+
         self.db.closecursor()
         self.dblock.release()
-        return retdict
+        return result
 
 
     # TODO move schedule stuff into a specific schedule source file?
@@ -632,11 +659,14 @@ class AmpMesh(object):
             self.dblock.release()
         return count
 
-    def _add_basic_site(self, name):
+    def _add_basic_site(self, ampname):
         query = """ INSERT INTO site (site_ampname, site_longname)
                     VALUES (%s, %s) """
-        # remove any suffixes from the name, e.g. !v4 !v6 family specifiers
-        params = (name.split('!', 1)[0], name.split('!', 1)[0])
+
+        if re.search("[^.:/a-z0-9-]", ampname.lower()) is not None:
+            return None
+        params = (ampname.lower(), ampname)
+
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
             log("Error while inserting new site")
@@ -1001,7 +1031,10 @@ class AmpMesh(object):
                         mesh_description, mesh_is_src, mesh_is_dst,
                         mesh_active, mesh_public
                     ) VALUES (%s, %s, %s, false, true, true, %s) """
-        params = (ampname, longname, description, public)
+
+        if re.search("[^.:/a-z0-9-]", ampname.lower()) is not None:
+            return None
+        params = (ampname.lower(), longname, description, public)
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
@@ -1045,7 +1078,10 @@ class AmpMesh(object):
         query = """ INSERT INTO site (site_ampname, site_longname,
                         site_location, site_description, site_active
                     ) VALUES (%s, %s, %s, %s, true) """
-        params = (ampname, longname, location, description)
+
+        if re.search("[^.:/a-z0-9-]", ampname.lower()) is not None:
+            return None
+        params = (ampname.lower(), longname, location, description)
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:

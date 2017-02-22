@@ -117,7 +117,7 @@ class AmpyDatabase(object):
             self.conn.close()
             self.conn = None
 
-    def connect(self, retrywait):
+    def connect(self, retrywait, encoding=None):
         """
         Connects to the database.
 
@@ -143,6 +143,8 @@ class AmpyDatabase(object):
                 self.conn = None
                 time.sleep(retrywait)
 
+        if encoding:
+            self.conn.set_client_encoding(encoding)
         self.conn.autocommit = self.autocommit
 
         if logmessage:
