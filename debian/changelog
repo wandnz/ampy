@@ -1,3 +1,10 @@
+ampy (2.12-1) unstable; urgency=low
+
+  * Correctly insert NULL for empty test destinations (e.g. HTTP test).
+  * Ensure ampname has limited alphabet, allow UTF8 in other fields.
+
+ -- Brendon Jones <brendonj@waikato.ac.nz>  Fri, 24 Feb 2017 11:12:11 +1300
+
 ampy (2.11-1) unstable; urgency=low
 
   * Cache matrix cell view ids.

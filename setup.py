@@ -45,7 +45,7 @@ setup(
     description='Python library for interacting with NNTSC data.',
     packages = find_packages(),
     install_requires=requires,
-    version='2.11',
+    version='2.12',
     author='Shane Alcock, Brendon Jones',
     author_email='contact@wand.net.nz',
     url='http://www.wand.net.nz',
