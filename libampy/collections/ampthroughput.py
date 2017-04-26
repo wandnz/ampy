@@ -37,8 +37,8 @@ class AmpThroughput(Collection):
         super(AmpThroughput, self).__init__(colid, viewmanager, nntscconf)
 
         self.streamproperties = [
-            'source', 'destination', 'duration', 'writesize', 'tcpreused',
-            'direction', 'family'
+            'source', 'destination', 'protocol', 'duration', 'writesize',
+            'tcpreused', 'direction', 'family'
         ]
         self.groupproperties = self.streamproperties
         self.integerproperties = ['duration', 'writesize']
@@ -47,6 +47,7 @@ class AmpThroughput(Collection):
 
         self.default_duration = 10000
         self.default_writesize = 131072
+        self.default_protocol = "default"
 
         self.dirlabels = {"in": "Download", "out": "Upload"}
 
@@ -106,10 +107,11 @@ class AmpThroughput(Collection):
         properties['direction'] = properties['direction'].upper()
         properties['family'] = properties['family'].upper()
 
-        return "FROM %s TO %s DURATION %s WRITESIZE %s %s DIRECTION %s FAMILY %s" \
+        return "FROM %s TO %s DURATION %s WRITESIZE %s %s DIRECTION %s FAMILY %s PROTOCOL %s" \
                 % (properties['source'], properties['destination'],
                    properties['duration'], properties['writesize'], reuse,
-                   properties['direction'], properties['family'])
+                   properties['direction'], properties['family'],
+                   properties['protocol'])
 
     def get_legend_label(self, description):
         groupparams = self.parse_group_description(description)
@@ -144,8 +146,13 @@ class AmpThroughput(Collection):
         else:
             dirstr = " Upload"
 
-        label = "%s : %s for %.1f secs, %.1f kB writes" % (source, dest,
-                durationsecs, kilobytes)
+        if groupparams['protocol'] == "http":
+            protocol = "as HTTP"
+        else:
+            protocol = ""
+
+        label = "%s : %s for %.1f secs, %.1f kB writes, %s" % (source, dest,
+                durationsecs, kilobytes, protocol)
 
         return label, "%s%s" % (family, dirstr)
 
@@ -156,7 +163,8 @@ class AmpThroughput(Collection):
         regex += "WRITESIZE (?P<writesize>[0-9]+) "
         regex += "(?P<reused>[TF]) "
         regex += "DIRECTION (?P<direction>[A-Z]+) "
-        regex += "FAMILY (?P<family>[A-Z0-9]+)"
+        regex += "FAMILY (?P<family>[A-Z0-9]+) "
+        regex += "(PROTOCOL (?P<protocol>[a-zA-Z0-9]+))?"
 
         parts = self._apply_group_regex(regex, description)
         if parts is None:
@@ -172,10 +180,21 @@ class AmpThroughput(Collection):
                     (parts.group('family'), self.collection_name))
             return None
 
+        if parts.group('protocol') is None:
+            # try to be backwards compatible with any old views
+            protocol = self.default_protocol;
+        elif parts.group('protocol') in ['default', 'http']:
+            protocol = parts.group('protocol')
+        else:
+            log("%s is not a valid protocol for a %s group" % \
+                    (parts.group('protocol'), self.collection.name))
+            return None
+
         keydict = {
             'source':  parts.group("source"),
             'destination': parts.group("destination"),
             'family': parts.group("family"),
+            'protocol': protocol,
             'direction': parts.group("direction"),
             'duration': int(parts.group("duration")),
             "writesize": int(parts.group("writesize")),
@@ -298,6 +317,7 @@ class AmpThroughput(Collection):
         groupprops = {
             'source': source,
             'destination': dest,
+            'protocol': self.default_protocol,
             'duration': self.default_duration,
             'writesize': self.default_writesize,
             'tcpreused': False,
@@ -327,6 +347,7 @@ class AmpThroughput(Collection):
         if tputin4 != 0 or tputout4 != 0:
             # XXX this could become a function
             cellgroup = self.create_group_from_list([source, dest,
+                    self.default_protocol,
                     self.default_duration,
                     self.default_writesize, False, split, "IPV4"])
             if cellgroup is None:
@@ -352,6 +373,7 @@ class AmpThroughput(Collection):
 
         if tputin6 != 0 or tputout6 != 0:
             cellgroup = self.create_group_from_list([source, dest,
+                    self.default_protocol,
                     self.default_duration,
                     self.default_writesize, False, split, "IPV6"])
             if cellgroup is None:
