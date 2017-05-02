@@ -401,6 +401,16 @@ class Ampy(object):
     def delete_amp_mesh_member(self, meshname, ampname):
         return self.ampmesh.delete_mesh_member(meshname, ampname)
 
+    def get_flagged_mesh_tests(self, meshname):
+        return self.ampmesh.get_flagged_mesh_tests(meshname)
+
+    def flag_mesh_test(self, meshname, test):
+        return self.ampmesh.flag_mesh_test(meshname, test)
+
+    def unflag_mesh_test(self, meshname, test):
+        return self.ampmesh.unflag_mesh_test(meshname, test)
+
+
     def get_recent_data(self, viewstyle, view_id, duration, detail):
         """
         Fetches summary statistics for each label within a view that
