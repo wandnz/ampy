@@ -1,6 +1,36 @@
+#
+# This file is part of ampy.
+#
+# Copyright (C) 2013-2017 The University of Waikato, Hamilton, New Zealand.
+#
+# Authors: Shane Alcock
+#          Brendon Jones
+#
+# All rights reserved.
+#
+# This code has been developed by the WAND Network Research Group at the
+# University of Waikato. For further information please see
+# http://www.wand.net.nz/
+#
+# ampy is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+#
+# ampy is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with ampy; if not, write to the Free Software Foundation, Inc.
+# 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+#
+# Please report any bugs, questions or comments to contact@wand.net.nz
+#
+
 from threading import Lock
 from libampy.database import AmpyDatabase
-from libnntscclient.logger import *
+from libnntscclient.logger import log
 
 class EventManager(object):
     """
@@ -110,11 +140,11 @@ class EventManager(object):
                 log("Error while fetching events: label has no associated streams")
                 return None
 
-            for s in lab['streams']:
+            for stream in lab['streams']:
 
                 query = "SELECT count(*) FROM eventing.group_membership WHERE"
                 query += " stream = %s"
-                params = (s,)
+                params = (stream,)
 
                 if self.db.executequery(query, params) == -1:
                     log("Error while querying for events")
@@ -124,7 +154,7 @@ class EventManager(object):
                 if self.db.cursor.fetchone()[0] == 0:
                     continue
 
-                stable = "eventing.events_str%s" % (s)
+                stable = "eventing.events_str%s" % (stream)
                 query = "SELECT * FROM " + stable
                 query += " WHERE ts_started >= %s AND ts_started <= %s"
 
@@ -137,19 +167,17 @@ class EventManager(object):
 
                 for row in self.db.cursor.fetchall():
                     events.append(dict(row))
-                    events[-1]['stream'] = s
+                    events[-1]['stream'] = stream
 
                     if 'groupid' in lab:
                         events[-1]['groupid'] = lab['groupid']
                     else:
                         events[-1]['groupid'] = None
 
-
                 self.db.closecursor()
 
         self.dblock.release()
         return events
-
 
     def fetch_groups(self, start, end):
         """
@@ -245,6 +273,5 @@ class EventManager(object):
         self.db.closecursor()
         self.dblock.release()
         return sorted(events, key=lambda s: s['ts_started'])
-
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :

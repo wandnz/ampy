@@ -1,7 +1,37 @@
+#
+# This file is part of ampy.
+#
+# Copyright (C) 2013-2017 The University of Waikato, Hamilton, New Zealand.
+#
+# Authors: Shane Alcock
+#          Brendon Jones
+#
+# All rights reserved.
+#
+# This code has been developed by the WAND Network Research Group at the
+# University of Waikato. For further information please see
+# http://www.wand.net.nz/
+#
+# ampy is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+#
+# ampy is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with ampy; if not, write to the Free Software Foundation, Inc.
+# 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+#
+# Please report any bugs, questions or comments to contact@wand.net.nz
+#
+
 import time
 import pylibmc
 
-from libnntscclient.logger import *
+from libnntscclient.logger import log
 
 class AmpyCache(object):
     """
@@ -45,9 +75,8 @@ class AmpyCache(object):
       search_view_groups:
         Searches the cache for the list of groups that that belong to a given
         view ID.
-
-
     """
+
     def __init__(self, blocksize):
         """
         Init function for the AmpyCache class.
@@ -130,8 +159,7 @@ class AmpyCache(object):
 
         # Cache the block
         key = self._block_cache_key(start, binsize, detail, label)
-        self._cachestore(key, blockdata, cachetime,
-                "data block")
+        self._cachestore(key, blockdata, cachetime, "data block")
 
         return failed
 
@@ -186,8 +214,11 @@ class AmpyCache(object):
                 # a while
                 cachetime = 60 * 60 * 6
 
-            blocks.append({'start':blockts, 'end':blockts + blocksize,
-                    'cachetime':cachetime})
+            blocks.append({
+                'start': blockts,
+                'end': blockts + blocksize,
+                'cachetime':cachetime
+            })
             blockts += blocksize
 
         return blocks
@@ -288,9 +319,7 @@ class AmpyCache(object):
         """
         cachetime = 3 * 60 * 60
         cachekey = self._ippath_cache_key(start, end, label)
-
-        self._cachestore(cachekey, data, cachetime,
-                "IP paths")
+        self._cachestore(cachekey, data, cachetime, "IP paths")
 
     def search_recent(self, label, duration, detail):
         """
@@ -325,9 +354,7 @@ class AmpyCache(object):
         """
         cachetime = self._recent_cache_timeout(duration)
         cachekey = self._recent_cache_key(label, duration, detail)
-
-        self._cachestore(cachekey, data, cachetime,
-                "recent data")
+        self._cachestore(cachekey, data, cachetime, "recent data")
 
     def search_asname(self, aslabel):
         """
@@ -362,7 +389,6 @@ class AmpyCache(object):
         cachekey = self._asn_cache_key(aslabel)
         self._cachestore(cachekey, asname, cachetime, "AS name")
 
-
     def store_stream_view(self, streamid, viewid):
         """
         Caches the view ID that best matches a single stream ID.
@@ -385,7 +411,6 @@ class AmpyCache(object):
           None.
         """
         cachekey = self._stream_view_cache_key(streamid)
-
         self._cachestore(cachekey, viewid, self.streamview_cachetime,
                 "stream view")
 
@@ -405,7 +430,6 @@ class AmpyCache(object):
         """
         cachekey = self._stream_view_cache_key(streamid)
         return self._cachefetch(cachekey, "stream view")
-
 
     def store_view_groups(self, viewid, groups):
         """
@@ -439,6 +463,17 @@ class AmpyCache(object):
         """
         cachekey = self._view_groups_cache_key(viewid)
         return self._cachefetch(cachekey, "view groups")
+
+    def store_matrix_view(self, label, viewid, cachetime):
+
+        cachekey = "matv_" + label
+        if len(cachekey) > 250:
+            log("WARNING: matrix view cache key %s too long" % (cachekey))
+        self._cachestore(cachekey, viewid, cachetime, "matrix view")
+
+    def search_matrix_view(self, label):
+        cachekey = "matv_" + label
+        return self._cachefetch(cachekey, "matrix view")
 
     def _cachestore(self, key, data, cachetime, errorstr):
         """

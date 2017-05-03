@@ -1,6 +1,37 @@
+#
+# This file is part of ampy.
+#
+# Copyright (C) 2013-2017 The University of Waikato, Hamilton, New Zealand.
+#
+# Authors: Shane Alcock
+#          Brendon Jones
+#
+# All rights reserved.
+#
+# This code has been developed by the WAND Network Research Group at the
+# University of Waikato. For further information please see
+# http://www.wand.net.nz/
+#
+# ampy is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+#
+# ampy is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with ampy; if not, write to the Free Software Foundation, Inc.
+# 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+#
+# Please report any bugs, questions or comments to contact@wand.net.nz
+#
+
+import time
 import psycopg2
 import psycopg2.extras
-from libnntscclient.logger import *
+from libnntscclient.logger import log
 
 # Generic psycopg2 database code largely borrowed from NNTSC
 
@@ -86,7 +117,7 @@ class AmpyDatabase(object):
             self.conn.close()
             self.conn = None
 
-    def connect(self, retrywait):
+    def connect(self, retrywait, encoding=None):
         """
         Connects to the database.
 
@@ -101,7 +132,7 @@ class AmpyDatabase(object):
         """
         logmessage = False
 
-        while self.conn == None:
+        while self.conn is None:
             try:
                 self.conn = psycopg2.connect(self.connstr)
             except psycopg2.DatabaseError as e:
@@ -112,6 +143,8 @@ class AmpyDatabase(object):
                 self.conn = None
                 time.sleep(retrywait)
 
+        if encoding:
+            self.conn.set_client_encoding(encoding)
         self.conn.autocommit = self.autocommit
 
         if logmessage:
@@ -237,7 +270,6 @@ class AmpyDatabase(object):
         self.cursor = None
         return 0
 
-
     def commit(self):
         """
         Commits the current transaction to the database.
@@ -309,6 +341,5 @@ class AmpyDatabase(object):
             return -1
 
         return 0
-
 
 # vim: set sw=4 tabstop=4 softtabstop=4 expandtab :

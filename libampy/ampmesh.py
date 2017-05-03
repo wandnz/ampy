@@ -1,6 +1,38 @@
-from libampy.database import AmpyDatabase
-from libnntscclient.logger import *
+#
+# This file is part of ampy.
+#
+# Copyright (C) 2013-2017 The University of Waikato, Hamilton, New Zealand.
+#
+# Authors: Shane Alcock
+#          Brendon Jones
+#
+# All rights reserved.
+#
+# This code has been developed by the WAND Network Research Group at the
+# University of Waikato. For further information please see
+# http://www.wand.net.nz/
+#
+# ampy is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+#
+# ampy is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with ampy; if not, write to the Free Software Foundation, Inc.
+# 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+#
+# Please report any bugs, questions or comments to contact@wand.net.nz
+#
+
+import time
+import re
 from threading import Lock
+from libampy.database import AmpyDatabase
+from libnntscclient.logger import log
 
 class AmpMesh(object):
     """
@@ -44,7 +76,7 @@ class AmpMesh(object):
             ampdbconfig['name'] = 'amp2'
         self.dbconfig = ampdbconfig
         self.db = AmpyDatabase(ampdbconfig, True)
-        self.db.connect(15)
+        self.db.connect(15, encoding="UTF8")
         self.dblock = Lock()
 
     def _meshquery(self, query, params, lock=True):
@@ -191,8 +223,13 @@ class AmpMesh(object):
 
         meshes = []
         for row in self.db.cursor.fetchall():
-            meshes.append({'ampname':row[0], 'longname':row[1], \
-                    'description':row[2], 'count':row[3], 'public':row[4]})
+            meshes.append({
+                'ampname': row[0],
+                'longname': row[1].decode("utf-8") if row[1] else row[0],
+                'description': row[2].decode("utf-8") if row[2] else None,
+                'count': row[3],
+                'public': row[4]
+            })
 
         self.db.closecursor()
         self.dblock.release()
@@ -219,8 +256,12 @@ class AmpMesh(object):
             return None
 
         for row in self.db.cursor.fetchall():
-            sites.append({'ampname':row[0], 'longname':row[1], \
-                    'location':row[2], 'description':row[3]})
+            sites.append({
+                'ampname': row[0],
+                'longname': row[1].decode("utf-8") if row[1] else row[0],
+                'location': row[2].decode("utf-8") if row[2] else None,
+                'description': row[3].decode("utf-8") if row[3] else None,
+            })
 
         self.db.closecursor()
         self.dblock.release()
@@ -401,17 +442,25 @@ class AmpMesh(object):
             self.dblock.release()
             return None
 
-        result = self.db.cursor.fetchone()
-        if result is None:
+        row = self.db.cursor.fetchone()
+        if row is None:
             #log("Warning: unable to find site %s in amp database" % (site))
             self.db.closecursor()
             self.dblock.release()
             return unknown
 
-        retdict = dict(result)
+        result = {
+            'ampname': row[0],
+            'longname': row[1].decode("utf-8") if row[1] else row[0],
+            'location': row[2].decode("utf-8") if row[2] else None,
+            'description': row[3].decode("utf-8") if row[3] else None,
+            'active': row[4],
+            'last_schedule_update': row[5],
+        }
+
         self.db.closecursor()
         self.dblock.release()
-        return retdict
+        return result
 
     def get_mesh_info(self, mesh):
         """ Get more detailed and human readable information about a mesh """
@@ -420,10 +469,11 @@ class AmpMesh(object):
             "meshname": mesh,
             "longname": mesh,
             "description": "",
-            "src": False,
-            "dst": False,
+            "is_src": False,
+            "is_dst": False,
             "active": False,
             "public": False,
+            "tests": False,
             "unknown": True
         }
         query = """ SELECT mesh_name AS ampname, mesh_longname AS longname,
@@ -440,16 +490,27 @@ class AmpMesh(object):
             self.dblock.release()
             return None
 
-        result = self.db.cursor.fetchone()
-        if result is None:
+        row = self.db.cursor.fetchone()
+        if row is None:
             self.db.closecursor()
             self.dblock.release()
             return unknown
 
-        retdict = dict(result)
+        result = {
+            'ampname': row[0],
+            'longname': row[1].decode("utf-8") if row[1] else row[0],
+            'description': row[2].decode("utf-8") if row[2] else None,
+            'is_src': row[3],
+            'is_dst': row[4],
+            'active': row[5],
+            'public': row[6],
+        }
+
         self.db.closecursor()
         self.dblock.release()
-        return retdict
+
+        result["tests"] = self.get_flagged_mesh_tests(mesh)
+        return result
 
 
     # TODO move schedule stuff into a specific schedule source file?
@@ -513,10 +574,6 @@ class AmpMesh(object):
         if count > 0:
             self._update_last_modified_schedule(schedule_id)
         self.dblock.release()
-
-        # flag the mesh with the appropriate test if it changed and is new
-        if count > 0 and "test" in settings:
-            self._flag_meshes_with_test(schedule_id)
         return count > 0
 
     def get_enable_status(self, schedule_id):
@@ -601,11 +658,14 @@ class AmpMesh(object):
             self.dblock.release()
         return count
 
-    def _add_basic_site(self, name):
+    def _add_basic_site(self, ampname):
         query = """ INSERT INTO site (site_ampname, site_longname)
                     VALUES (%s, %s) """
-        # remove any suffixes from the name, e.g. !v4 !v6 family specifiers
-        params = (name.split('!', 1)[0], name.split('!', 1)[0])
+
+        if re.search("[^.:/a-z0-9-]", ampname.lower()) is not None:
+            return None
+        params = (ampname.lower(), ampname)
+
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
             log("Error while inserting new site")
@@ -628,55 +688,6 @@ class AmpMesh(object):
         self.db.closecursor()
         self.dblock.release()
         return True
-
-    def _flag_mesh_with_test(self, mesh, schedule_id):
-        query = """ INSERT INTO meshtests (meshtests_name, meshtests_test)
-                    SELECT %s,
-                    CASE WHEN schedule_test='icmp' THEN 'latency'
-                         WHEN schedule_test='tcpping' THEN 'latency'
-                         WHEN schedule_test='dns' THEN 'latency'
-                         WHEN schedule_test='traceroute' THEN 'hops'
-                         WHEN schedule_test='throughput' THEN 'tput'
-                         ELSE schedule_test
-                    END
-                    FROM schedule WHERE schedule_id=%s
-                    EXCEPT SELECT meshtests_name, meshtests_test FROM meshtests
-                    WHERE meshtests_name=%s
-                """
-        params = (mesh, schedule_id, mesh)
-        self.dblock.acquire()
-        if self.db.executequery(query, params) == -1:
-            log("Error while updating meshtests")
-            self.dblock.release()
-            return None
-
-        self.db.closecursor()
-        self.dblock.release()
-        return True
-
-    # TODO unflag meshes when the tests are removed?
-    def _flag_meshes_with_test(self, schedule_id):
-        # select all the meshes that are sources for this test
-        query = """ SELECT endpoint_destination_mesh
-                    FROM endpoint
-                    WHERE endpoint_schedule_id = %s """
-        params = (schedule_id,)
-        self.dblock.acquire()
-        if self.db.executequery(query, params) == -1:
-            log("Error while fetching schedule meshes")
-            self.dblock.release()
-            return None
-
-        meshes = []
-        for row in self.db.cursor.fetchall():
-            if row[0] is not None:
-                meshes.append(row[0])
-
-        self.db.closecursor()
-        self.dblock.release()
-
-        for mesh in meshes:
-            self._flag_mesh_with_test(mesh, schedule_id)
 
     def get_site_endpoints(self):
         query = """ SELECT DISTINCT endpoint_source_site AS ampname,
@@ -701,14 +712,12 @@ class AmpMesh(object):
             print "source is neither mesh nor site"
             return None
 
-        if dst is None:
+        if dst is None or len(dst) == 0:
             dst_site = None
             dst_mesh = None
         elif self._is_mesh(dst):
             dst_mesh = dst
             dst_site = None
-            if self._flag_mesh_with_test(dst, schedule_id) is None:
-                return None
         elif self._is_site(dst):
             dst_site = dst
             dst_mesh = None
@@ -800,7 +809,6 @@ class AmpMesh(object):
         self.dblock.release()
         return count > 0
 
-    # TODO
     # XXX expects the db lock to be held by caller, so we can update
     # this at the same time as the modifications get made
     # XXX do something useful with return values so we don't carry on after
@@ -922,11 +930,21 @@ class AmpMesh(object):
             dest_meshes = [] if row[9] is None else row[9].split(",")
             source_sites = [] if row[8] is None else row[8].split(",")
             dest_sites = [] if row[10] is None else row[10].split(",")
-            schedule.append({'id':row[0], 'test':row[1], 'enabled':row[11],
-                    'frequency':row[2], 'start':row[3], 'mesh_offset':row[12],
-                    'end':row[4], 'period':row[5], 'args':row[6],
-                    'source_mesh':source_meshes, 'source_site':source_sites,
-                    'dest_mesh':dest_meshes, 'dest_site':dest_sites})
+            schedule.append({
+                'id': row[0],
+                'test': row[1],
+                'enabled': row[11],
+                'frequency': row[2],
+                'start': row[3],
+                'mesh_offset': row[12],
+                'end':row[4],
+                'period':row[5],
+                'args':row[6],
+                'source_mesh': source_meshes,
+                'source_site': source_sites,
+                'dest_mesh': dest_meshes,
+                'dest_site': dest_sites
+            })
 
         self.db.closecursor()
         if lock:
@@ -935,11 +953,11 @@ class AmpMesh(object):
 
     # TODO if we want to be able to update the ampname then we probably need
     # to add an id field that won't change
-    def update_mesh(self, ampname, longname, description, public):
+    def update_mesh(self, ampname, longname, description, public, issource):
         query = """ UPDATE mesh SET mesh_longname=%s, mesh_description=%s,
-                    mesh_public=%s
+                    mesh_is_src=%s, mesh_public=%s
                     WHERE mesh_name=%s """
-        params = (longname, description, public, ampname)
+        params = (longname, description, issource, public, ampname)
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
@@ -950,13 +968,16 @@ class AmpMesh(object):
         self.dblock.release()
         return True
 
-    def add_mesh(self, ampname, longname, description, public):
+    def add_mesh(self, ampname, longname, description, public, issource):
         # XXX currently all new meshes are created as destinations
         query = """ INSERT INTO mesh (mesh_name, mesh_longname,
                         mesh_description, mesh_is_src, mesh_is_dst,
                         mesh_active, mesh_public
-                    ) VALUES (%s, %s, %s, false, true, true, %s) """
-        params = (ampname, longname, description, public)
+                    ) VALUES (%s, %s, %s, %s, true, true, %s) """
+
+        if re.search("[^.:/a-z0-9-]", ampname.lower()) is not None:
+            return None
+        params = (ampname.lower(), longname, description, issource, public)
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
@@ -1000,7 +1021,10 @@ class AmpMesh(object):
         query = """ INSERT INTO site (site_ampname, site_longname,
                         site_location, site_description, site_active
                     ) VALUES (%s, %s, %s, %s, true) """
-        params = (ampname, longname, location, description)
+
+        if re.search("[^.:/a-z0-9-]", ampname.lower()) is not None:
+            return None
+        params = (ampname.lower(), longname, location, description)
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
@@ -1078,5 +1102,56 @@ class AmpMesh(object):
         self.dblock.release()
 
         return True
+
+    def get_flagged_mesh_tests(self, meshname):
+        query = "SELECT meshtests_test FROM meshtests WHERE meshtests_name=%s"
+        params = (meshname,)
+        tests = []
+
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+            log("Error while getting mesh tests")
+            self.dblock.release()
+            return None
+
+        for row in self.db.cursor.fetchall():
+            tests.append(row['meshtests_test'])
+        self.db.closecursor()
+        self.dblock.release()
+        return tests
+
+    def flag_mesh_test(self, meshname, test):
+        query = """ INSERT INTO meshtests (meshtests_name, meshtests_test)
+                    SELECT %s, %s WHERE NOT EXISTS (
+                        SELECT 1 FROM meshtests
+                        WHERE meshtests_name=%s AND meshtests_test=%s
+                    )
+                """
+        params = (meshname, test, meshname, test)
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+            log("Error while enabling mesh test")
+            self.dblock.release()
+            return None
+
+        count = self.db.cursor.rowcount
+        self.db.closecursor()
+        self.dblock.release()
+        return count > 0
+
+    def unflag_mesh_test(self, meshname, test):
+        query = """ DELETE FROM meshtests
+                    WHERE meshtests_name=%s AND meshtests_test=%s """
+        params = (meshname, test)
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+            log("Error while disabling mesh test")
+            self.dblock.release()
+            return None
+
+        count = self.db.cursor.rowcount
+        self.db.closecursor()
+        self.dblock.release()
+        return count > 0
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :

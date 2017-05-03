@@ -1,30 +1,59 @@
-from libnntscclient.logger import *
+#
+# This file is part of ampy.
+#
+# Copyright (C) 2013-2017 The University of Waikato, Hamilton, New Zealand.
+#
+# Authors: Shane Alcock
+#          Brendon Jones
+#
+# All rights reserved.
+#
+# This code has been developed by the WAND Network Research Group at the
+# University of Waikato. For further information please see
+# http://www.wand.net.nz/
+#
+# ampy is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+#
+# ampy is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with ampy; if not, write to the Free Software Foundation, Inc.
+# 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+#
+# Please report any bugs, questions or comments to contact@wand.net.nz
+#
+
+from libnntscclient.logger import log
 from libampy.collections.ampicmp import AmpIcmp
 
 class AmpTcpping(AmpIcmp):
     def __init__(self, colid, viewmanager, nntscconf):
         super(AmpTcpping, self).__init__(colid, viewmanager, nntscconf)
-
-        self.streamproperties = ['source', 'destination', 'port', \
-                'packet_size', 'family']
-        self.groupproperties = ['source', 'destination', 'port', \
-                'packet_size', 'aggregation']
+        self.streamproperties = [
+            'source', 'destination', 'port', 'packet_size', 'family'
+        ]
+        self.groupproperties = [
+            'source', 'destination', 'port', 'packet_size', 'aggregation'
+        ]
         self.collection_name = 'amp-tcpping'
         self.default_packet_sizes = ["64", "60"]
         self.viewstyle = 'amp-latency'
         self.integerproperties = ['port']
-
         self.portpreferences = [443, 53, 80]
 
     def create_group_description(self, properties):
-
         if 'family' in properties:
             properties['aggregation'] = properties['family'].upper()
 
-        for p in self.groupproperties:
-            if p not in properties:
+        for prop in self.groupproperties:
+            if prop not in properties:
                 log("Required group property '%s' not present in %s group" % \
-                    (p, self.collection_name))
+                    (prop, self.collection_name))
                 return None
 
         return "FROM %s TO %s PORT %s SIZE %s %s" % ( \
@@ -33,7 +62,7 @@ class AmpTcpping(AmpIcmp):
                 properties['packet_size'], properties['aggregation'].upper())
 
     def parse_group_description(self, description):
-        regex =  "FROM (?P<source>[.a-zA-Z0-9-]+) "
+        regex = "FROM (?P<source>[.a-zA-Z0-9-]+) "
         regex += "TO (?P<destination>[.a-zA-Z0-9-]+) "
         regex += "PORT (?P<port>[0-9]+) "
         regex += "SIZE (?P<size>[a-zA-Z0-9]+) "
@@ -71,15 +100,17 @@ class AmpTcpping(AmpIcmp):
         return label, self.splits[groupparams['aggregation']]
 
     def _group_to_search(self, groupparams):
-        return {'source':groupparams['source'],
-                'destination':groupparams['destination'],
-                'port':int(groupparams['port']),
-                'packet_size':groupparams['packet_size']}
+        return {
+            'source': groupparams['source'],
+            'destination': groupparams['destination'],
+            'port': int(groupparams['port']),
+            'packet_size': groupparams['packet_size']
+        }
 
-    def update_matrix_groups(self, source, dest, split, groups, views,
+    def update_matrix_groups(self, cache, source, dest, split, groups, views,
             viewmanager, viewstyle):
 
-        baseprop = {'source':source, 'destination':dest}
+        baseprop = {'source': source, 'destination': dest}
 
         sels = self.streammanager.find_selections(baseprop, "", "1", 30000, False)
         if sels is None:
@@ -96,10 +127,10 @@ class AmpTcpping(AmpIcmp):
             return
 
         minport = None
-        for p in self.portpreferences:
+        for port in self.portpreferences:
             for found in ports['items']:
-                if p == int(found['text']):
-                    baseprop['port'] = p
+                if port == int(found['text']):
+                    baseprop['port'] = port
                     break
                 if minport is None or int(found['text']) < minport:
                     minport = int(found['text'])
@@ -112,7 +143,6 @@ class AmpTcpping(AmpIcmp):
         if sels is None:
             return None
 
-
         # Find a suitable packet size, based on our test preferences
         if sels[0] != 'packet_size':
             log("Unable to find suitable packet sizes for %s matrix cell %s to %s" \
@@ -123,19 +153,19 @@ class AmpTcpping(AmpIcmp):
             views[(source, dest)] = -1
             return
 
-        for p in self.default_packet_sizes:
-            if any(p == found['text'] for found in sels[1]['items']):
-                baseprop['packet_size'] = p
+        for size in self.default_packet_sizes:
+            if any(size == found['text'] for found in sels[1]['items']):
+                baseprop['packet_size'] = size
                 break
 
         if 'packet_size' not in baseprop:
             minsize = 0
-            for s in sels[1]['items']:
-                if s['text'] == "random":
+            for size in sels[1]['items']:
+                if size['text'] == "random":
                     continue
                 try:
-                    if int(s['text']) < minsize or minsize == 0:
-                        minsize = int(s['text'])
+                    if int(size['text']) < minsize or minsize == 0:
+                        minsize = int(size['text'])
                 except TypeError:
                     # packet size is not an int, so ignore it
                     pass
@@ -144,10 +174,10 @@ class AmpTcpping(AmpIcmp):
                 return None
             baseprop['packet_size'] = str(minsize)
 
-        v4 = self._matrix_group_streams(baseprop, 'ipv4', groups)
-        v6 = self._matrix_group_streams(baseprop, 'ipv6', groups)
+        ipv4 = self._matrix_group_streams(baseprop, 'ipv4', groups)
+        ipv6 = self._matrix_group_streams(baseprop, 'ipv6', groups)
 
-        if v4 == 0 and v6 == 0:
+        if ipv4 == 0 and ipv6 == 0:
             views[(source, dest)] = -1
             return
 
@@ -157,6 +187,14 @@ class AmpTcpping(AmpIcmp):
             split = "IPV6"
         else:
             split = "FAMILY"
+
+        cachelabel = "_".join([self.collection_name, viewstyle, source, dest,
+                str(baseprop['port']), baseprop['packet_size'], split])
+
+        viewid = cache.search_matrix_view(cachelabel)
+        if viewid is not None:
+            views[(source, dest)] = viewid
+            return
 
         cellgroup = self.create_group_from_list([source, dest, \
                 baseprop['port'], baseprop['packet_size'], split])
@@ -170,9 +208,9 @@ class AmpTcpping(AmpIcmp):
                 self.collection_name, 0, [cellgroup])
         if viewid is None:
             views[(source, dest)] = -1
+            cache.store_matrix_view(cachelabel, -1, 300)
         else:
             views[(source, dest)] = viewid
-
-
+            cache.store_matrix_view(cachelabel, viewid, 0)
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :

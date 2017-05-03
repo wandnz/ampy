@@ -1,14 +1,43 @@
+#
+# This file is part of ampy.
+#
+# Copyright (C) 2013-2017 The University of Waikato, Hamilton, New Zealand.
+#
+# Authors: Shane Alcock
+#          Brendon Jones
+#
+# All rights reserved.
+#
+# This code has been developed by the WAND Network Research Group at the
+# University of Waikato. For further information please see
+# http://www.wand.net.nz/
+#
+# ampy is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+#
+# ampy is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with ampy; if not, write to the Free Software Foundation, Inc.
+# 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+#
+# Please report any bugs, questions or comments to contact@wand.net.nz
+#
+
 import time
 import re
 from threading import Lock
 
 from libampy.nntsc import NNTSCConnection
 from libampy.streammanager import StreamManager
-from libnntscclient.protocol import *
-from libnntscclient.logger import *
+from libnntscclient.protocol import NNTSC_REQ_STREAMS
+from libnntscclient.logger import log
 
 STREAM_CHECK_FREQ = 60 * 5
-ACTIVE_CHECK_FREQ = 60 * 30
 
 class Collection(object):
     """
@@ -119,7 +148,6 @@ class Collection(object):
         """
 
         return 0
-
 
     def extra_blocks(self, detail):
         """
@@ -458,7 +486,7 @@ class Collection(object):
 
         return self.streammanager.find_stream_properties(streamid)
 
-    def update_matrix_groups(self, source, dest, split, groups, views,
+    def update_matrix_groups(self, cache, source, dest, split, groups, views,
             viewmanager, viewstyle):
         """
         Finds all groups (and labels and streams) that must be queried to
@@ -468,6 +496,8 @@ class Collection(object):
         function.
 
         Parameters:
+          cache -- the memcache to use for storing/fetching previously
+                   derived matrix views
           source -- the source for the matrix cell
           dest -- the destination for the matrix cell
           split -- the family or direction to show in the cell
@@ -752,8 +782,6 @@ class Collection(object):
 
         return recent, timeouts
 
-
-
     def get_collection_history(self, cache, labels, start, end, detail,
             binsize):
 
@@ -773,7 +801,6 @@ class Collection(object):
                      aggregation, None = let ampy choose. Note that if ampy
                      suggests a larger binsize, then that will be preferred
                      over this value.
-
 
         Returns:
           a dictionary keyed by label where each value is a list containing
@@ -810,20 +837,20 @@ class Collection(object):
             data[label] = []
             failed = timeouts[label]
 
-            for b in blocks:
-                blockdata, dbdata = self._next_block(b, cached[label],
+            for block in blocks:
+                blockdata, dbdata = self._next_block(block, cached[label],
                     dbdata, frequencies[label], binsize, detail)
                 data[label] += blockdata
 
                 # Store this block in our cache for fast lookup next time
                 # If it already is there, we'll reset the cache timeout instead
-                failed = cache.store_block(b, blockdata, label, binsize,
+                failed = cache.store_block(block, blockdata, label, binsize,
                         detail, failed)
 
         # Any labels that were fully cached won't be touched by the previous
         # bit of code so we need to check the cached dictionary for any
         # labels that don't appear in the fetched data and process those too
-        for label, item in cached.iteritems():
+        for label in cached.iterkeys():
 
             # If the label is present in our returned data, we've already
             # processed it
@@ -833,11 +860,11 @@ class Collection(object):
 
             # Slightly repetitive code but seems silly to create a 10 parameter
             # function to run these few lines of code
-            for b in blocks:
-                blockdata, ignored = self._next_block(b, cached[label],
+            for block in blocks:
+                blockdata, _ = self._next_block(block, cached[label],
                         [], 0, binsize, detail)
                 data[label] += blockdata
-                ignored = cache.store_block(b, blockdata, label, binsize,
+                ignored = cache.store_block(block, blockdata, label, binsize,
                         detail, [])
 
         return data
@@ -928,11 +955,11 @@ class Collection(object):
                 continue
 
             # Add missing blocks to the list of data to be fetched from NNTSC
-            for b in missing:
-                if b not in notcached:
-                    notcached[b] = {label['labelstring']: label['streams']}
+            for block in missing:
+                if block not in notcached:
+                    notcached[block] = {label['labelstring']: label['streams']}
                 else:
-                    notcached[b][label['labelstring']] = label['streams']
+                    notcached[block][label['labelstring']] = label['streams']
 
         return notcached, cached
 
@@ -1055,7 +1082,6 @@ class Collection(object):
             blockdata.append(datum)
 
         return blockdata, queried
-
 
     def _fetch_history(self, labels, start, end, binsize, detail):
         """

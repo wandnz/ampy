@@ -1,6 +1,37 @@
+#
+# This file is part of ampy.
+#
+# Copyright (C) 2013-2017 The University of Waikato, Hamilton, New Zealand.
+#
+# Authors: Shane Alcock
+#          Brendon Jones
+#
+# All rights reserved.
+#
+# This code has been developed by the WAND Network Research Group at the
+# University of Waikato. For further information please see
+# http://www.wand.net.nz/
+#
+# ampy is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+#
+# ampy is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with ampy; if not, write to the Free Software Foundation, Inc.
+# 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+#
+# Please report any bugs, questions or comments to contact@wand.net.nz
+#
+
 import socket
+import time
 from libnntscclient.protocol import *
-from libnntscclient.logger import *
+from libnntscclient.logger import log
 from libnntscclient.nntscclient import NNTSCClient
 
 class NNTSCConnection(object):
@@ -62,7 +93,7 @@ class NNTSCConnection(object):
         if self.client is not None:
             return self.client
         try:
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         except socket.error, msg:
             log("Failed to create socket: %s" % (msg[1]))
             return None
@@ -71,13 +102,13 @@ class NNTSCConnection(object):
         connected = False
 
         # XXX Retry forever or die after a certain number of attempts?
-        while connected == False:
+        while connected is False:
             if attempts > 0:
                 log("Retrying in 30 seconds (attempt %d)" % (attempts + 1))
                 time.sleep(30)
 
             try:
-                s.connect((self.host, self.port))
+                sock.connect((self.host, self.port))
                 connected = True
             except socket.error, msg:
                 log("Failed to connect to %s:%d -- %s" % (
@@ -88,7 +119,7 @@ class NNTSCConnection(object):
             log("Unable to connect to NNTSC after numerous attempts")
             return None
 
-        self.client = NNTSCClient(s)
+        self.client = NNTSCClient(sock)
         return self.client
 
     def _disconnect(self):
@@ -106,7 +137,7 @@ class NNTSCConnection(object):
         is the message type and the second element is a dictionary
         containing the message contents.
         """
-        if self.client == None:
+        if self.client is None:
             return None
 
         while 1:
@@ -129,17 +160,17 @@ class NNTSCConnection(object):
         Returns None if the request fails, otherwise will return a list
         of dictionaries where each dictionary describes a collection.
         """
-        if self.client == None:
+        if self.client is None:
             self._connect()
 
-        if self.client == None:
+        if self.client is None:
             log("Unable to connect to NNTSC exporter to request collections")
             return None
 
         self.client.send_request(NNTSC_REQ_COLLECTION, -1)
 
         msg = self._get_nntsc_message()
-        if msg == None:
+        if msg is None:
             self._disconnect()
             return None
 
@@ -153,7 +184,6 @@ class NNTSCConnection(object):
 
         self._disconnect()
         return None
-
 
     def request_streams(self, colid, reqtype, boundary):
         """
@@ -179,10 +209,10 @@ class NNTSCConnection(object):
         """
         streams = []
 
-        if self.client == None:
+        if self.client is None:
             self._connect()
 
-        if self.client == None:
+        if self.client is None:
             log("Unable to connect to NNTSC exporter to request streams")
             return None
 
@@ -195,7 +225,7 @@ class NNTSCConnection(object):
 
         while 1:
             msg = self._get_nntsc_message()
-            if msg == None:
+            if msg is None:
                 self._disconnect()
                 return None
 
@@ -211,7 +241,7 @@ class NNTSCConnection(object):
                     continue
 
                 streams += msg[1]['streams']
-                if msg[1]['more'] == False:
+                if msg[1]['more'] is False:
                     break
             elif msg[0] == NNTSC_QUERY_CANCELLED:
                 log("Query for %sstreams for collection %d timed out" % (logreq, colid))
@@ -227,11 +257,10 @@ class NNTSCConnection(object):
         return streams
 
     def request_matrix(self, colid, labels, start, end, aggregators):
-        
-        if self.client == None:
+        if self.client is None:
             self._connect()
 
-        if self.client == None:
+        if self.client is None:
             log("Unable to connect to NNTSC exporter to request matrix data")
             return None
 
@@ -287,10 +316,10 @@ class NNTSCConnection(object):
                         timeout
         """
 
-        if self.client == None:
+        if self.client is None:
             self._connect()
 
-        if self.client == None:
+        if self.client is None:
             log("Unable to connect to NNTSC exporter to request historical data")
             return None
 
@@ -317,7 +346,7 @@ class NNTSCConnection(object):
 
         while count < len(labels):
             msg = self._get_nntsc_message()
-            if msg == None:
+            if msg is None:
                 self._disconnect()
                 return None
 
@@ -344,11 +373,11 @@ class NNTSCConnection(object):
                         data[lab]["timedout"] = []
 
                     data[lab]['timedout'].append((msg[1]['start'], msg[1]['end']))
-                    if msg[1]['more'] == False:
+                    if msg[1]['more'] is False:
                         # Make sure we report some sort of frequency if we
                         # are missing all the data...
                         if "freq" not in data[lab]:
-                            data[lab]["freq"] = binsize
+                            data[lab]["freq"] = 60
                         count += 1
 
             if msg[0] == NNTSC_HISTORY:
@@ -366,11 +395,10 @@ class NNTSCConnection(object):
                 if "freq" not in data[label]:
                     data[label]["freq"] = msg[1]['binsize']
                 data[label]["data"] += msg[1]['data']
-                if msg[1]['more'] == False:
+                if msg[1]['more'] is False:
                     # increment the count of completed labels
                     count += 1
         self._disconnect()
         return data
-
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :

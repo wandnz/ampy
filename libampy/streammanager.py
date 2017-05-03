@@ -1,5 +1,35 @@
+#
+# This file is part of ampy.
+#
+# Copyright (C) 2013-2017 The University of Waikato, Hamilton, New Zealand.
+#
+# Authors: Shane Alcock
+#          Brendon Jones
+#
+# All rights reserved.
+#
+# This code has been developed by the WAND Network Research Group at the
+# University of Waikato. For further information please see
+# http://www.wand.net.nz/
+#
+# ampy is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+#
+# ampy is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with ampy; if not, write to the Free Software Foundation, Inc.
+# 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+#
+# Please report any bugs, questions or comments to contact@wand.net.nz
+#
+
 import re
-from libnntscclient.logger import *
+from libnntscclient.logger import log
 
 class StreamManager(object):
     """
@@ -199,7 +229,7 @@ class StreamManager(object):
         # If we get here, the stream property at this level was not in the
         # provided set of parameters so we will treat it as a wildcard
         # and traverse all of the entries at this hierarchy level
-        for k, nextdict in searching.iteritems():
+        for nextdict in searching.itervalues():
             found = self.find_streams(properties, nextdict, index + 1, found)
 
         return found
@@ -294,6 +324,5 @@ class StreamManager(object):
         res = {'maxitems': len(result), 'items': filtered}
 
         return requested, res
-
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :

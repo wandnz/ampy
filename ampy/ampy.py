@@ -1,8 +1,37 @@
+#
+# This file is part of ampy.
+#
+# Copyright (C) 2013-2017 The University of Waikato, Hamilton, New Zealand.
+#
+# Authors: Shane Alcock
+#          Brendon Jones
+#
+# All rights reserved.
+#
+# This code has been developed by the WAND Network Research Group at the
+# University of Waikato. For further information please see
+# http://www.wand.net.nz/
+#
+# ampy is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+#
+# ampy is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with ampy; if not, write to the Free Software Foundation, Inc.
+# 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+#
+# Please report any bugs, questions or comments to contact@wand.net.nz
+#
+
 import operator
 
 from libampy.ampmesh import AmpMesh
 from libampy.viewmanager import ViewManager
-from libampy.collection import Collection
 from libampy.nntsc import NNTSCConnection
 from libampy.cache import AmpyCache
 from libampy.eventmanager import EventManager
@@ -19,11 +48,6 @@ from libampy.collections.amptcpping import AmpTcpping
 from libampy.collections.ampthroughput import AmpThroughput
 from libampy.collections.ampudpstream import AmpUdpstream
 from libampy.collections.rrdsmokeping import RRDSmokeping
-from libampy.collections.rrdmuninbytes import RRDMuninbytes
-from libampy.collections.lpipackets import LPIPackets
-from libampy.collections.lpibytes import LPIBytes
-from libampy.collections.lpiflows import LPIFlows
-from libampy.collections.lpiusers import LPIUsers
 
 class Ampy(object):
     """
@@ -127,7 +151,7 @@ class Ampy(object):
 
         self.collections = {}
         self.savedcoldata = {}
-        self.started = False;
+        self.started = False
 
     def start(self):
         """
@@ -356,14 +380,16 @@ class Ampy(object):
     def update_amp_site(self, ampname, longname, loc, description):
         return self.ampmesh.update_site(ampname, longname, loc, description)
 
-    def update_amp_mesh(self, ampname, longname, description, public):
-        return self.ampmesh.update_mesh(ampname, longname, description, public)
+    def update_amp_mesh(self, ampname, longname, description, public, issource):
+        return self.ampmesh.update_mesh(ampname, longname, description, public,
+                issource)
 
     def add_amp_site(self, ampname, longname, location, description):
         return self.ampmesh.add_site(ampname, longname, location, description)
 
-    def add_amp_mesh(self, ampname, longname, description, public):
-        return self.ampmesh.add_mesh(ampname, longname, description, public)
+    def add_amp_mesh(self, ampname, longname, description, public, issource):
+        return self.ampmesh.add_mesh(ampname, longname, description, public,
+                issource)
 
     def delete_amp_site(self, ampname):
         return self.ampmesh.delete_site(ampname)
@@ -376,6 +402,16 @@ class Ampy(object):
 
     def delete_amp_mesh_member(self, meshname, ampname):
         return self.ampmesh.delete_mesh_member(meshname, ampname)
+
+    def get_flagged_mesh_tests(self, meshname):
+        return self.ampmesh.get_flagged_mesh_tests(meshname)
+
+    def flag_mesh_test(self, meshname, test):
+        return self.ampmesh.flag_mesh_test(meshname, test)
+
+    def unflag_mesh_test(self, meshname, test):
+        return self.ampmesh.unflag_mesh_test(meshname, test)
+
 
     def get_recent_data(self, viewstyle, view_id, duration, detail):
         """
@@ -430,7 +466,7 @@ class Ampy(object):
                     continue
                 alllabels += grouplabels
 
-            result  = col.get_collection_recent(self.cache, alllabels,
+            result = col.get_collection_recent(self.cache, alllabels,
                     duration, detail)
 
             if result is not None:
@@ -441,7 +477,7 @@ class Ampy(object):
 
 
     def get_historic_data(self, viewstyle, view_id, start, end,
-            detail, binsize = None):
+            detail, binsize=None):
         """
         Fetches aggregated time series data for each label within a view.
 
@@ -584,7 +620,7 @@ class Ampy(object):
             a list of all the stream properties for the given collection
         """
         col = self._getcol(collection)
-        if col == None:
+        if col is None:
             log("Error while fetching selection options")
             return None
 
@@ -635,7 +671,7 @@ class Ampy(object):
         """
 
         col = self._getcol(collection)
-        if col == None:
+        if col is None:
             log("Error while fetching selection options")
             return None
 
@@ -688,13 +724,13 @@ class Ampy(object):
             return True
 
         groups = self._view_to_groups(viewstyle, view_id)
-        if groups == None:
+        if groups is None:
             log("Error while constructing tabview")
             return None
 
         # Make sure our target collection is also up-to-date
         tabcol = self._getcol(tabcollection)
-        if tabcol == None:
+        if tabcol is None:
             log("Error while constructing tabview")
             return None
 
@@ -770,13 +806,13 @@ class Ampy(object):
             return view_id
 
         groups = self._view_to_groups(viewstyle, view_id)
-        if groups == None:
+        if groups is None:
             log("Error while constructing tabview")
             return None
 
         # Make sure our target collection is also up-to-date
         tabcol = self._getcol(tabcollection)
-        if tabcol == None:
+        if tabcol is None:
             log("Error while constructing tabview")
             return None
 
@@ -831,7 +867,7 @@ class Ampy(object):
 
     def get_stream_properties(self, collection, stream):
         col = self._getcol(collection)
-        if col == None:
+        if col is None:
             log("Error while fetching stream properties")
             return None
 
@@ -882,7 +918,7 @@ class Ampy(object):
         streamprops = None
         for c in possibles:
             col = self._getcol(c)
-            if col == None:
+            if col is None:
                 continue
 
             # Find the stream in our stream hierarchy
@@ -953,7 +989,7 @@ class Ampy(object):
 
         if action == "add":
             col = self._getcol(collection, False)
-            if col == None:
+            if col is None:
                 return None
             # Allow options to be specified as a list or a dictionary. The
             # list format requires knowledge of special formatting for some
@@ -1016,7 +1052,7 @@ class Ampy(object):
         """
 
         col = self._getcol(collection)
-        if col == None:
+        if col is None:
             log("Error while fetching matrix data")
             return None
 
@@ -1053,7 +1089,7 @@ class Ampy(object):
         """
 
         groups = self._view_to_groups(viewstyle, view_id)
-        if groups == None:
+        if groups is None:
             log("Error while fetching events for a view")
             return None
 
@@ -1156,7 +1192,7 @@ class Ampy(object):
             else:
                 aslabel = "AS" + a
                 asname = self.cache.search_asname(aslabel)
-                if asname == None:
+                if asname is None:
                     toquery.add(aslabel)
 
             if asname is not None:
@@ -1403,16 +1439,6 @@ class Ampy(object):
             newcol = AmpUdpstream(colid, self.viewmanager, self.nntscconfig)
         if collection == "rrd-smokeping":
             newcol = RRDSmokeping(colid, self.viewmanager, self.nntscconfig)
-        if collection == "rrd-muninbytes":
-            newcol = RRDMuninbytes(colid, self.viewmanager, self.nntscconfig)
-        if collection == "lpi-packets":
-            newcol = LPIPackets(colid, self.viewmanager, self.nntscconfig)
-        if collection == "lpi-bytes":
-            newcol = LPIBytes(colid, self.viewmanager, self.nntscconfig)
-        if collection == "lpi-flows":
-            newcol = LPIFlows(colid, self.viewmanager, self.nntscconfig)
-        if collection == "lpi-users":
-            newcol = LPIUsers(colid, self.viewmanager, self.nntscconfig)
 
         if newcol is None:
             log("Unknown collection type: %s" % (collection))
@@ -1545,7 +1571,7 @@ class Ampy(object):
         # streams.
         for s in sources:
             for d in destinations:
-                col.update_matrix_groups(s, d, split, groups, views,
+                col.update_matrix_groups(self.cache, s, d, split, groups, views,
                         self.viewmanager, viewstyle)
 
         return groups, sources, destinations, views
