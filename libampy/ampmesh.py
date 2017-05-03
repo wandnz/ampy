@@ -469,8 +469,8 @@ class AmpMesh(object):
             "meshname": mesh,
             "longname": mesh,
             "description": "",
-            "src": False,
-            "dst": False,
+            "is_src": False,
+            "is_dst": False,
             "active": False,
             "public": False,
             "tests": False,
@@ -953,11 +953,11 @@ class AmpMesh(object):
 
     # TODO if we want to be able to update the ampname then we probably need
     # to add an id field that won't change
-    def update_mesh(self, ampname, longname, description, public):
+    def update_mesh(self, ampname, longname, description, public, issource):
         query = """ UPDATE mesh SET mesh_longname=%s, mesh_description=%s,
-                    mesh_public=%s
+                    mesh_is_src=%s, mesh_public=%s
                     WHERE mesh_name=%s """
-        params = (longname, description, public, ampname)
+        params = (longname, description, issource, public, ampname)
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
@@ -968,16 +968,16 @@ class AmpMesh(object):
         self.dblock.release()
         return True
 
-    def add_mesh(self, ampname, longname, description, public):
+    def add_mesh(self, ampname, longname, description, public, issource):
         # XXX currently all new meshes are created as destinations
         query = """ INSERT INTO mesh (mesh_name, mesh_longname,
                         mesh_description, mesh_is_src, mesh_is_dst,
                         mesh_active, mesh_public
-                    ) VALUES (%s, %s, %s, false, true, true, %s) """
+                    ) VALUES (%s, %s, %s, %s, true, true, %s) """
 
         if re.search("[^.:/a-z0-9-]", ampname.lower()) is not None:
             return None
-        params = (ampname.lower(), longname, description, public)
+        params = (ampname.lower(), longname, description, issource, public)
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:

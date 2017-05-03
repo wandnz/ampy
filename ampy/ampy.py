@@ -380,14 +380,16 @@ class Ampy(object):
     def update_amp_site(self, ampname, longname, loc, description):
         return self.ampmesh.update_site(ampname, longname, loc, description)
 
-    def update_amp_mesh(self, ampname, longname, description, public):
-        return self.ampmesh.update_mesh(ampname, longname, description, public)
+    def update_amp_mesh(self, ampname, longname, description, public, issource):
+        return self.ampmesh.update_mesh(ampname, longname, description, public,
+                issource)
 
     def add_amp_site(self, ampname, longname, location, description):
         return self.ampmesh.add_site(ampname, longname, location, description)
 
-    def add_amp_mesh(self, ampname, longname, description, public):
-        return self.ampmesh.add_mesh(ampname, longname, description, public)
+    def add_amp_mesh(self, ampname, longname, description, public, issource):
+        return self.ampmesh.add_mesh(ampname, longname, description, public,
+                issource)
 
     def delete_amp_site(self, ampname):
         return self.ampmesh.delete_site(ampname)
