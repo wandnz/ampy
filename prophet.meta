@@ -64,6 +64,7 @@ site | www.ultrafastfibre.co.nz | UFF  | | Ultrafast Fibre | nzisp
 site | www.northpowerfibre.co.nz | Northpower  | | Northpower | nzisp
 site | www.voyager.co.nz | Voyager  | | Voyager | nzisp
 site | www.iconz.net.nz | ICONZ-Webvisions  | | ICONZ-Webvisions | nzisp
+site | www.bigpipe.co.nz | Bigpipe  | | Bigpipe | nzisp
 
 site | www.nzherald.co.nz | NZ Herald  | | New Zealand Herald | nzweb
 site | www.stuff.co.nz | Stuff News | | Stuff | nzweb
@@ -79,6 +80,8 @@ site | www.wand.net.nz | WAND | | WAND | nzweb
 site | www.lightbox.co.nz | Lightbox | | Lightbox | nzweb
 site | www.neontv.co.nz | Neon TV | | Neon TV | nzweb
 site | www.netflix.co.nz | NetFlix NZ | | NetFlix NZ | nzweb
+site | www.radionz.co.nz | Radio NZ | | Radio NZ | nzweb
+site | www.stratus.org.nz | STRATUS | | STRATUS | nzweb
 
 site | afrinic.net | AFRINIC | | AFRINIC | rir
 site | apnic.net | APNIC | | APNIC | rir
@@ -97,6 +100,7 @@ site | www.gumtree.com.au | Gumtree | | Gumtree | ausweb
 site | www.iinet.com.au | iiNet | | iiNet | ausweb
 site | www.smh.com.au | Sydney Morning Herald | | Sydney Morning Herald | ausweb
 site | www.9news.com.au | 9 News | | 9 News | ausweb
+site | www.cricket.com.au | Cricket Australia | | Cricket Australia | ausweb
 
 site | a.root-servers.net | A Root Server | | A Root Server | rootdns | alldns
 site | b.root-servers.net | B Root Server | | B Root Server | rootdns | alldns
