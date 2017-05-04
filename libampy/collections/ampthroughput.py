@@ -264,6 +264,9 @@ class AmpThroughput(Collection):
         else:
             shortlabel = family
 
+        if 'protocol' in search and search['protocol'] == 'http':
+            shortlabel += " (as HTTP)"
+
         if lookup:
             streams = self.streammanager.find_streams(search)
             if streams is None:
@@ -312,8 +315,9 @@ class AmpThroughput(Collection):
 
         return sorted(labels, key=itemgetter('shortlabel'))
 
-    def update_matrix_groups(self, cache, source, dest, split, groups, views,
-            viewmanager, viewstyle):
+    def update_matrix_groups(self, cache, source, dest, optdict, groups,
+            views, viewmanager, viewstyle):
+
         groupprops = {
             'source': source,
             'destination': dest,
@@ -322,6 +326,11 @@ class AmpThroughput(Collection):
             'writesize': self.default_writesize,
             'tcpreused': False,
         }
+
+        if 'metric' in optdict and optdict['metric'] == 'http':
+            groupprops['protocol'] = 'http'
+        elif 'metric' in optdict and optdict['metric'] == 'tcp':
+            groupprops['protocol'] = 'default'
 
         tputin4 = self._matrix_group_streams(groupprops, "in", "ipv4", groups)
         tputout4 = self._matrix_group_streams(groupprops, "out", "ipv4", groups)
@@ -337,9 +346,9 @@ class AmpThroughput(Collection):
         if tputin4 + tputin6 + tputout4 + tputout6 == 0:
             return
 
-        if split == "down":
+        if optdict['split'] == "down":
             split = "IN"
-        elif split == "up":
+        elif optdict['split'] == "up":
             split = "OUT"
         else:
             split = "BOTH"
@@ -347,7 +356,7 @@ class AmpThroughput(Collection):
         if tputin4 != 0 or tputout4 != 0:
             # XXX this could become a function
             cellgroup = self.create_group_from_list([source, dest,
-                    self.default_protocol,
+                    groupprops['protocol'],
                     self.default_duration,
                     self.default_writesize, False, split, "IPV4"])
             if cellgroup is None:
@@ -356,7 +365,7 @@ class AmpThroughput(Collection):
                 return None
 
             cachelabel = "_".join([viewstyle, self.collection_name,
-                    source, dest, split, "IPV4"])
+                    source, dest, split, groupprops['protocol'], "IPV4"])
             viewid = cache.search_matrix_view(cachelabel)
             if viewid is not None:
                 views[(source, dest, "ipv4")] = viewid
@@ -373,7 +382,7 @@ class AmpThroughput(Collection):
 
         if tputin6 != 0 or tputout6 != 0:
             cellgroup = self.create_group_from_list([source, dest,
-                    self.default_protocol,
+                    groupprops['protocol'],
                     self.default_duration,
                     self.default_writesize, False, split, "IPV6"])
             if cellgroup is None:
@@ -382,7 +391,7 @@ class AmpThroughput(Collection):
                 return None
 
             cachelabel = "_".join([viewstyle, self.collection_name,
-                    source, dest, split, "IPV6"])
+                    source, dest, split, groupprops['protocol'], "IPV6"])
             viewid = cache.search_matrix_view(cachelabel)
             if viewid is not None:
                 views[(source, dest, "ipv6")] = viewid
@@ -401,8 +410,8 @@ class AmpThroughput(Collection):
 
         baseprops['direction'] = direction
         baseprops['family'] = family
-        label = "%s_%s_%s_%s" % (baseprops['source'], baseprops['destination'],
-                direction, family)
+        label = "%s_%s_%s_%s_%s" % (baseprops['source'], baseprops['destination'],
+                baseprops['protocol'], direction, family)
         streams = self.streammanager.find_streams(baseprops)
 
         if len(streams) > 0:

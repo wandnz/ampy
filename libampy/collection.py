@@ -486,8 +486,8 @@ class Collection(object):
 
         return self.streammanager.find_stream_properties(streamid)
 
-    def update_matrix_groups(self, cache, source, dest, split, groups, views,
-            viewmanager, viewstyle):
+    def update_matrix_groups(self, cache, source, dest, optdict, groups,
+            views, viewmanager, viewstyle):
         """
         Finds all groups (and labels and streams) that must be queried to
         populate a matrix cell for this collection.
@@ -500,7 +500,8 @@ class Collection(object):
                    derived matrix views
           source -- the source for the matrix cell
           dest -- the destination for the matrix cell
-          split -- the family or direction to show in the cell
+          optdict -- a dictionary describing the family, direction and/or
+                     metric to show in the cell
           groups -- a dictionary containing all groups for the matrix so far
           views -- a dictionary mapping matrix cells to view ids
           viewstyle -- the view style to use when creating new groups / views.

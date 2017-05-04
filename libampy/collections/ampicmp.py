@@ -186,8 +186,8 @@ class AmpIcmp(Collection):
 
         return keydict
 
-    def update_matrix_groups(self, cache, source, dest, split, groups, views,
-            viewmanager, viewstyle):
+    def update_matrix_groups(self, cache, source, dest, optdict, groups,
+            views, viewmanager, viewstyle):
 
         baseprop = {'source': source, 'destination': dest}
 
@@ -221,9 +221,9 @@ class AmpIcmp(Collection):
             views[(source, dest)] = -1
             return
 
-        if split == "ipv4":
+        if optdict['split'] == "ipv4":
             split = "IPV4"
-        elif split == "ipv6":
+        elif optdict['split'] == "ipv6":
             split = "IPV6"
         else:
             split = "FAMILY"

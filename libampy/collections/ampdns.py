@@ -307,7 +307,7 @@ class AmpDns(Collection):
 
         return keydict
 
-    def update_matrix_groups(self, cache, source, dest, split, groups, views,
+    def update_matrix_groups(self, cache, source, dest, optdict, groups, views,
             viewmanager, viewstyle):
         """
         Finds all of the groups that need to queried to populate a matrix cell,
@@ -366,7 +366,7 @@ class AmpDns(Collection):
             streams = self.streammanager.find_streams(groupprops)
 
         cachelabel = "_".join([viewstyle, self.collection_name, source,
-                dest, split, str(groupprops['recurse'])])
+                dest, optdict['split'], str(groupprops['recurse'])])
 
         v4streams = []
         v6streams = []
@@ -385,9 +385,9 @@ class AmpDns(Collection):
                 v6streams.append(sid)
 
             streamprops = self.streammanager.find_stream_properties(sid)
-            if split == "ipv4":
+            if optdict['split'] == "ipv4":
                 streamprops['aggregation'] = "IPV4"
-            elif split == "ipv6":
+            elif optdict['split'] == "ipv6":
                 streamprops['aggregation'] = "IPV6"
             else:
                 streamprops['aggregation'] = "FAMILY"

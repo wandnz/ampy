@@ -1531,7 +1531,7 @@ class Ampy(object):
 
         """
 
-        if len(options) < 3:
+        if len(options) < 4:
             log("Invalid options for fetching matrix streams")
             return None
 
@@ -1547,7 +1547,10 @@ class Ampy(object):
 
         # Third option describes the direction / family / etc that we are
         # currently looking at
-        split = options[2]
+        optdict = {
+            'split': options[2],
+            'metric': options[3]
+        }
 
         sources = self.ampmesh.get_mesh_sources(sourcemesh)
         if sources is None:
@@ -1571,7 +1574,7 @@ class Ampy(object):
         # streams.
         for s in sources:
             for d in destinations:
-                col.update_matrix_groups(self.cache, s, d, split, groups, views,
+                col.update_matrix_groups(self.cache, s, d, optdict, groups, views,
                         self.viewmanager, viewstyle)
 
         return groups, sources, destinations, views

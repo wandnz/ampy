@@ -224,7 +224,7 @@ class AmpHttp(Collection):
 
         return labels
 
-    def update_matrix_groups(self, cache, source, dest, split, groups, views,
+    def update_matrix_groups(self, cache, source, dest, optdict, groups, views,
             viewmanager, viewstyle):
         """
         Finds all of the groups that need to queried to populate a matrix cell,

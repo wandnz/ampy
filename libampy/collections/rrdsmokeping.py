@@ -174,8 +174,8 @@ class RRDSmokeping(Collection):
         return [{'labelstring':label, 'streams':streams, \
                 'shortlabel':groupparams['host']}]
 
-    def update_matrix_groups(self, cache, source, dest, split, groups, views,
-            viewmanager, viewstyle):
+    def update_matrix_groups(self, cache, source, dest, optdict, groups,
+            views, viewmanager, viewstyle):
         return
 
     def translate_group(self, groupprops):

@@ -107,7 +107,7 @@ class AmpTcpping(AmpIcmp):
             'packet_size': groupparams['packet_size']
         }
 
-    def update_matrix_groups(self, cache, source, dest, split, groups, views,
+    def update_matrix_groups(self, cache, source, dest, optdict, groups, views,
             viewmanager, viewstyle):
 
         baseprop = {'source': source, 'destination': dest}
@@ -181,9 +181,9 @@ class AmpTcpping(AmpIcmp):
             views[(source, dest)] = -1
             return
 
-        if split == "ipv4":
+        if optdict['split'] == "ipv4":
             split = "IPV4"
-        elif split == "ipv6":
+        elif optdict['split'] == "ipv6":
             split = "IPV6"
         else:
             split = "FAMILY"
