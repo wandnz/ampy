@@ -1,3 +1,12 @@
+ampy (2.13-1) unstable; urgency=low
+
+  * Flag meshes with tests manually rather than when tests are scheduled.
+  * Allow setting mesh source status manually.
+  * Add "protocol" column to throughput test results.
+  * Added support for setting throughput protocol on the matrix.
+
+ -- Brendon Jones <brendonj@waikato.ac.nz>  Mon,  8 May 2017 11:29:32 +1200
+
 ampy (2.12-1) unstable; urgency=low
 
   * Correctly insert NULL for empty test destinations (e.g. HTTP test).
