@@ -6,7 +6,12 @@ back-end components of the
 intermediary between the web interface (amp-web) and databases used to store
 the data for display - the AMP site meta data database, the views database for
 storing website related configuration, the events database and the measurement
-database itself (nntsc).
+database (nntsc).
+
+The other components of the AMP system are:
+- [amplet2](https://github.com/wanduow/amplet2) - Client that performs tests and reports measurements.
+- [ampweb](https://github.com/wanduow/amp-web) - Front-end web interface.
+- [nntsc](https://github.com/wanduow/nntsc) - Data storage back-end.
 
 For more information please email contact@wand.net.nz.
 
