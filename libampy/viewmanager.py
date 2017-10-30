@@ -28,6 +28,7 @@
 # Please report any bugs, questions or comments to contact@wand.net.nz
 #
 
+import bcrypt
 from threading import Lock
 from libampy.database import AmpyDatabase
 from libnntscclient.logger import log
@@ -86,6 +87,22 @@ class ViewManager(object):
       remove_group_from_view:
         Returns the id of the view that results from removing a group from an
         existing view.
+      get_users:
+        Returns a list of all the users in the database, with some of the more
+        "public" information (no passwords).
+      get_user:
+        Returns information about a single user, including their password.
+      add_user:
+        Add a new user. Returns True on success, None on error.
+      update_user:
+        Update an existing user. Returns True on success, False if the user
+        doesn't exist, None on error.
+      delete_user:
+        Delete an existing user. Returns True on success, False if the user
+        doesn't exist, None on error.
+      enable_disable_user:
+        Set enabled/disabled status for an existing user. Returns True on
+        success, False if the user doesn't exist, None on error.
 
     """
 
@@ -347,5 +364,129 @@ class ViewManager(object):
         if newview is None:
             return None
         return newview
+
+    def get_users(self):
+        query = """ SELECT username, longname, email, roles, enabled
+                    FROM users ORDER BY longname """
+        params = []
+
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+            log("Error while fetching users")
+            self.dblock.release()
+            return None
+
+        users = []
+        for row in self.db.cursor.fetchall():
+            users.append({
+                    "username": row[0],
+                    "longname": row[1],
+                    "email": row[2],
+                    "roles": row[3] if row[3] is not None else [],
+                    "enabled": row[4],
+                    })
+        self.db.closecursor()
+        self.dblock.release()
+        return users
+
+    def get_user(self, username):
+        query = """ SELECT username, longname, email, roles, enabled, password
+                    FROM users WHERE username = %s """
+        params = (username, )
+
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+            log("Error while fetching users")
+            self.dblock.release()
+            return None
+
+        row = self.db.cursor.fetchone()
+
+        self.db.closecursor()
+        self.dblock.release()
+
+        if row is None:
+            return False
+
+        return {
+            "username": row[0],
+            "longname": row[1],
+            "email": row[2],
+            "roles": row[3] if row[3] is not None else [],
+            "enabled": row[4],
+            "password": row[5],
+        }
+
+    def add_user(self, username, longname, email, roles, password):
+        query = """ INSERT
+                    INTO users (username, longname, email, roles, password)
+                    VALUES (%s, %s, %s, %s, %s)
+                """
+        pwhash = bcrypt.hashpw(password.encode("utf8"), bcrypt.gensalt())
+        params = (username, longname, email, roles, pwhash.decode("utf8"))
+
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+            log("Error while adding user")
+            self.dblock.release()
+            return None
+
+        self.db.closecursor()
+        self.dblock.release()
+        return True
+
+    def update_user(self, username, longname, email, roles, password):
+        query = "UPDATE users SET longname=%s, email=%s"
+        params = [longname, email]
+        if roles is not None:
+            query += ", roles=%s"
+            params.append(roles)
+        if password is not None and len(password) > 0:
+            query += ", password=%s"
+            pwhash = bcrypt.hashpw(password.encode("utf8"), bcrypt.gensalt())
+            params.append(pwhash.decode("utf8"))
+        query += " WHERE username=%s"
+        params.append(username)
+
+        self.dblock.acquire()
+        if self.db.executequery(query, tuple(params)) == -1:
+            log("Error while updating user")
+            self.dblock.release()
+            return None
+
+        count = self.db.cursor.rowcount
+        self.db.closecursor()
+        self.dblock.release()
+        return count > 0
+
+    def delete_user(self, username):
+        query = """ DELETE FROM users WHERE username = %s """
+        params = (username, )
+
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+            log("Error while deleting user")
+            self.dblock.release()
+            return None
+
+        count = self.db.cursor.rowcount
+        self.db.closecursor()
+        self.dblock.release()
+        return count > 0
+
+    def enable_disable_user(self, username, enabled):
+        query = "UPDATE users SET enabled=%s WHERE username=%s"
+        params = (enabled, username)
+
+        self.dblock.acquire()
+        if self.db.executequery(query, params) == -1:
+            log("Error while changing status of scheduled test")
+            self.dblock.release()
+            return None
+
+        count = self.db.cursor.rowcount
+        self.db.closecursor()
+        self.dblock.release()
+        return count > 0
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :

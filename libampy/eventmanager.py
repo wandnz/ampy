@@ -345,7 +345,7 @@ class EventManager(object):
         self.dblock.release()
         return username, filtername
 
-    def update_event_filter(self, username, filtername, filterstring):
+    def update_event_filter(self, username, filtername, filterstring, email):
         """
         Replaces the filter string for an existing event filter.
 
@@ -359,9 +359,9 @@ class EventManager(object):
           the tuple (username, filtername) if the filter is successfully
           updated, or None if the filter doesn't exist or the update fails.
         """
-        query = """ UPDATE eventing.userfilters SET filter = %s
+        query = """ UPDATE eventing.userfilters SET filter = %s, email = %s
                     WHERE user_id=%s AND filter_name=%s """
-        params = (filterstring, username, filtername)
+        params = (filterstring, email, username, filtername)
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
             log("Error while updating event filter")

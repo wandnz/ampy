@@ -28,6 +28,7 @@
 # Please report any bugs, questions or comments to contact@wand.net.nz
 #
 
+import json
 import operator
 
 from libampy.ampmesh import AmpMesh
@@ -123,6 +124,20 @@ class Ampy(object):
         Fetches an event filter for a given user.
     modify_event_filter:
         Creates, deletes or changes an event filter.
+    get_users:
+        Fetch a list of all users.
+    get_user:
+        Fetch information about a single user.
+    add_user:
+        Add a new user.
+    update_user:
+        Update the details of an existing user.
+    delete_user:
+        Delete an existing user.
+    enable_user:
+        Enable an existing user so they can login.
+    disable_user:
+        Disable an existing user so they can no longer login.
     """
 
     def __init__(self, ampdbconf, viewconf, nntscconf, eventconf,
@@ -1355,7 +1370,19 @@ class Ampy(object):
             return self.eventmanager.delete_event_filter(username, filtername)
 
         if method == "update":
-            return self.eventmanager.update_event_filter(username, filtername, filterstring)
+            # the webpage doesn't know the user email address, and neither
+            # does the eventmanager so we need to query for it here. An empty
+            # email address will prevent alerts from being sent.
+            email = None
+            filter_ = json.loads(filterstring)
+            if "email" in filter_:
+                # True or False to enable/disable email alerting
+                if filter_["email"]:
+                    user = self.viewmanager.get_user(username)
+                    if user and user["email"]:
+                        email = user["email"]
+            return self.eventmanager.update_event_filter(username, filtername,
+                    filterstring, email)
 
         log("Invalid event filter modification type: %s" % (method))
         return None
@@ -1621,5 +1648,31 @@ class Ampy(object):
                 'collection':col.collection_name, 'aggmethod': aggmethod})
         return added
 
+    def get_users(self):
+        return self.viewmanager.get_users()
+
+    def get_user(self, username):
+        return self.viewmanager.get_user(username)
+
+    def add_user(self, username, longname, email, roles, password):
+        return self.viewmanager.add_user(username, longname, email, roles,
+                password)
+
+    def update_user(self, username, longname, email, roles, password):
+        return self.viewmanager.update_user(username, longname, email, roles,
+                password)
+
+    def delete_user(self, username):
+        # TODO are these separate transactions?
+        # delete the event filters first, then the user
+        if self.eventmanager.delete_event_filter(username):
+            return self.viewmanager.delete_user(username)
+        return False
+
+    def enable_user(self, username):
+        return self.viewmanager.enable_disable_user(username, True)
+
+    def disable_user(self, username):
+        return self.viewmanager.enable_disable_user(username, False)
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :

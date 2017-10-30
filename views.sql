@@ -19,6 +19,13 @@ CREATE TABLE IF NOT EXISTS groups (
 CREATE INDEX idx_group_collection ON groups (collection);
 CREATE INDEX idx_view_collection ON views (collection);
 
+CREATE TABLE IF NOT EXISTS users (
+    username TEXT PRIMARY KEY,
+    longname TEXT NOT NULL,
+    email TEXT,
+    roles TEXT[],
+    enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    password TEXT /* stored hashed etc */
 );
 
 /* TODO ampweb package should probably grant these permissions */

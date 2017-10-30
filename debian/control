@@ -13,6 +13,6 @@ Architecture: any
 # XXX temporarily remove python dependencies, as Debian doesn't package most
 # of the ones that we use
 #Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}
-Depends: ${shlibs:Depends}, ${misc:Depends}, python, postgresql, postgresql-client, libnntsc-client, memcached, python-psycopg2, python-pylibmc
+Depends: ${shlibs:Depends}, ${misc:Depends}, python, postgresql, postgresql-client, libnntsc-client, memcached, python-psycopg2, python-pylibmc, postgresql-contrib
 Description: Interface between amp-web and nntsc data storage.
  Interface between amp-web and nntsc data storage.
