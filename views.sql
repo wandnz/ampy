@@ -19,21 +19,7 @@ CREATE TABLE IF NOT EXISTS groups (
 CREATE INDEX idx_group_collection ON groups (collection);
 CREATE INDEX idx_view_collection ON views (collection);
 
-CREATE TABLE IF NOT EXISTS userfilters (
-    /* the user who owns this filter -- ideally this would reference a users
-     * table in the future */
-    user_id TEXT NOT NULL,
-
-    /* a unique identifier for that filter, so that users could have multiple
-     * filters in the future and just flick between them. */
-    filter_name TEXT NOT NULL,
-
-    /* The set of filter options, expressed as stringified JSON */
-    filter TEXT NOT NULL
 );
-
-ALTER TABLE userfilters ADD CONSTRAINT uniq_filter_id UNIQUE (user_id, filter_name);
-
 
 /* TODO ampweb package should probably grant these permissions */
 GRANT ALL ON ALL TABLES IN SCHEMA public to "ampweb";
