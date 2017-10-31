@@ -38,7 +38,7 @@ except ImportError:
 requires = [
     'psycopg2>=2.5.4',
     'pylibmc>=1.2.2',
-    'bcrypt>=3.1.3',
+    'bcrypt>=2.0.0',
     ]
 
 setup(
