@@ -69,9 +69,10 @@ class AmpUdpstream(AmpThroughput):
                 "jitter_percentile_70",
                 "jitter_percentile_80",
                 "jitter_percentile_90",
-                "jitter_percentile_100"
+                "jitter_percentile_100",
+                "mean_rtt", "packets_sent", "packets_recvd",
             ]
-            aggmethods = ['mean'] * len(aggcols)
+            aggmethods = ['mean'] * (len(aggcols) - 2) + ['sum', 'sum']
             return (aggcols, aggmethods)
 
         if detail == "matrix":
