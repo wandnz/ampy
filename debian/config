@@ -1,0 +1,18 @@
+#!/bin/sh -e
+
+# Source debconf library
+. /usr/share/debconf/confmodule
+
+# Initial user username
+db_input high ampy/views_user || true
+db_go
+
+# Initial user password
+db_input high ampy/views_password || true
+db_go
+
+# warn about packaged versions of python libraries when installing on wheezy
+if [ `lsb_release -sc` = "wheezy" ]; then
+    db_input high ampy/wheezy_warning || true
+    db_go
+fi

@@ -39,18 +39,36 @@ install_database()
         (createdb -O cuz $1 && zcat /usr/share/ampy/$2 | psql -q -d $1)"
 }
 
+create_user_in_database()
+{
+    if [ $# -ne 2 ]; then
+        echo "create_user_in_database expects 2 arguments, $# given"
+        return
+    fi
+
+    su postgres -c "psql -q -c \
+        \"INSERT INTO users (username, longname, password, roles) \
+        VALUES ('$1', '$1', crypt('$2', gen_salt('bf')), '{viewdata}')\" \
+        -d views || true"
+}
+
+make_admin()
+{
+    if [ $# -ne 1 ]; then
+        echo "make_admin expects 1 arguments, $# given"
+        return
+    fi
+
+    su postgres -c "psql -q -c \
+        \"UPDATE users SET roles='{viewdata,viewconfig,editconfig,editusers}' \
+        WHERE username='$1'\" -d views || true"
+}
+
 
 case "$1" in
     configure)
         if [ -z $2 ]; then
             # new install, no pre-existing package
-            if [ `lsb_release -sc` = "wheezy" ]; then
-                echo "======================================================"
-                echo "Debian Wheezy has really old python packages:"
-                echo
-                echo "pip install psycopg2"
-                echo "======================================================"
-            fi
 
             # create the databases and install the schemas if they don't exist
             create_database_user "ampweb"
@@ -58,6 +76,23 @@ case "$1" in
             install_database "views" "views.sql.gz"
             install_database "ampmeta" "database.sql.gz"
             install_database "amp-asdb" "asdb-full.sql.gz"
+
+            # Source debconf library
+            . /usr/share/debconf/confmodule
+
+            # create an initial admin user for the website
+            db_get ampy/views_user
+            user="$RET"
+            db_get ampy/views_password
+            password="$RET"
+            su postgres -c "psql -q -c \
+                \"CREATE EXTENSION pgcrypto;\" -d views || true"
+            create_user_in_database "$user" "$password"
+
+            # clear out everything, we don't care about it for future upgrades
+            # and we don't want to keep the password stored in plain text
+            # TODO better to only remove the password?
+            db_purge
         else
             # TODO can any of this be moved into other files rather than
             # included directly in the postinst script
@@ -151,6 +186,59 @@ case "$1" in
                 su postgres -c "psql -q -c \
                     \"REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM \
                     \\\"www-data\\\";\" -d views || true"
+            fi
+
+            if dpkg --compare-versions "$2" le-nl "2.13-1"; then
+                # add new users database table
+                su postgres -c "psql -q -c \
+                    \"CREATE TABLE IF NOT EXISTS users (                \
+                        username TEXT PRIMARY KEY,                      \
+                        longname TEXT NOT NULL,                         \
+                        email TEXT,                                     \
+                        roles TEXT[],                                   \
+                        enabled BOOLEAN NOT NULL DEFAULT TRUE,          \
+                        password TEXT);\" -d views || true"
+
+                su postgres -c "psql -q -c \
+                    \"GRANT ALL ON TABLE users TO \
+                    \\\"ampweb\\\";\" -d views || true"
+
+                # remove old userfilters, now part of the events database
+                su postgres -c "psql -q -c \
+                    \"DROP TABLE userfilters;\" -d views || true"
+
+                # try to move old users in security.py into the database
+                # XXX not very robust, but should work for all installed
+                # instances that I'm aware of
+                flag=0
+                USERFILE=/usr/lib/python2.7/dist-packages/ampweb/security.py
+                su postgres -c "psql -q -c \
+                    \"CREATE EXTENSION pgcrypto;\" -d views || true"
+                if [ -r $USERFILE ]; then
+                    while read line; do
+                        case "$line" in
+                            \#*)    ;;
+                            USERS*) flag=1;
+                                    ;;
+                            GROUP*) flag=2;
+                                    ;;
+                            def*)   flag=0
+                                    ;;
+                            *:*)    if [ $flag -eq 1 ]; then
+                                        line=`echo $line | sed "s'[\',]''g"`
+                                        user=`echo $line | cut -d ':' -f 1`
+                                        pass=`echo $line | cut -d ':' -f 2`
+                                        create_user_in_database $user $pass
+                                    elif [ $flag -eq 2 ]; then
+                                        line=`echo $line | sed "s'[\',]''g"`
+                                        user=`echo $line | cut -d ':' -f 1`
+                                        make_admin $user
+                                    fi
+                                    ;;
+                            *)      ;;
+                        esac
+                    done < $USERFILE
+                fi
             fi
         fi
     ;;
