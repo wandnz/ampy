@@ -1,3 +1,12 @@
+ampy (2.14-1) unstable; urgency=low
+
+  * Update links in README.md.
+  * Move event filters from the view manager into the event manager.
+  * Add user management to the view manager.
+  * Add mean RTT and packet count fields to raw udpstream data export.
+
+ -- Brendon Jones <brendonj@waikato.ac.nz>  Wed,  8 Nov 2017 15:26:39 +1300
+
 ampy (2.13-1) unstable; urgency=low
 
   * Flag meshes with tests manually rather than when tests are scheduled.
