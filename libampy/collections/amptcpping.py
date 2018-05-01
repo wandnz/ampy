@@ -62,8 +62,8 @@ class AmpTcpping(AmpIcmp):
                 properties['packet_size'], properties['aggregation'].upper())
 
     def parse_group_description(self, description):
-        regex = "FROM (?P<source>[.a-zA-Z0-9-]+) "
-        regex += "TO (?P<destination>[.a-zA-Z0-9-]+) "
+        regex = "FROM (?P<source>[.a-zA-Z0-9_-]+) "
+        regex += "TO (?P<destination>[.a-zA-Z0-9_-]+) "
         regex += "PORT (?P<port>[0-9]+) "
         regex += "SIZE (?P<size>[a-zA-Z0-9]+) "
         regex += "(?P<split>[A-Z0-9]+)"

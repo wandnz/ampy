@@ -93,7 +93,7 @@ class RRDSmokeping(Collection):
 
     def parse_group_description(self, description):
 
-        regex = "SOURCE (?P<source>[.a-zA-Z0-9-]+) "
+        regex = "SOURCE (?P<source>[.a-zA-Z0-9_-]+) "
         regex += "TARGET (?P<host>\S+) "
         regex += "(?P<split>[A-Z0-9]+)"
 

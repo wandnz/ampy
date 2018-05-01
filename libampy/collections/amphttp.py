@@ -131,7 +131,7 @@ class AmpHttp(Collection):
         Converts a group description string into a dictionary mapping
         group properties to their values.
         """
-        regex = "FROM (?P<source>[.a-zA-Z0-9-]+) "
+        regex = "FROM (?P<source>[.a-zA-Z0-9_-]+) "
         regex += "FETCH (?P<destination>[\S]+) "
         regex += "MC (?P<maxconn>[0-9]+) (?P<maxconnserver>[0-9]+) "
         regex += "(?P<persist>[A-Z]+) "

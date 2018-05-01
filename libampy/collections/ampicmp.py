@@ -161,8 +161,8 @@ class AmpIcmp(Collection):
                 properties['packet_size'], properties['aggregation'].upper())
 
     def parse_group_description(self, description):
-        regex = "FROM (?P<source>[.a-zA-Z0-9-]+) "
-        regex += "TO (?P<destination>[.a-zA-Z0-9-]+) "
+        regex = "FROM (?P<source>[.a-zA-Z0-9_-]+) "
+        regex += "TO (?P<destination>[.a-zA-Z0-9_-]+) "
         regex += "OPTION (?P<option>[a-zA-Z0-9]+) "
         regex += "(?P<split>[A-Z0-9]+)"
 

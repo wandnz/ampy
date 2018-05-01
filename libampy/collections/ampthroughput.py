@@ -157,8 +157,8 @@ class AmpThroughput(Collection):
         return label, "%s%s" % (family, dirstr)
 
     def parse_group_description(self, description):
-        regex = "FROM (?P<source>[.a-zA-Z0-9-]+) "
-        regex += "TO (?P<destination>[.a-zA-Z0-9-:]+) "
+        regex = "FROM (?P<source>[.a-zA-Z0-9_-]+) "
+        regex += "TO (?P<destination>[.a-zA-Z0-9:_-]+) "
         regex += "DURATION (?P<duration>[0-9]+) "
         regex += "WRITESIZE (?P<writesize>[0-9]+) "
         regex += "(?P<reused>[TF]) "

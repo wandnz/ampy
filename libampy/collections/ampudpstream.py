@@ -161,8 +161,8 @@ class AmpUdpstream(AmpThroughput):
         return label, "%s%s" % (family, dirstr)
 
     def parse_group_description(self, description):
-        regex = "FROM (?P<source>[.a-zA-Z0-9-]+) "
-        regex += "TO (?P<destination>[.a-zA-Z0-9-:]+) "
+        regex = "FROM (?P<source>[.a-zA-Z0-9_-]+) "
+        regex += "TO (?P<destination>[.a-zA-Z0-9_:-]+) "
         regex += "DSCP (?P<dscp>[a-zA-Z0-9-]+) "
         regex += "SIZE (?P<size>[0-9-]+) "
         regex += "SPACING (?P<spacing>[0-9-]+) "

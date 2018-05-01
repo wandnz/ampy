@@ -662,9 +662,9 @@ class AmpMesh(object):
         query = """ INSERT INTO site (site_ampname, site_longname)
                     VALUES (%s, %s) """
 
-        if re.search("[^.:/a-z0-9-]", ampname.lower()) is not None:
+        if re.search("[^.:/a-zA-Z0-9_-]", ampname) is not None:
             return None
-        params = (ampname.lower(), ampname)
+        params = (ampname, ampname)
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
@@ -975,9 +975,9 @@ class AmpMesh(object):
                         mesh_active, mesh_public
                     ) VALUES (%s, %s, %s, %s, true, true, %s) """
 
-        if re.search("[^.:/a-z0-9-]", ampname.lower()) is not None:
+        if re.search("[^.:/a-zA-Z0-9_-]", ampname) is not None:
             return None
-        params = (ampname.lower(), longname, description, issource, public)
+        params = (ampname, longname, description, issource, public)
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
@@ -1022,9 +1022,9 @@ class AmpMesh(object):
                         site_location, site_description, site_active
                     ) VALUES (%s, %s, %s, %s, true) """
 
-        if re.search("[^.:/a-z0-9-]", ampname.lower()) is not None:
+        if re.search("[^.:/a-zA-Z0-9_-]", ampname) is not None:
             return None
-        params = (ampname.lower(), longname, location, description)
+        params = (ampname, longname, location, description)
 
         self.dblock.acquire()
         if self.db.executequery(query, params) == -1:

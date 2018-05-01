@@ -276,8 +276,8 @@ class AmpDns(Collection):
         Converts a group description string into a dictionary mapping
         group properties to their values.
         """
-        regex = "FROM (?P<source>[.a-zA-Z0-9-]+) "
-        regex += "TO (?P<destination>[.a-zA-Z0-9-:]+) "
+        regex = "FROM (?P<source>[.a-zA-Z0-9_-]+) "
+        regex += "TO (?P<destination>[.a-zA-Z0-9:_-]+) "
         regex += "OPTION (?P<query>[a-zA-Z0-9.]+) (?P<type>[A-Z]+) "
         regex += "(?P<class>[A-Z]+) "
         regex += "(?P<size>[0-9]+) (?P<flags>[TF]+) "
