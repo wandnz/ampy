@@ -186,7 +186,7 @@ class AmpThroughput(Collection):
             protocol = parts.group('protocol')
         else:
             log("%s is not a valid protocol for a %s group" % \
-                    (parts.group('protocol'), self.collection.name))
+                    (parts.group('protocol'), self.collection_name))
             return None
 
         keydict = {
