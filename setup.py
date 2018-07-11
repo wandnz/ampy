@@ -28,7 +28,7 @@
 # Please report any bugs, questions or comments to contact@wand.net.nz
 #
 
-from pkg_resources import Requirement, resource_filename
+from pkg_resources import resource_filename
 
 try:
     from setuptools import setup, find_packages

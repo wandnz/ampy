@@ -865,8 +865,7 @@ class Collection(object):
                 blockdata, _ = self._next_block(block, cached[label],
                         [], 0, binsize, detail)
                 data[label] += blockdata
-                ignored = cache.store_block(block, blockdata, label, binsize,
-                        detail, [])
+                cache.store_block(block, blockdata, label, binsize, detail, [])
 
         return data
 

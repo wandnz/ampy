@@ -119,11 +119,6 @@ class AmpThroughput(Collection):
             log("Failed to parse group description to generate legend label")
             return None
 
-        if groupparams["tcpreused"] is True:
-            reuse = "+reuse"
-        else:
-            reuse = ""
-
         source = groupparams['source']
         dest = groupparams['destination']
 

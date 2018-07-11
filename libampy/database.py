@@ -238,7 +238,6 @@ class AmpyDatabase(object):
 
         try:
             self.cursor.close()
-            err = 0
         except psycopg2.extensions.QueryCanceledError:
             self.conn.rollback()
             return -1

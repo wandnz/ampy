@@ -1197,13 +1197,12 @@ class Ampy(object):
         toquery = set()
         for a in asns:
             if a == "-2":
-                aslabel = asname = "RFC 1918"
+                asname = "RFC 1918"
             elif a == "-1":
-                aslabel = asname = "No response"
+                asname = "No response"
             elif a == "0":
-                aslabel = asname = "Unknown"
+                asname = "Unknown"
             elif a == "Private":
-                aslabel = "ASPrivate"
                 asname = "Private Address Space"
             else:
                 aslabel = "AS" + a
