@@ -86,11 +86,15 @@ class AmpThroughput(Collection):
         return stream, {'address':stream['address']}
 
     def create_group_description(self, properties):
+        # TODO tcpreused should always be false now, can we remove the need
+        # for it to be part of the group description?
         if 'tcpreused' in properties:
             if properties['tcpreused'] is True:
                 reuse = "T"
             else:
                 reuse = "F"
+        else:
+            reuse = "F"
 
         if 'direction' not in properties:
             properties['direction'] = "BOTH"
