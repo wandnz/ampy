@@ -1,3 +1,12 @@
+ampy (2.15-1) unstable; urgency=low
+
+  * Add basic support for AMP YouTube test data.
+  * Ensure initial website user is an administrator.
+  * Allow both upper and lower case letters in ampnames.
+  * Various minor fixes to typos, redundant code, etc.
+
+ -- Brendon Jones <brendonj@waikato.ac.nz>  Wed,  1 Aug 2018 13:37:52 +1200
+
 ampy (2.14-1) unstable; urgency=low
 
   * Update links in README.md.
