@@ -391,8 +391,12 @@ class NNTSCConnection(object):
                     data[label] = {}
                     data[label]["data"] = []
                     data[label]["timedout"] = []
+                    data[label]["freq"] = 0
 
-                if "freq" not in data[label]:
+                # it's possible the first few blocks have zero
+                # binsize/frequency if we asked for raw data and there was none
+                # available, so keep trying till we get a useful value
+                if data[label]["freq"] == 0:
                     data[label]["freq"] = msg[1]['binsize']
                 data[label]["data"] += msg[1]['data']
                 if msg[1]['more'] is False:
