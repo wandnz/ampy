@@ -1,3 +1,12 @@
+ampy (2.16-1) unstable; urgency=low
+
+  * Fix data frequency calculation when the initial data is missing.
+  * Change package architecture from "any" to "all".
+  * Force using older gzip compression when building package.
+  * Update package description.
+
+ -- Brendon Jones <brendonj@waikato.ac.nz>  Mon, 24 Sep 2018 14:14:17 +1200
+
 ampy (2.15-1) unstable; urgency=low
 
   * Add basic support for AMP YouTube test data.
