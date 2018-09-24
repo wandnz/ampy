@@ -15,4 +15,9 @@ Architecture: all
 #Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}
 Depends: ${shlibs:Depends}, ${misc:Depends}, python, postgresql, postgresql-client, libnntsc-client, memcached, python-psycopg2, python-pylibmc, postgresql-contrib, python-bcrypt (>= 2.0.0), debconf
 Description: Interface between amp-web and nntsc data storage.
- Interface between amp-web and nntsc data storage.
+ ampy is a Python library that interfaces between the various front- and
+ back-end components of the AMP active measurement system. It serves as
+ the intermediary between the web interface (amp-web) and databases used
+ to store the data for display - the AMP site meta data database, the
+ views database for storing website related configuration, the events
+ database and the measurement database (nntsc).
