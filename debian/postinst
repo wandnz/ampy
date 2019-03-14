@@ -89,11 +89,6 @@ case "$1" in
                 \"CREATE EXTENSION pgcrypto;\" -d views || true"
             create_user_in_database "$user" "$password"
             make_admin "$user"
-
-            # clear out everything, we don't care about it for future upgrades
-            # and we don't want to keep the password stored in plain text
-            # TODO better to only remove the password?
-            db_purge
         else
             # TODO can any of this be moved into other files rather than
             # included directly in the postinst script
