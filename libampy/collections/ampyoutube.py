@@ -49,6 +49,9 @@ class AmpYoutube(Collection):
         self.collection_name = "amp-youtube"
         self.viewstyle = self.collection_name
 
+    def get_maximum_view_groups(self):
+        return 1
+
     def convert_property(self, streamprop, value):
         return value
 
