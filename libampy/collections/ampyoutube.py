@@ -133,6 +133,29 @@ class AmpYoutube(Collection):
 
         return keydict
 
+    def _get_quality_label(self, quality):
+        if quality == 1:
+            label = "default"
+        elif quality == 2:
+            label = "small"
+        elif quality == 3:
+            label = "medium"
+        elif quality == 4:
+            label = "large"
+        elif quality == 5:
+            label = "hd720"
+        elif quality == 6:
+            label = "hd1080"
+        elif quality == 7:
+            label = "hd1440"
+        elif quality == 8:
+            label = "hd2160"
+        elif quality == 9:
+            label = "highres"
+        else:
+            label = "unknown"
+        return label
+
     def get_legend_label(self, description):
         """
         Converts a group description string into an appropriate label for
@@ -143,26 +166,7 @@ class AmpYoutube(Collection):
             log("Failed to parse group description to generate legend label")
             return None
 
-        if groupparams["quality"] == 1:
-            quality = "default"
-        elif groupparams["quality"] == 2:
-            quality = "small"
-        elif groupparams["quality"] == 3:
-            quality = "medium"
-        elif groupparams["quality"] == 4:
-            quality = "large"
-        elif groupparams["quality"] == 5:
-            quality = "hd720"
-        elif groupparams["quality"] == 6:
-            quality = "hd1080"
-        elif groupparams["quality"] == 7:
-            quality = "hd1440"
-        elif groupparams["quality"] == 8:
-            quality = "hd2160"
-        elif groupparams["quality"] == 9:
-            quality = "highres"
-        else:
-            quality = "unknown"
+        quality = self._get_quality_label(groupparams["quality"])
 
         label = "%s from %s quality:%s" % (groupparams['destination'],
                 groupparams['source'], quality)
@@ -249,5 +253,14 @@ class AmpYoutube(Collection):
         else:
             views[(source, dest)] = viewid
             cache.store_matrix_view(cachelabel, viewid, 0)
+
+    # replace some labels used in the database with better human-readable text
+    def get_selections(self, selected, term, page, pagesize, logmissing=True):
+        options = super(AmpYoutube, self).get_selections(selected, term, page,
+                pagesize, logmissing)
+        if "quality" in options and "items" in options["quality"]:
+            for quality in options["quality"]["items"]:
+                quality["text"] = self._get_quality_label(quality["id"])
+        return options
 
 # vim: set smartindent shiftwidth=4 tabstop=4 softtabstop=4 expandtab :
