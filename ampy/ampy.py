@@ -49,6 +49,7 @@ from libampy.collections.amptcpping import AmpTcpping
 from libampy.collections.ampthroughput import AmpThroughput
 from libampy.collections.ampudpstream import AmpUdpstream
 from libampy.collections.ampyoutube import AmpYoutube
+from libampy.collections.ampfastping import AmpFastping
 from libampy.collections.rrdsmokeping import RRDSmokeping
 
 class Ampy(object):
@@ -927,7 +928,7 @@ class Ampy(object):
             return cachedview
 
         if collection == "amp-latency":
-            possibles = ['amp-icmp', 'amp-dns', 'amp-tcpping']
+            possibles = ['amp-icmp', 'amp-dns', 'amp-tcpping', 'amp-fastping']
         else:
             possibles = [collection]
 
@@ -1466,6 +1467,8 @@ class Ampy(object):
             newcol = AmpUdpstream(colid, self.viewmanager, self.nntscconfig)
         if collection == "amp-youtube":
             newcol = AmpYoutube(colid, self.viewmanager, self.nntscconfig)
+        if collection == "amp-fastping":
+            newcol = AmpFastping(colid, self.viewmanager, self.nntscconfig)
         if collection == "rrd-smokeping":
             newcol = RRDSmokeping(colid, self.viewmanager, self.nntscconfig)
 
@@ -1523,7 +1526,6 @@ class Ampy(object):
         # Put these groups in the cache
         if len(viewgroups) > 0:
             self.cache.store_view_groups(view_id, viewgroups)
-
 
         return viewgroups
 
