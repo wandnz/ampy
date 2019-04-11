@@ -3,6 +3,13 @@
 # Source debconf library
 . /usr/share/debconf/confmodule
 
+# Don't ask any questions if upgrading (especially confusing if upgrading
+# from versions that pre-date debconf questions and have been setup manually).
+# The postinst script won't use the answers unless it's a fresh install.
+if [ "$1" = "configure" -a -n "$2" ]; then
+    exit 0
+fi
+
 # Initial user username
 db_input high ampy/views_user || true
 db_go
