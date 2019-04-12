@@ -254,7 +254,7 @@ class ViewManager(object):
         # Ideally, this shouldn't happen but let's try and do something
         # sensible if it does
         if self.db.cursor.rowcount > 1:
-            log("Warning: multiple views match in collection %s, %s" % (viewstyle, description))
+            log("Warning: multiple views match in collection %s, %s" % (viewstyle, groups))
             log("Using first instance")
 
         if self.db.cursor.rowcount == 0:
