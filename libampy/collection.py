@@ -1006,11 +1006,23 @@ class Collection(object):
           been removed.
 
         """
+        blockdata = []
 
         # If this block is cached, we can return the cached data right away
         if block['start'] in cached:
             return cached[block['start']], queried
 
+        # raw data still needs to fit within the block, but doesn't need
+        # artificial gaps added to it showing missing measurements
+        if detail == "raw":
+            while len(queried) > 0 and queried[0]['timestamp'] < block['end']:
+                datum = self.format_single_data(queried[0], freq, detail)
+                datum['binstart'] = datum['timestamp']
+                queried = queried[1:]
+                blockdata.append(datum)
+            return blockdata, queried
+
+        # otherwise populate the block with both missing data and actual data
         if freq > binsize:
             incrementby = freq
             usekey = 'timestamp'
@@ -1023,7 +1035,6 @@ class Collection(object):
         if incrementby < 1:
             return [], queried
 
-        blockdata = []
         datum = {}
         ts = block['start']
 
