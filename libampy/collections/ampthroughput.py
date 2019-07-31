@@ -77,7 +77,6 @@ class AmpThroughput(Collection):
         if 'address' not in stream:
             return stream, {}
 
-        # XXX Can local and remote addresses be different families?
         if self._address_to_family(stream['address']) == "ipv4":
             stream['family'] = "ipv4"
         else:
@@ -237,14 +236,14 @@ class AmpThroughput(Collection):
                         (key, self.collection_name))
 
             for sid, store in streams:
-                if 'local' not in store or 'remote' not in store:
-                    log("Error: no addresses stored with stream id %s" % (sid))
+                if 'address' not in store:
+                    log("Error: no address stored with stream id %s" % (sid))
                     return None
 
-                if shortlabel == "in":
-                    streamlabel = "%s to %s" % (store['remote'], store['local'])
+                if shortlabel == self.dirlabels["in"]:
+                    streamlabel = "From %s" % (store['address'])
                 else:
-                    streamlabel = "%s to %s" % (store['local'], store['remote'])
+                    streamlabel = "To %s" % (store['address'])
 
                 label = {
                     'labelstring': key + "_" + str(sid),
