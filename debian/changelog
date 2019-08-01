@@ -1,3 +1,10 @@
+ampy (2.20-1) unstable; urgency=low
+
+  * Don't add artificial missing data points to raw data.
+  * Fix throughput test stream label with no address family aggregation.
+
+ -- Brendon Jones <brendonj@waikato.ac.nz>  Thu,  1 Aug 2019 11:27:46 +1200
+
 ampy (2.19-1) unstable; urgency=low
 
   * Add basic support for AMP External test data.
