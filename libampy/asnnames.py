@@ -28,6 +28,7 @@
 # Please report any bugs, questions or comments to contact@wand.net.nz
 #
 
+from threading import Lock
 from libampy.database import AmpyDatabase
 from libnntscclient.logger import log
 
@@ -42,6 +43,7 @@ class ASNManager(object):
         self.db = AmpyDatabase(asdbconfig, True)
         self.db.connect(15)
         self.cache = cache
+        self.dblock = Lock()
 
     def queryDatabase(self, asn):
         if asn == "" or int(asn) < 0:
@@ -50,21 +52,26 @@ class ASNManager(object):
         query = "SELECT * FROM asmap WHERE asn=%s"
         params = (asn,)
 
+        self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
+            self.dblock.release()
             log("Error while querying for AS name for %s" % (asn))
             return None
 
         if self.db.cursor is None:
+            self.dblock.release()
             log("Cursor for querying ASDB is None?")
             return None
 
-        if self.db.cursor.rowcount == 0:
-            log("ASN %s not found in AS database :(" % (asn))
+        if self.db.cursor.rowcount < 1:
             self.db.closecursor()
+            self.dblock.release()
+            log("ASN %s not found in AS database :(" % (asn))
             return "NotFound"
 
         asname = self.db.cursor.fetchone()['asname']
         self.db.closecursor()
+        self.dblock.release()
         return asname
 
     def getASNsByName(self, pagesize=30, offset=0, term=""):
@@ -73,17 +80,22 @@ class ASNManager(object):
                 %s OR asname ILIKE %s"""
         params = ("%" + term + "%", "%" + term + "%")
 
+        self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
+            self.dblock.release()
             log("Error while counting ASNs in the database")
             return (0, {})
         ascount = self.db.cursor.fetchone()[0]
         self.db.closecursor()
+        self.dblock.release()
 
         query = """SELECT * FROM asmap WHERE CAST(asn AS TEXT) ILIKE
                 %s OR asname ILIKE %s ORDER BY asn LIMIT %s OFFSET %s"""
         params = ("%" + term + "%", "%" + term + "%", pagesize, offset)
 
+        self.dblock.acquire()
         if self.db.executequery(query, params) == -1:
+            self.dblock.release()
             log("Error while querying for all AS names")
             return (0, {})
 
@@ -95,6 +107,7 @@ class ASNManager(object):
             if len(allasns) > pagesize:
                 break
         self.db.closecursor()
+        self.dblock.release()
         return ascount, allasns
 
     def queryASNames(self, toquery):
