@@ -260,12 +260,6 @@ class AmpAsTraceroute(AmpTraceroute):
             return 2
         return 0
 
-    def get_collection_history(self, cache, labels, start, end, detail,
-            binsize):
-        result = super(AmpAsTraceroute, self).get_collection_history(cache,
-                            labels, start, end, detail, binsize)
-        return result
-
     def translate_group(self, groupprops):
         if 'aggregation' not in groupprops or groupprops['aggregation'] \
                     not in ["IPV4", "IPV6"]:
