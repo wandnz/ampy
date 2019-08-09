@@ -47,14 +47,14 @@ class AmpTraceroute(AmpIcmp):
         self.asnmanager = asnmanager
 
     def group_columns(self, detail):
-        if detail == "ippaths":
+        if detail in ["ippaths", "raw"]:
             return ['aspath', 'path']
         return []
 
     def detail_columns(self, detail):
-        if detail == "ippaths":
-            aggfuncs = ["most", "most", "count", "most"]
-            aggcols = ["error_type", "error_code", "path", "path_id"]
+        if detail in ["ippaths", "raw"]:
+            aggfuncs = ["most", "most", "count", "most", "most"]
+            aggcols = ["error_type", "error_code", "path", "path_id", "length"]
         elif detail == "ippaths-summary":
             aggfuncs = ["count"]
             aggcols = ["path_id"]
@@ -71,8 +71,11 @@ class AmpTraceroute(AmpIcmp):
 
     def get_collection_history(self, cache, labels, start, end, detail,
             binsize):
-        # Save the cache because we'll want it for our AS name lookups
-        if detail != "ippaths":
+        # Any query that isn't full IP path data can use the more generic
+        # parent class query, otherwise we use the more specific one
+        if self.collection_name != "amp-traceroute" or \
+                                    detail not in ["ippaths", "raw"]:
+            # Save the cache because we'll want it for our AS name lookups
             return super(AmpTraceroute, self).get_collection_history(cache,
                     labels, start, end, detail, binsize)
 
@@ -213,6 +216,9 @@ class AmpTraceroutePathlen(AmpTraceroute):
 
     def get_maximum_view_groups(self):
         return 0
+
+    def group_columns(self, detail):
+        return []
 
     def detail_columns(self, detail):
         if detail in ["matrix", "basic", "tooltiptext", "spark", "raw"]:
