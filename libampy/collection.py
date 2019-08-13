@@ -428,7 +428,7 @@ class Collection(object):
 
         return []
 
-    def format_single_data(self, data, freq, detail):
+    def format_single_data(self, data, detail):
         """
         Modifies a single data point into a suitable format for display on
         a graph or a matrix.
@@ -438,7 +438,6 @@ class Collection(object):
 
         Parameters:
           data -- a dictionary containing the data point to be formatted
-          freq -- the frequency that the measurements were collected at
           detail -- the level of detail required
 
         Returns:
@@ -448,7 +447,7 @@ class Collection(object):
         # For many collections, no formatting is required
         return data
 
-    def format_list_data(self, datalist, freq, detail):
+    def format_list_data(self, datalist, detail):
         """
         Modifies a list of data points into a suitable format for display on
         a graph or a matrix.
@@ -459,7 +458,6 @@ class Collection(object):
         Parameters:
           datalist -- a list of dictionaries containing the data points to
                       be formatted
-          freq -- the frequency that the measurements were collected at
           detail -- the level of detail required
 
         Returns:
@@ -767,7 +765,7 @@ class Collection(object):
                 return None
 
             for label, queryresult in result.iteritems():
-                formatted = self.format_list_data(queryresult['data'], queryresult['freq'], detail)
+                formatted = self.format_list_data(queryresult['data'], detail)
                 # Cache the result
                 cachelabel = label + "_" + self.collection_name
                 if len(cachelabel) > 128:
@@ -1016,7 +1014,7 @@ class Collection(object):
         # artificial gaps added to it showing missing measurements
         if detail == "raw":
             while len(queried) > 0 and queried[0]['timestamp'] < block['end']:
-                datum = self.format_single_data(queried[0], freq, detail)
+                datum = self.format_single_data(queried[0], detail)
                 datum['binstart'] = datum['timestamp']
                 queried = queried[1:]
                 blockdata.append(datum)
@@ -1073,7 +1071,7 @@ class Collection(object):
                     # The next available queried data point fits in the
                     # bin we were expecting, so format it nicely and
                     # add it to our block
-                    datum = self.format_single_data(queried[0], freq, detail)
+                    datum = self.format_single_data(queried[0], detail)
                     queried = queried[1:]
                     if freq > binsize:
                         datum['binstart'] = ts

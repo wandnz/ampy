@@ -110,8 +110,7 @@ class AmpTraceroute(AmpIcmp):
                     paths[label] = []
                     continue
 
-                formatted = self.format_list_data(queryresult['data'],
-                        queryresult['freq'], detail)
+                formatted = self.format_list_data(queryresult['data'], detail)
 
                 cachelabel = label + "_ippaths_" + self.collection_name
                 if len(cachelabel) > 128:
@@ -122,13 +121,13 @@ class AmpTraceroute(AmpIcmp):
 
         return paths
 
-    def format_list_data(self, datalist, freq, detail):
+    def format_list_data(self, datalist, detail):
         reslist = []
         for data in datalist:
-            reslist.append(self.format_single_data(data, freq, detail))
+            reslist.append(self.format_single_data(data, detail))
         return reslist
 
-    def format_single_data(self, data, freq, detail):
+    def format_single_data(self, data, detail):
         if 'aspath' not in data or data['aspath'] is None:
             return data
 
