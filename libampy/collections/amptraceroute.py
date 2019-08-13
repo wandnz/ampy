@@ -85,7 +85,6 @@ class AmpTraceroute(AmpIcmp):
 
         uncached = {}
         paths = {}
-        timeouts = []
 
         for lab in labels:
             cachelabel = lab['labelstring'] + "_ippaths_" + self.collection_name
@@ -108,7 +107,6 @@ class AmpTraceroute(AmpIcmp):
 
             for label, queryresult in result.iteritems():
                 if len(queryresult['timedout']) != 0:
-                    timeouts.append(label)
                     paths[label] = []
                     continue
 
