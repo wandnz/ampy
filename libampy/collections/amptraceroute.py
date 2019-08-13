@@ -71,11 +71,15 @@ class AmpTraceroute(AmpIcmp):
 
     def get_collection_history(self, cache, labels, start, end, detail,
             binsize):
-        # Any query that isn't full IP path data can use the more generic
-        # parent class query, otherwise we use the more specific one
-        if self.collection_name != "amp-traceroute" or \
-                                    detail not in ["ippaths", "raw"]:
-            # Save the cache because we'll want it for our AS name lookups
+
+        # most detail levels behave normally, except amp-traceroute ippaths
+        # detail, which needs to aggregate unique paths across the whole
+        # time period (and can't use collection.get_collection_history()
+        # because it will set binsize to something smaller, and possibly have
+        # weird interactions with the block fetching algorithm).
+        # TODO create another magic binsize value that will cause
+        # collection.get_collection_history() to behave correctly?
+        if self.collection_name != "amp-traceroute" or detail != "ippaths":
             return super(AmpTraceroute, self).get_collection_history(cache,
                     labels, start, end, detail, binsize)
 
