@@ -222,7 +222,10 @@ class AmpTraceroutePathlen(AmpTraceroute):
         return []
 
     def detail_columns(self, detail):
-        if detail in ["matrix", "basic", "tooltiptext", "spark", "raw"]:
+        if detail == "raw":
+            aggfuncs = []
+            aggcols = ['path_length', 'unused']
+        elif detail in ["matrix", "basic", "tooltiptext", "spark"]:
             aggfuncs = ['mode']
             aggcols = ['path_length']
         else:

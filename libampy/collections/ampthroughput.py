@@ -52,8 +52,8 @@ class AmpThroughput(Collection):
         self.dirlabels = {"in": "Download", "out": "Upload"}
 
     def detail_columns(self, detail):
-        aggfuncs = ["sum", "sum", "sum", "stddev"]
-        aggcols = ["bytes", "packets", "runtime", "rate"]
+        aggfuncs = ["sum", "sum", "sum", "stddev", "count"]
+        aggcols = ["bytes", "packets", "runtime", "rate", "unused"]
         return aggcols, aggfuncs
 
     def calculate_binsize(self, start, end, detail):

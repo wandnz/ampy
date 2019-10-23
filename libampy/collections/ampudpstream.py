@@ -73,6 +73,10 @@ class AmpUdpstream(AmpThroughput):
                 "mean_rtt", "packets_sent", "packets_recvd",
             ]
             aggmethods = ['mean'] * (len(aggcols) - 2) + ['sum', 'sum']
+            if detail == "raw":
+                # if the other fields are all empty we need a valid field that
+                # will always have something in it
+                aggcols.append("unused")
             return (aggcols, aggmethods)
 
         if detail == "matrix":
