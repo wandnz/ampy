@@ -1,3 +1,9 @@
+ampy (2.22-2) unstable; urgency=low
+
+  * Deal with percent signs in AS names when fetching current list.
+
+ -- Brendon Jones <brendonj@waikato.ac.nz>  Thu, 12 Dec 2019 17:17:03 +1300
+
 ampy (2.22-1) unstable; urgency=low
 
   * Add dummy column to influx for tests that may report all null values.
