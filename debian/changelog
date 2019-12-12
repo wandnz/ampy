@@ -1,3 +1,9 @@
+ampy (2.22-1) unstable; urgency=low
+
+  * Add dummy column to influx for tests that may report all null values.
+
+ -- Brendon Jones <brendonj@waikato.ac.nz>  Thu, 12 Dec 2019 16:03:11 +1300
+
 ampy (2.21-1) unstable; urgency=low
 
   * Acquire a lock before querying the AS name database.
