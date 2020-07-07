@@ -51,6 +51,7 @@ from libampy.collections.ampudpstream import AmpUdpstream
 from libampy.collections.ampyoutube import AmpYoutube
 from libampy.collections.ampfastping import AmpFastping
 from libampy.collections.ampexternal import AmpExternal
+from libampy.collections.ampsip import AmpSip
 from libampy.collections.rrdsmokeping import RRDSmokeping
 
 class Ampy(object):
@@ -1472,6 +1473,8 @@ class Ampy(object):
             newcol = AmpFastping(colid, self.viewmanager, self.nntscconfig)
         if collection == "amp-external":
             newcol = AmpExternal(colid, self.viewmanager, self.nntscconfig)
+        if collection == "amp-sip":
+            newcol = AmpSip(colid, self.viewmanager, self.nntscconfig)
         if collection == "rrd-smokeping":
             newcol = RRDSmokeping(colid, self.viewmanager, self.nntscconfig)
 
