@@ -1,3 +1,9 @@
+ampy (2.23-1) unstable; urgency=low
+
+  * Add basic support for AMP SIP test data.
+
+ -- Brendon Jones <brendonj@waikato.ac.nz>  Fri, 11 Sep 2020 17:32:40 +1200
+
 ampy (2.22-2) unstable; urgency=low
 
   * Deal with percent signs in AS names when fetching current list.
