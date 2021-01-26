@@ -225,8 +225,8 @@ class AmpMesh(object):
         for row in self.db.cursor.fetchall():
             meshes.append({
                 'ampname': row[0],
-                'longname': row[1].decode("utf-8") if row[1] else row[0],
-                'description': row[2].decode("utf-8") if row[2] else None,
+                'longname': row[1] if row[1] else row[0],
+                'description': row[2] if row[2] else None,
                 'count': row[3],
                 'public': row[4]
             })
@@ -258,9 +258,9 @@ class AmpMesh(object):
         for row in self.db.cursor.fetchall():
             sites.append({
                 'ampname': row[0],
-                'longname': row[1].decode("utf-8") if row[1] else row[0],
-                'location': row[2].decode("utf-8") if row[2] else None,
-                'description': row[3].decode("utf-8") if row[3] else None,
+                'longname': row[1] if row[1] else row[0],
+                'location': row[2] if row[2] else None,
+                'description': row[3] if row[3] else None,
             })
 
         self.db.closecursor()
@@ -451,9 +451,9 @@ class AmpMesh(object):
 
         result = {
             'ampname': row[0],
-            'longname': row[1].decode("utf-8") if row[1] else row[0],
-            'location': row[2].decode("utf-8") if row[2] else None,
-            'description': row[3].decode("utf-8") if row[3] else None,
+            'longname': row[1] if row[1] else row[0],
+            'location': row[2] if row[2] else None,
+            'description': row[3] if row[3] else None,
             'active': row[4],
             'last_schedule_update': row[5],
         }
@@ -498,8 +498,8 @@ class AmpMesh(object):
 
         result = {
             'ampname': row[0],
-            'longname': row[1].decode("utf-8") if row[1] else row[0],
-            'description': row[2].decode("utf-8") if row[2] else None,
+            'longname': row[1] if row[1] else row[0],
+            'description': row[2] if row[2] else None,
             'is_src': row[3],
             'is_dst': row[4],
             'active': row[5],
@@ -709,7 +709,7 @@ class AmpMesh(object):
             # TODO if a site in a mesh is the source of a test, should all
             # those meshes also be set as source meshes?
         else:
-            print "source is neither mesh nor site"
+            print("source is neither mesh nor site")
             return None
 
         if dst is None or len(dst) == 0:
@@ -785,7 +785,7 @@ class AmpMesh(object):
         elif self._is_site(src):
             query += " AND endpoint_source_site=%s"
         else:
-            print "source is neither mesh nor site"
+            print("source is neither mesh nor site")
             return None
 
         if self._is_mesh(dst):
@@ -793,7 +793,7 @@ class AmpMesh(object):
         elif self._is_site(dst):
             query += " AND endpoint_destination_site=%s"
         else:
-            print "destination is neither mesh nor site"
+            print("destination is neither mesh nor site")
             return None
 
         params = (schedule_id, src, dst)

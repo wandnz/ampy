@@ -299,7 +299,7 @@ class ViewManager(object):
             return None
 
         existing = []
-        for vgs in groups.itervalues():
+        for vgs in groups.values():
             existing += [x[0] for x in vgs]
 
         for description in descriptions:
@@ -346,7 +346,7 @@ class ViewManager(object):
         if groups is None:
             return None
         existing = []
-        for vgs in groups.itervalues():
+        for vgs in groups.values():
             existing += [x[0] for x in vgs]
 
         # Remove the group from the group list if present

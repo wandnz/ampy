@@ -155,7 +155,7 @@ class StreamManager(object):
         if streamid not in self.streams:
             return None
 
-        return dict(zip(self.keylist, self.streams[streamid][0]))
+        return dict(list(zip(self.keylist, self.streams[streamid][0])))
 
     def find_streams(self, properties, searching=None, index=0, found=None):
         """
@@ -229,7 +229,7 @@ class StreamManager(object):
         # If we get here, the stream property at this level was not in the
         # provided set of parameters so we will treat it as a wildcard
         # and traverse all of the entries at this hierarchy level
-        for nextdict in searching.itervalues():
+        for nextdict in searching.values():
             found = self.find_streams(properties, nextdict, index + 1, found)
 
         return found
@@ -299,7 +299,7 @@ class StreamManager(object):
             # accidentally return the stream id list
             return None, []
 
-        result = curr.keys()
+        result = list(curr.keys())
         result.sort()
 
         if term != "":

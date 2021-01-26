@@ -352,7 +352,7 @@ class AmpDns(Collection):
             # as long as there are properties that need setting, keep setting
             # them until we get a stream id (that hopefully has recent data!)
             while len(props) > 0:
-                for prop, values in props.iteritems():
+                for prop, values in props.items():
                     # prefer the default values, but if they aren't present
                     # then pick the first option available
                     if prop in self.defaults and \

@@ -296,6 +296,9 @@ class EventManager(object):
           and filter name, or None if no such filter exists (or an error
           occurs while querying the database).
         """
+        if self.disabled:
+            return None
+
         query = """SELECT * FROM eventing.userfilters WHERE user_id=%s AND filter_name=%s"""
         params = (username, filtername)
 
@@ -334,6 +337,9 @@ class EventManager(object):
           the tuple (username, filtername) if the new filter is successfully
           inserted into the filter table, or None if the insertion fails.
         """
+        if self.disabled:
+            return None
+
         query = """INSERT INTO eventing.userfilters (user_id, filter_name, filter) VALUES (%s, %s, %s) """
         params = (username, filtername, filterstring)
 
@@ -359,6 +365,9 @@ class EventManager(object):
           the tuple (username, filtername) if the filter is successfully
           updated, or None if the filter doesn't exist or the update fails.
         """
+        if self.disabled:
+            return None
+
         query = """ UPDATE eventing.userfilters SET filter = %s, email = %s
                     WHERE user_id=%s AND filter_name=%s """
         params = (filterstring, email, username, filtername)
@@ -382,6 +391,9 @@ class EventManager(object):
           the tuple (username, filtername) if the filter is successfully
           removed from the filter table, or None if the removal fails.
         """
+        if self.disabled:
+            return username, filtername
+
         query = "DELETE FROM eventing.userfilters WHERE user_id=%s"
         params = [username]
         if filtername is not None:

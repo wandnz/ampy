@@ -764,7 +764,7 @@ class Collection(object):
                 log("Error fetching history for matrix")
                 return None
 
-            for label, queryresult in result.iteritems():
+            for label, queryresult in result.items():
                 formatted = self.format_list_data(queryresult['data'], detail)
                 # Cache the result
                 cachelabel = label + "_" + self.collection_name
@@ -832,7 +832,7 @@ class Collection(object):
 
         # Merge fetched data with cached data to produce complete series
         data = {}
-        for label, dbdata in fetched.iteritems():
+        for label, dbdata in fetched.items():
             data[label] = []
             failed = timeouts[label]
 
@@ -849,7 +849,7 @@ class Collection(object):
         # Any labels that were fully cached won't be touched by the previous
         # bit of code so we need to check the cached dictionary for any
         # labels that don't appear in the fetched data and process those too
-        for label in cached.iterkeys():
+        for label in cached.keys():
 
             # If the label is present in our returned data, we've already
             # processed it
@@ -898,13 +898,13 @@ class Collection(object):
         timeouts = {}
 
         # Query NNTSC for all of the missing blocks
-        for (bstart, bend), labels in notcached.iteritems():
+        for (bstart, bend), labels in notcached.items():
             hist = self._fetch_history(labels, bstart, bend-1, binsize, detail)
             if hist is None:
                 log("Error fetching historical data from NNTSC")
                 return None
 
-            for label, result in hist.iteritems():
+            for label, result in hist.items():
                 if label not in fetched:
                     fetched[label] = []
                     timeouts[label] = []

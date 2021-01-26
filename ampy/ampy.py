@@ -202,7 +202,7 @@ class Ampy(object):
         Returns:
           a list of collection names
         """
-        return self.savedcoldata.keys()
+        return list(self.savedcoldata.keys())
 
     def get_meshes(self, endpoint, amptest=None, site=None, public=None):
         """
@@ -471,7 +471,7 @@ class Ampy(object):
             log("Failed to fetch recent data")
             return None
 
-        for colname, vgs in viewgroups.iteritems():
+        for colname, vgs in viewgroups.items():
             col = self._getcol(colname)
             if col is None:
                 log("Failed to create collection module %s" % (colname))
@@ -529,7 +529,7 @@ class Ampy(object):
             log("Failed to fetch historic data")
             return None
 
-        for colname, vgs in viewgroups.iteritems():
+        for colname, vgs in viewgroups.items():
             col = self._getcol(colname)
             if col is None:
                 log("Failed to create collection module %s" % (colname))
@@ -609,7 +609,7 @@ class Ampy(object):
         # This ensures that A) the legend will be in a consistent order
         # and B) the ordering is more obvious to the user (i.e. alphabetical
         # starting with the first group property)
-        colkeys = viewgroups.keys()
+        colkeys = list(viewgroups.keys())
         colkeys.sort()
 
         for colname in colkeys:
@@ -758,7 +758,7 @@ class Ampy(object):
         totalgroups = 0
         matched = 0
 
-        for colname, vgs in groups.iteritems():
+        for colname, vgs in groups.items():
             col = self._getcol(colname)
             if col is None:
                 log("Error while getting original collection %s" % (colname))
@@ -838,7 +838,7 @@ class Ampy(object):
         # Translate each group in turn
         tabgroups = set()
 
-        for colname, vgs in groups.iteritems():
+        for colname, vgs in groups.items():
             col = self._getcol(colname)
             if col is None:
                 log("Error while getting original collection %s" % (colname))
@@ -1117,7 +1117,7 @@ class Ampy(object):
         # associated with stream IDs, not labels or groups or views.
         alllabels = []
 
-        for colname, vgs in groups.iteritems():
+        for colname, vgs in groups.items():
             col = self._getcol(colname)
             if col is None:
                 log("Error while creating module for collection %s" % (colname))
@@ -1221,7 +1221,7 @@ class Ampy(object):
         if queried is None:
             return None
 
-        for a, n in queried.iteritems():
+        for a, n in queried.items():
             result[a] = n
         return result
 
@@ -1411,7 +1411,7 @@ class Ampy(object):
             name = col['module'] + "-" + col['modsubtype']
             self.savedcoldata[name] = col['id']
 
-        return len(self.savedcoldata.keys())
+        return len(list(self.savedcoldata.keys()))
 
     def _getcol(self, collection, updatestreams=True):
         """

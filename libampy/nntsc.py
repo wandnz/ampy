@@ -94,8 +94,8 @@ class NNTSCConnection(object):
             return self.client
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        except socket.error, msg:
-            log("Failed to create socket: %s" % (msg[1]))
+        except socket.error as err:
+            log("Failed to create socket: %s" % err)
             return None
 
         attempts = 0
@@ -110,9 +110,9 @@ class NNTSCConnection(object):
             try:
                 sock.connect((self.host, self.port))
                 connected = True
-            except socket.error, msg:
+            except socket.error as err:
                 log("Failed to connect to %s:%d -- %s" % (
-                        self.host, self.port, msg[1]))
+                        self.host, self.port, err))
                 attempts += 1
 
         if not connected:
@@ -396,7 +396,7 @@ class NNTSCConnection(object):
                 # it's possible the first few blocks have zero
                 # binsize/frequency if we asked for raw data and there was none
                 # available, so keep trying till we get a useful value
-                if data[label]["freq"] == 0:
+                if data[label]["freq"] == 0 and msg[1]['binsize'] != None:
                     data[label]["freq"] = msg[1]['binsize']
                 data[label]["data"] += msg[1]['data']
                 if msg[1]['more'] is False:

@@ -78,7 +78,7 @@ class AmpExternal(Collection):
 
         baselabel = 'group_%s' % (groupid)
 
-        for key, value in groupparams.iteritems():
+        for key, value in groupparams.items():
             if key in self.integerproperties:
                 groupparams[key] = int(value)
 

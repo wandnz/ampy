@@ -105,7 +105,7 @@ class AmpTraceroute(AmpIcmp):
             result = self._fetch_history(uncached, start, end, end-start,
                     detail)
 
-            for label, queryresult in result.iteritems():
+            for label, queryresult in result.items():
                 if len(queryresult['timedout']) != 0:
                     paths[label] = []
                     continue
