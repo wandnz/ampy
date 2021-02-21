@@ -13,7 +13,7 @@ Architecture: all
 # XXX temporarily remove python dependencies, as Debian doesn't package most
 # of the ones that we use
 #Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}
-Depends: ${shlibs:Depends}, ${misc:Depends}, ${python3:Depends}, postgresql, postgresql-client, libnntsc-client, memcached, postgresql-contrib, python3-bcrypt (>= 2.0.0), debconf
+Depends: ${shlibs:Depends}, ${misc:Depends}, ${python3:Depends}, postgresql, postgresql-client, libnntsc-client (>= 1.9), memcached, postgresql-contrib, python3-bcrypt (>= 2.0.0), debconf
 Description: Interface between amp-web and nntsc data storage.
  ampy is a Python library that interfaces between the various front- and
  back-end components of the AMP active measurement system. It serves as
