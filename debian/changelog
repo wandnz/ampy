@@ -1,3 +1,9 @@
+ampy (2.24-2) unstable; urgency=low
+
+  * Build packages for Debian Bullseye, Bookworm and Ubuntu Jammy.
+
+ -- Brendon Jones <brendon.jones@gmail.com>  Tue, 27 Feb 2024 18:57:32 +1300
+
 ampy (2.24-1) unstable; urgency=low
 
   * Update to use python3 rather than python2.
