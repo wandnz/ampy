@@ -132,7 +132,7 @@ class AmpHttp(Collection):
         group properties to their values.
         """
         regex = "FROM (?P<source>[.a-zA-Z0-9_-]+) "
-        regex += "FETCH (?P<destination>[\S]+) "
+        regex += r"FETCH (?P<destination>[\S]+) "
         regex += "MC (?P<maxconn>[0-9]+) (?P<maxconnserver>[0-9]+) "
         regex += "(?P<persist>[A-Z]+) "
         regex += "(?P<maxpersistconn>[0-9]+) "

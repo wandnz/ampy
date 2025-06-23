@@ -118,7 +118,7 @@ class AmpYoutube(Collection):
         group properties to their values.
         """
         regex = "FROM (?P<source>[.a-zA-Z0-9_-]+) "
-        regex += "FETCH (?P<destination>[\S]+) "
+        regex += r"FETCH (?P<destination>[\S]+) "
         regex += "(?P<quality>[0-9]+)"
 
         parts = self._apply_group_regex(regex, description)
