@@ -1,3 +1,10 @@
+ampy (2.25-1) unstable; urgency=low
+
+  * Use raw strings for regular expressions with special patterns.
+  * Build packages for Ubuntu Noble.
+
+ -- Brendon Jones <brendon.jones@gmail.com>  Fri,  4 Jul 2025 21:44:48 +1200
+
 ampy (2.24-2) unstable; urgency=low
 
   * Build packages for Debian Bullseye, Bookworm and Ubuntu Jammy.
